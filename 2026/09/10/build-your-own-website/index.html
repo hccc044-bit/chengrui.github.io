@@ -1,0 +1,508 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>从零搭建自己的技术博客：Hexo + GitHub Pages + 免费短域名实战 | Rui Cheng's Blog</title><meta name="author" content="Rui Cheng"><meta name="copyright" content="Rui Cheng"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="把自己写的东西放到一个属于自己的网址上，是一件比想象中简单的事。这篇文章记录我从零搭起这个博客、并给它绑上一个免费短域名的完整过程，包括所有踩过的坑。 本站就是这套方案的产物：源码用 Hexo，托管在 GitHub Pages，短域名 crui.is-a.dev 通过 is-a.dev 免费申请。整个过程零服务器、零费用、不需要备案。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从零搭建自己的技术博客：Hexo + GitHub Pages + 免费短域名实战">
+<meta property="og:url" content="https://crui.is-a.dev/2026/09/10/build-your-own-website/index.html">
+<meta property="og:site_name" content="Rui Cheng&#39;s Blog">
+<meta property="og:description" content="把自己写的东西放到一个属于自己的网址上，是一件比想象中简单的事。这篇文章记录我从零搭起这个博客、并给它绑上一个免费短域名的完整过程，包括所有踩过的坑。 本站就是这套方案的产物：源码用 Hexo，托管在 GitHub Pages，短域名 crui.is-a.dev 通过 is-a.dev 免费申请。整个过程零服务器、零费用、不需要备案。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://crui.is-a.dev/img/avatar.svg">
+<meta property="article:published_time" content="2026-09-10T08:30:00.000Z">
+<meta property="article:modified_time" content="2026-09-10T08:30:56.285Z">
+<meta property="article:author" content="Rui Cheng">
+<meta property="article:tag" content="GitHub Pages">
+<meta property="article:tag" content="Hexo">
+<meta property="article:tag" content="域名">
+<meta property="article:tag" content="建站教程">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://crui.is-a.dev/img/avatar.svg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "从零搭建自己的技术博客：Hexo + GitHub Pages + 免费短域名实战",
+  "url": "https://crui.is-a.dev/2026/09/10/build-your-own-website/",
+  "image": "https://crui.is-a.dev/img/avatar.svg",
+  "datePublished": "2026-09-10T08:30:00.000Z",
+  "dateModified": "2026-09-10T08:30:56.285Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Rui Cheng",
+      "url": "https://crui.is-a.dev"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://crui.is-a.dev/2026/09/10/build-your-own-website/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.5.3"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.12.0/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '从零搭建自己的技术博客：Hexo + GitHub Pages + 免费短域名实战',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 8.1.1"></head><body><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Rui Cheng's Blog</span></a><a class="nav-page-title" href="/"><span class="site-name">从零搭建自己的技术博客：Hexo + GitHub Pages + 免费短域名实战</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  Back to Home</span></span></a></span><div id="menus"></div></nav><div id="post-info"><h1 class="post-title">从零搭建自己的技术博客：Hexo + GitHub Pages + 免费短域名实战</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2026-09-10T08:30:00.000Z" title="Created 2026-09-10 16:30:00">2026-09-10</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2026-09-10T08:30:56.285Z" title="Updated 2026-09-10 16:30:56">2026-09-10</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%95%99%E7%A8%8B/">教程</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>把自己写的东西放到一个属于自己的网址上，是一件比想象中简单的事。这篇文章记录我从零搭起这个博客、并给它绑上一个免费短域名的完整过程，包括所有踩过的坑。</p>
+<p><strong>本站就是这套方案的产物</strong>：源码用 Hexo，托管在 GitHub Pages，短域名 <code>crui.is-a.dev</code> 通过 is-a.dev 免费申请。整个过程零服务器、零费用、不需要备案。</p>
+<span id="more"></span>
+
+<h2 id="一、先想清楚要什么"><a href="#一、先想清楚要什么" class="headerlink" title="一、先想清楚要什么"></a>一、先想清楚要什么</h2><p>在动手之前，先明确三个问题，它们决定了技术选型：</p>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>本方案的选择</th>
+<th>为什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>内容会频繁变动吗？</td>
+<td>不会，主要是写文章</td>
+<td>静态站点足够，不需要数据库</td>
+</tr>
+<tr>
+<td>有服务器吗？</td>
+<td>没有</td>
+<td>用 GitHub Pages 免费托管</td>
+</tr>
+<tr>
+<td>需要动态功能吗？</td>
+<td>不需要</td>
+<td>纯静态最省心，也最快</td>
+</tr>
+</tbody></table>
+<p><strong>静态博客 + 免费托管的组合</strong>，是目前个人技术博客性价比最高的方案：</p>
+<ul>
+<li><strong>零成本</strong>：GitHub Pages 免费，自定义域名也可以免费</li>
+<li><strong>零运维</strong>：不用管服务器、不用配 Nginx、不用续费</li>
+<li><strong>免备案</strong>：GitHub 服务器在海外，无需 ICP 备案</li>
+<li><strong>版本可追溯</strong>：文章就是 Markdown 文件，扔进 Git 仓库，写错了随时回滚</li>
+</ul>
+<p>代价是：纯静态、没有后台管理界面、国内访问速度一般。但对技术博客来说，这些都不算问题。</p>
+<h2 id="二、准备环境"><a href="#二、准备环境" class="headerlink" title="二、准备环境"></a>二、准备环境</h2><p>需要三样东西：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. Node.js（Hexo 的运行环境），建议 18 以上</span></span><br><span class="line">node -v</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. Git（版本管理 + 部署）</span></span><br><span class="line">git --version</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 一个 GitHub 账号</span></span><br><span class="line"><span class="comment">#    注册地址：https://github.com/signup</span></span><br></pre></td></tr></table></figure>
+
+<p>Node.js 装好之后，全局安装 Hexo 命令行工具：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">npm install -g hexo-cli</span><br><span class="line">hexo -v</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>国内网络如果 <code>npm</code> 很慢，可以临时换成镜像源：<code>npm config set registry https://registry.npmmirror.com</code></p>
+</blockquote>
+<h2 id="三、本地把站点跑起来"><a href="#三、本地把站点跑起来" class="headerlink" title="三、本地把站点跑起来"></a>三、本地把站点跑起来</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 初始化一个博客项目，会在当前目录创建 blog 文件夹</span></span><br><span class="line">hexo init blog</span><br><span class="line"><span class="built_in">cd</span> blog</span><br><span class="line"></span><br><span class="line"><span class="comment"># 安装依赖</span></span><br><span class="line">npm install</span><br><span class="line"></span><br><span class="line"><span class="comment"># 本地预览（默认 http://localhost:4000）</span></span><br><span class="line">hexo server</span><br></pre></td></tr></table></figure>
+
+<p>打开 <code>http://localhost:4000</code>，应该能看到一个默认的 Hello World 页面。此时目录结构大致是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">blog/</span><br><span class="line">├── _config.yml            # 站点主配置（最重要）</span><br><span class="line">├── package.json           # 依赖清单</span><br><span class="line">├── scaffolds/             # 新建文章时的模板</span><br><span class="line">├── source/</span><br><span class="line">│   ├── _posts/            # 你写的文章都放这里</span><br><span class="line">│   └── images/            # 文章引用的图片</span><br><span class="line">├── themes/                # 主题</span><br><span class="line">└── public/                # 编译产物（会自动生成）</span><br></pre></td></tr></table></figure>
+
+<p>理解 <strong><code>source/</code> 是源文件、<code>public/</code> 是编译产物</strong>，这一点很关键——后面所有配置错误导致的”页面样式全丢”，基本都是这两个目录的关系没搞对。</p>
+<h2 id="四、换一个好看的主题"><a href="#四、换一个好看的主题" class="headerlink" title="四、换一个好看的主题"></a>四、换一个好看的主题</h2><p>Hexo 自带的主题比较朴素。我用的是 <a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a>，功能全、文档好、中文社区活跃。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> blog</span><br><span class="line"></span><br><span class="line"><span class="comment"># 把主题克隆到 themes/ 目录（不要用 npm 装主题，容易出问题）</span></span><br><span class="line">git <span class="built_in">clone</span> -b master https://github.com/jerryc127/hexo-theme-butterfly.git themes/butterfly</span><br><span class="line"></span><br><span class="line"><span class="comment"># Butterfly 需要额外的渲染器</span></span><br><span class="line">npm install hexo-renderer-pug hexo-renderer-stylus --save</span><br></pre></td></tr></table></figure>
+
+<p>然后在 <code>_config.yml</code> 里启用：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">theme:</span> <span class="string">butterfly</span></span><br></pre></td></tr></table></figure>
+
+<p>Butterfly 的配置<strong>不要直接改主题目录里的文件</strong>，正确做法是把 <code>themes/butterfly/_config.yml</code> 复制一份到博客根目录，命名为 <code>_config.butterfly.yml</code>，之后只改这一份。这样以后升级主题不会覆盖你的配置。</p>
+<h2 id="五、必须改的站点配置"><a href="#五、必须改的站点配置" class="headerlink" title="五、必须改的站点配置"></a>五、必须改的站点配置</h2><p>打开 <code>_config.yml</code>，以下几项<strong>不改会显得很业余</strong>（尤其是申请免费域名时会被拒，后面会讲）：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Site</span></span><br><span class="line"><span class="attr">title:</span> <span class="string">你的博客名字</span></span><br><span class="line"><span class="attr">subtitle:</span> <span class="string">&#x27;一句话副标题&#x27;</span></span><br><span class="line"><span class="attr">description:</span> <span class="string">&#x27;站点描述，会出现在搜索引擎结果里&#x27;</span></span><br><span class="line"><span class="attr">keywords:</span> <span class="string">关键词1,关键词2</span></span><br><span class="line"><span class="attr">author:</span> <span class="string">你的名字</span></span><br><span class="line"><span class="attr">language:</span> <span class="string">zh-CN</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># URL —— 这一项最容易出错，见下方说明</span></span><br><span class="line"><span class="attr">url:</span> <span class="string">https://你的地址/</span></span><br><span class="line"><span class="attr">root:</span> <span class="string">/</span></span><br></pre></td></tr></table></figure>
+
+<p><code>url</code> 和 <code>root</code> 的对应关系，是新手翻车第一名：</p>
+<table>
+<thead>
+<tr>
+<th>你的站点地址</th>
+<th>url</th>
+<th>root</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>https://用户名.github.io/</code></td>
+<td><code>https://用户名.github.io/</code></td>
+<td><code>/</code></td>
+</tr>
+<tr>
+<td><code>https://用户名.github.io/仓库名/</code></td>
+<td><code>https://用户名.github.io/仓库名/</code></td>
+<td><code>/仓库名/</code></td>
+</tr>
+<tr>
+<td><code>https://自定义域名/</code></td>
+<td><code>https://自定义域名/</code></td>
+<td><code>/</code></td>
+</tr>
+</tbody></table>
+<p><strong>只要绑定了自定义域名，<code>root</code> 就必须是 <code>/</code></strong>。写错了不会报错，但整站的 CSS、JS、图片全部 404，页面会变成纯文字——这是最常见的求助帖。</p>
+<p>另外顺手检查一下主题配置里的社交链接，模板自带的占位符长这样，记得换成你自己的：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">social:</span></span><br><span class="line">  <span class="attr">github:</span> <span class="string">https://github.com/xxxxxx</span>    <span class="comment"># 换成真实地址</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="六、部署到-GitHub-Pages"><a href="#六、部署到-GitHub-Pages" class="headerlink" title="六、部署到 GitHub Pages"></a>六、部署到 GitHub Pages</h2><p>GitHub Pages 有两种仓库形态，<strong>选错了地址会多出一截</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>仓库名</th>
+<th>访问地址</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>用户名.github.io</code></td>
+<td><code>https://用户名.github.io/</code></td>
+</tr>
+<tr>
+<td>其他任意名字（如 <code>blog</code>、<code>my-site</code>）</td>
+<td><code>https://用户名.github.io/仓库名/</code></td>
+</tr>
+</tbody></table>
+<p>也就是说，<strong>只有仓库名严格等于 <code>用户名.github.io</code> 时，站点才挂在域名根路径下</strong>。</p>
+<p>下面按”普通仓库”演示（本博客就是这种，仓库名叫 <code>chengrui.github.io</code>，但用户名是 <code>hccc044-bit</code>，所以地址里带了一层后缀）。</p>
+<h3 id="1-在-GitHub-上创建仓库"><a href="#1-在-GitHub-上创建仓库" class="headerlink" title="1. 在 GitHub 上创建仓库"></a>1. 在 GitHub 上创建仓库</h3><p>新建一个<strong>公开</strong>仓库。如果打算用根路径访问，仓库名就填 <code>你的用户名.github.io</code>。</p>
+<h3 id="2-配置-SSH-免密推送"><a href="#2-配置-SSH-免密推送" class="headerlink" title="2. 配置 SSH 免密推送"></a>2. 配置 SSH 免密推送</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 生成密钥（一路回车即可）</span></span><br><span class="line">ssh-keygen -t ed25519 -C <span class="string">&quot;你的邮箱&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看公钥内容，复制它</span></span><br><span class="line"><span class="built_in">cat</span> ~/.ssh/id_ed25519.pub</span><br></pre></td></tr></table></figure>
+
+<p>把复制的内容粘贴到 GitHub → Settings → SSH and GPG keys → New SSH key。然后验证：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh -T git@github.com</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-安装部署插件并配置"><a href="#3-安装部署插件并配置" class="headerlink" title="3. 安装部署插件并配置"></a>3. 安装部署插件并配置</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">npm install hexo-deployer-git --save</span><br></pre></td></tr></table></figure>
+
+<p>在 <code>_config.yml</code> 末尾加上：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">deploy:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">git</span></span><br><span class="line">  <span class="attr">repo:</span> <span class="string">git@github.com:你的用户名/你的仓库名.git</span></span><br><span class="line">  <span class="attr">branch:</span> <span class="string">main</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-构建并部署"><a href="#4-构建并部署" class="headerlink" title="4. 构建并部署"></a>4. 构建并部署</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hexo clean &amp;&amp; hexo generate &amp;&amp; hexo deploy</span><br></pre></td></tr></table></figure>
+
+<p>三个命令的作用分别是：清空编译产物 → 重新编译 → 推送到 GitHub。<strong>顺序不要变</strong>，<code>clean</code> 放在最前面能避免很多诡异的缓存问题。</p>
+<p>部署完等一两分钟，去 <code>https://用户名.github.io/仓库名/</code> 就能看到了。</p>
+<blockquote>
+<p>如果页面能打开但没有样式，回去看第五节的 <code>url</code> &#x2F; <code>root</code> 配置。</p>
+</blockquote>
+<h2 id="七、给它绑一个短域名"><a href="#七、给它绑一个短域名" class="headerlink" title="七、给它绑一个短域名"></a>七、给它绑一个短域名</h2><p>到这一步，你的地址大概长这样：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://hccc044-bit.github.io/chengrui.github.io/     ← 41 个字符，实在不像个正经网址</span><br></pre></td></tr></table></figure>
+
+<p>有两条路可以缩短它。</p>
+<h3 id="路线-A：免费申请-is-a-dev-子域名（本博客采用）"><a href="#路线-A：免费申请-is-a-dev-子域名（本博客采用）" class="headerlink" title="路线 A：免费申请 is-a.dev 子域名（本博客采用）"></a>路线 A：免费申请 is-a.dev 子域名（本博客采用）</h3><p><a target="_blank" rel="noopener" href="https://www.is-a.dev/">is-a.dev</a> 是一个面向开发者的免费子域名服务，提供给技术相关的个人站点使用。你能拿到形如 <code>你的名字.is-a.dev</code> 的地址，<strong>完全免费、自带 HTTPS、由 Cloudflare 提供 DNS</strong>。</p>
+<blockquote>
+<p><strong>先说一个被排除的选项</strong>：<code>js.org</code> 看起来更香（<code>名字.js.org</code> 才 10 个字符），但它官方已明确规定<strong>不再接受个人博客和作品集</strong>，只收 npm 包、JS 库、工具类项目。个人博客提交了也会被拒，不用浪费时间。</p>
+</blockquote>
+<h4 id="申请流程"><a href="#申请流程" class="headerlink" title="申请流程"></a>申请流程</h4><p><strong>① 想好名字</strong></p>
+<p>子域名结构是 <code>你起的名字.is-a.dev</code>，中间那截 <code>is-a</code> 是固定的、不能拆。</p>
+<p><strong>② Fork 官方仓库</strong></p>
+<p>打开 <a target="_blank" rel="noopener" href="https://github.com/is-a-dev/register">github.com&#x2F;is-a-dev&#x2F;register</a>，点右上角 <strong>Fork</strong>。</p>
+<p><strong>③ 在你的 fork 里创建申请文件</strong></p>
+<p>进入 <code>domains/</code> 文件夹 → 右上角 <code>Add file</code> → <code>Create new file</code> → 文件名填 <code>你的名字.json</code>（因为在 <code>domains/</code> 里，完整路径自动就是 <code>domains/你的名字.json</code>）。</p>
+<p>内容如下：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;owner&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;username&quot;</span><span class="punctuation">:</span> <span class="string">&quot;你的GitHub用户名&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;email&quot;</span><span class="punctuation">:</span> <span class="string">&quot;你的邮箱&quot;</span></span><br><span class="line">  <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;records&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;CNAME&quot;</span><span class="punctuation">:</span> <span class="string">&quot;你的GitHub用户名.github.io&quot;</span></span><br><span class="line">  <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>这两个地方写错必被拒</strong>：</p>
+<ul>
+<li>字段名是 <strong><code>records</code>（复数）</strong>，写成 <code>record</code> 会 fail validation</li>
+<li>CNAME 的值<strong>不能带仓库名</strong>，必须正好是 <code>用户名.github.io</code>。写成 <code>用户名.github.io/仓库名</code> 是错的</li>
+</ul>
+<p><strong>④ 提交 Pull Request</strong></p>
+<p>在提交页面，选择 <strong><code>Create a new branch for this commit and start a pull request</code></strong>（此时按钮文字会从 <code>Commit changes</code> 变成 <code>Propose changes</code>，两者都对，取决于你选的选项）。</p>
+<p>然后跳转到 PR 页面，<strong>确认左侧的 base repository 是 <code>is-a-dev/register</code></strong>。如果你停在 <code>你的用户名/register/compare/...</code>，那是 fork 内部对比页，会变成”自己合并到自己”，官方收不到。正确地址格式：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://github.com/is-a-dev/register/compare/main...你的用户名:分支名?expand=1</span><br></pre></td></tr></table></figure>
+
+<p>也可以用更省事的办法：回到 fork 首页，顶部黄色横幅 <code>Compare &amp; pull request</code> 按钮会帮你选好正确方向。</p>
+<p><strong>⑤ 填写 PR 模板（这一步决定生死）</strong></p>
+<p>模板里有 <strong>7 个 Requirements 复选框，必须全部勾上</strong>，而且只能改方括号：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">- [x]   ← 正确</span><br><span class="line">- []    ← 错误（括号内有空格）</span><br><span class="line">- [X]   ← 不推荐（要求小写 x）</span><br></pre></td></tr></table></figure>
+
+<p>编辑方法：找到自己那条 PR 描述 → 右上角 <code>...</code> → <code>Edit</code> → 改完后点 <code>Update comment</code>。</p>
+<p>模板明确警告：<strong>除了复选框，那个区域里其它内容一个字都不能动</strong>（包括 <code>&lt;!-- 注释 --&gt;</code>），否则会 fail validation。</p>
+<p>另外两处要填的：</p>
+<ul>
+<li><code>WEBSITE_PREVIEW</code> 之间填<strong>你网站当前已在使用的地址</strong>（不是还没生效的新域名），例如 <code>https://用户名.github.io/仓库名/</code></li>
+<li><code>WEBSITE_PURPOSE</code> 之间用一句英文说明网站用途</li>
+</ul>
+<p><strong>⑥ 等维护者审核合并</strong></p>
+<p>快则几分钟，慢则一两天。这期间可以顺手把网站内容完善一下——<strong>模板明确不接受”Hello, world!”或仅做最小改动的模板站</strong>，审核者打开你的站点会人工判断。建议提交前清理这些模板痕迹：</p>
+<ul>
+<li><code>_config.yml</code> 里还是默认的 <code>title: Hexo</code>、空的 <code>description</code>、<code>keywords: First Blog Test</code></li>
+<li>主题自带的蝴蝶 logo 还当着头像用</li>
+<li>还留着 Hexo 默认的 <code>hello-world</code> 文章</li>
+</ul>
+<p><strong>⑦ 判断是否已合并（重要，别用 DNS 判断）</strong></p>
+<p>先说一个坑：<strong><code>*.is-a.dev</code> 是泛解析</strong>。任何不存在的子域都会解析到 Cloudflare 的 IP（<code>104.18.4.103</code> &#x2F; <code>104.18.5.103</code>），所以**”能 ping 通”完全不能说明域名已生效**。</p>
+<p>唯一可靠的判据是看申请文件有没有进主分支：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">curl -s -o /dev/null -w <span class="string">&quot;%&#123;http_code&#125;\n&quot;</span> \</span><br><span class="line">  https://api.github.com/repos/is-a-dev/register/contents/domains/你的名字.json</span><br></pre></td></tr></table></figure>
+
+<p>返回 <code>404</code> &#x3D; 还没合并；返回 <code>200</code> &#x3D; 已合并，可以继续下一步了。</p>
+<h4 id="合并之后：切换配置（顺序不能错）"><a href="#合并之后：切换配置（顺序不能错）" class="headerlink" title="合并之后：切换配置（顺序不能错）"></a>合并之后：切换配置（顺序不能错）</h4><p><strong>① 改 <code>_config.yml</code></strong></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">url:</span> <span class="string">https://你的名字.is-a.dev/</span></span><br><span class="line"><span class="attr">root:</span> <span class="string">/</span>                              <span class="comment"># 必须是 /，不能是原来的 /仓库名/</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>② 新建 <code>source/CNAME</code></strong></p>
+<p>内容就一行：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">你的名字.is-a.dev</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><strong>为什么必须放 <code>source/</code> 而不是 <code>public/</code></strong>：<code>hexo clean</code> 会清空 <code>public/</code>，放那里下次部署绑定就失效了。</p>
+</blockquote>
+<blockquote>
+<p><strong>⚠️ 一个必须知道的陷阱</strong>：只要 <code>source/CNAME</code> 被部署到发布分支，<strong>GitHub Pages 会立刻把它当成自定义域名设置</strong>。如果此时 DNS 还没生效，你的旧地址也会打不开。所以在 PR 合并<strong>之前</strong>不要提前把这个文件部署上去——如果需要在审核期间更新站点内容，先把 <code>source/CNAME</code> 移出部署范围（比如移到 <code>_local_backup/</code>），等合并后再移回来。</p>
+</blockquote>
+<p><strong>③ 重新构建部署</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hexo clean &amp;&amp; hexo generate &amp;&amp; hexo deploy</span><br></pre></td></tr></table></figure>
+
+<p><strong>④ 开启强制 HTTPS</strong></p>
+<p>去仓库的 <strong>Settings → Pages</strong>，确认 Custom domain 已经是你申请的域名，然后勾选 <strong>Enforce HTTPS</strong>。</p>
+<p>证书签发通常几分钟内完成，但那个勾选框要手动点。<strong>在勾上之前，你的旧地址会 301 跳转到 <code>http://</code>（注意是 http）</strong>，访客可能看到”不安全”提示，所以这一步别拖太久。</p>
+<h3 id="路线-B：自己买一个域名"><a href="#路线-B：自己买一个域名" class="headerlink" title="路线 B：自己买一个域名"></a>路线 B：自己买一个域名</h3><p>如果想要更短或者更正式的名字，就买一个。绑定 GitHub Pages 需要的 DNS 记录如下：</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>主机记录</th>
+<th>记录值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A</td>
+<td><code>@</code></td>
+<td><code>185.199.108.153</code></td>
+</tr>
+<tr>
+<td>A</td>
+<td><code>@</code></td>
+<td><code>185.199.109.153</code></td>
+</tr>
+<tr>
+<td>A</td>
+<td><code>@</code></td>
+<td><code>185.199.110.153</code></td>
+</tr>
+<tr>
+<td>A</td>
+<td><code>@</code></td>
+<td><code>185.199.111.153</code></td>
+</tr>
+<tr>
+<td>CNAME</td>
+<td><code>www</code></td>
+<td><code>你的用户名.github.io</code></td>
+</tr>
+</tbody></table>
+<p>其余步骤（<code>url</code> &#x2F; <code>root</code>、<code>source/CNAME</code>、Enforce HTTPS）与路线 A 完全一致。</p>
+<p>几个现实提醒：</p>
+<ul>
+<li><strong>字母越少越贵</strong>。3 字母以内的 <code>.com</code> 基本被抢光，能注册到的多是冷门后缀，而且很可能被注册局标为<strong>溢价域名</strong>——结账页显示的价格可能是几百上千元&#x2F;年</li>
+<li>查域名是否被注册可以用 RDAP：<code>https://rdap.org/domain/要查的域名</code>，返回 404 即未被注册</li>
+<li>但**”未被注册”不等于”便宜”**，真实价格以注册商结账页为准</li>
+</ul>
+<h2 id="八、踩坑清单"><a href="#八、踩坑清单" class="headerlink" title="八、踩坑清单"></a>八、踩坑清单</h2><p>把这次遇到的所有问题汇总成一张表，供快速查阅：</p>
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>解决</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>全站没有样式，只有纯文字</td>
+<td>绑定域名后 <code>root</code> 还是 <code>/仓库名/</code></td>
+<td><code>root</code> 改成 <code>/</code></td>
+</tr>
+<tr>
+<td><code>hexo deploy</code> 报 <code>SAFE_DELETE_BULK_CONFIRM_REQUIRED</code></td>
+<td>某些环境有批量删除保护，部署要清空 <code>.deploy_git</code> 时被拦</td>
+<td>见下方说明</td>
+</tr>
+<tr>
+<td>绑了域名但访问不了</td>
+<td>DNS 还没生效</td>
+<td>等几分钟到 24 小时</td>
+</tr>
+<tr>
+<td><code>xxx.is-a.dev</code> 能解析但打不开</td>
+<td>is-a.dev 是泛解析，解析成功不代表已生效</td>
+<td>用 API 查 <code>domains/xxx.json</code> 是否返回 200</td>
+</tr>
+<tr>
+<td>旧地址打开了”不安全”提示</td>
+<td>还没勾 Enforce HTTPS</td>
+<td>Settings → Pages 勾上</td>
+</tr>
+<tr>
+<td>新域名生效后旧地址自动跳转</td>
+<td><strong>正常行为，不用管</strong></td>
+<td>GitHub 自动 301</td>
+</tr>
+<tr>
+<td>换主题后配置被覆盖</td>
+<td>直接改了主题目录里的 <code>_config.yml</code></td>
+<td>配置放博客根目录的 <code>_config.butterfly.yml</code></td>
+</tr>
+</tbody></table>
+<p>关于部署被拦截：<code>hexo-deployer-git</code> 在推送前需要清空 <code>.deploy_git</code> 目录下的所有文件，文件较多时会触发环境的批量删除保护。此时 <code>.deploy_git</code> 里通常<strong>已经生成了内容正确的提交</strong>，可以绕过清理步骤直接推送：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> .deploy_git</span><br><span class="line"></span><br><span class="line"><span class="comment"># 恢复被中断清理的工作区</span></span><br><span class="line">git restore .</span><br><span class="line"></span><br><span class="line"><span class="comment"># 与编译产物比对，确认内容完整（中文文件名可能有引号编码差异，属正常）</span></span><br><span class="line">git ls-tree -r HEAD --name-only | <span class="built_in">sort</span> &gt; /tmp/head.txt</span><br><span class="line">(<span class="built_in">cd</span> ../public &amp;&amp; find . -<span class="built_in">type</span> f | sed <span class="string">&#x27;s|^\./||&#x27;</span> | <span class="built_in">sort</span>) &gt; /tmp/pub.txt</span><br><span class="line">diff /tmp/head.txt /tmp/pub.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 直接推送（本地分支常是 master，远端是 main，用冒号映射）</span></span><br><span class="line">git push git@github.com:你的用户名/你的仓库名.git master:main</span><br></pre></td></tr></table></figure>
+
+<p>确认是快进推送，<strong>不要加 <code>-f</code></strong>。</p>
+<h2 id="九、日常写作与发布"><a href="#九、日常写作与发布" class="headerlink" title="九、日常写作与发布"></a>九、日常写作与发布</h2><p>建站只是开始，真正要做的是持续写。日常流程只有三步：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 新建文章（会在 source/_posts/ 下生成带模板的 md 文件）</span></span><br><span class="line">hexo new post <span class="string">&quot;文章标题&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 用 Markdown 写内容，本地预览</span></span><br><span class="line">hexo server</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 发布</span></span><br><span class="line">hexo clean &amp;&amp; hexo generate &amp;&amp; hexo deploy</span><br></pre></td></tr></table></figure>
+
+<p>文章开头的 front matter 是元信息：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">title:</span> <span class="string">文章标题</span></span><br><span class="line"><span class="attr">date:</span> <span class="number">2026-09-10 16:30:00</span></span><br><span class="line"><span class="attr">tags:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">标签一</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">标签二</span></span><br><span class="line"><span class="attr">categories:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">分类名</span></span><br><span class="line"><span class="meta">---</span></span><br></pre></td></tr></table></figure>
+
+<p>文章里插入图片，把图片放进 <code>source/images/</code>，然后按绝对路径引用：</p>
+<figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">![<span class="string">图片说明</span>](<span class="link">/images/图片文件名.png</span>)</span><br></pre></td></tr></table></figure>
+
+<p>注意是 <code>/images/</code> 而不是 <code>images/</code>——<strong>开头的斜杠不能少</strong>，否则非首页的文章会找不到图片。</p>
+<h2 id="十、本博客的最终架构"><a href="#十、本博客的最终架构" class="headerlink" title="十、本博客的最终架构"></a>十、本博客的最终架构</h2><p>回头看整个方案，所有组件都是免费或开源的：</p>
+<table>
+<thead>
+<tr>
+<th>环节</th>
+<th>用到的服务</th>
+<th>成本</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>静态站点生成</td>
+<td>Hexo + Butterfly 主题</td>
+<td>免费开源</td>
+</tr>
+<tr>
+<td>代码与内容托管</td>
+<td>GitHub 仓库</td>
+<td>免费</td>
+</tr>
+<tr>
+<td>网站托管</td>
+<td>GitHub Pages</td>
+<td>免费</td>
+</tr>
+<tr>
+<td>域名</td>
+<td>is-a.dev 子域名</td>
+<td>免费</td>
+</tr>
+<tr>
+<td>DNS</td>
+<td>Cloudflare（is-a.dev 提供）</td>
+<td>免费</td>
+</tr>
+<tr>
+<td>HTTPS 证书</td>
+<td>Let’s Encrypt（GitHub 自动配置）</td>
+<td>免费，自动续期</td>
+</tr>
+</tbody></table>
+<p>最终地址是 <strong><a href="https://crui.is-a.dev/">https://crui.is-a.dev</a></strong>——16 个字符，纯 HTTPS，证书自动续期。</p>
+<p>从 41 个字符到 16 个字符，中间隔着一个 Fork、一次 PR、七个复选框、两次配置修改和一个勾选框。不算复杂，但每一步都有自己的坑。</p>
+<p>希望这篇文档能帮你少走一些弯路。如果对文中某个环节有疑问，欢迎通过首页的邮箱联系我。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://crui.is-a.dev">Rui Cheng</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://crui.is-a.dev/2026/09/10/build-your-own-website/">https://crui.is-a.dev/2026/09/10/build-your-own-website/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Hexo/">Hexo</a><a class="post-meta__tags" href="/tags/GitHub-Pages/">GitHub Pages</a><a class="post-meta__tags" href="/tags/%E5%BB%BA%E7%AB%99%E6%95%99%E7%A8%8B/">建站教程</a><a class="post-meta__tags" href="/tags/%E5%9F%9F%E5%90%8D/">域名</a></div><div class="post-share"><div class="social-share" data-image="/img/avatar.svg" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/2026/01/05/Kiro%E8%BF%9C%E7%A8%8B%E8%BF%9E%E6%8E%A5%E6%8F%92%E4%BB%B6%E4%BD%BF%E7%94%A8/" title="Kiro远程连接插件使用"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">Kiro远程连接插件使用</div></div><div class="info-2"><div class="info-item-1">在使用 Kiro 进行远程 SSH 时，发现官方扩展中的微软 SSH 插件不支持 Remote 功能。推荐使用以下第三方插件替代： 插件下载🔗 open-remote-ssh v0.0.49 安装步骤 下载 .vsix 文件   打开 Kiro，点击左侧 扩展图标   点击右上角 ⋯ → 从 VSIX 安装   选择下载的文件，完成安装即可使用   安装后即可正常通过 SSH 远程连接服务器。  </div></div></div></a></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.svg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Rui Cheng</div><div class="author-info-description">Notes on Linux, HPC and the tools I use.</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">2</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">4</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">1</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/hccc044-bit"><i class="fab fa-github"></i><span>Follow Me</span></a></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">Welcome! This blog collects my hands-on notes on Linux, HPC, Kubernetes and developer tools.</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E5%85%88%E6%83%B3%E6%B8%85%E6%A5%9A%E8%A6%81%E4%BB%80%E4%B9%88"><span class="toc-number">1.</span> <span class="toc-text">一、先想清楚要什么</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E5%87%86%E5%A4%87%E7%8E%AF%E5%A2%83"><span class="toc-number">2.</span> <span class="toc-text">二、准备环境</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E6%9C%AC%E5%9C%B0%E6%8A%8A%E7%AB%99%E7%82%B9%E8%B7%91%E8%B5%B7%E6%9D%A5"><span class="toc-number">3.</span> <span class="toc-text">三、本地把站点跑起来</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E6%8D%A2%E4%B8%80%E4%B8%AA%E5%A5%BD%E7%9C%8B%E7%9A%84%E4%B8%BB%E9%A2%98"><span class="toc-number">4.</span> <span class="toc-text">四、换一个好看的主题</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81%E5%BF%85%E9%A1%BB%E6%94%B9%E7%9A%84%E7%AB%99%E7%82%B9%E9%85%8D%E7%BD%AE"><span class="toc-number">5.</span> <span class="toc-text">五、必须改的站点配置</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AD%E3%80%81%E9%83%A8%E7%BD%B2%E5%88%B0-GitHub-Pages"><span class="toc-number">6.</span> <span class="toc-text">六、部署到 GitHub Pages</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E5%9C%A8-GitHub-%E4%B8%8A%E5%88%9B%E5%BB%BA%E4%BB%93%E5%BA%93"><span class="toc-number">6.1.</span> <span class="toc-text">1. 在 GitHub 上创建仓库</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E9%85%8D%E7%BD%AE-SSH-%E5%85%8D%E5%AF%86%E6%8E%A8%E9%80%81"><span class="toc-number">6.2.</span> <span class="toc-text">2. 配置 SSH 免密推送</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E5%AE%89%E8%A3%85%E9%83%A8%E7%BD%B2%E6%8F%92%E4%BB%B6%E5%B9%B6%E9%85%8D%E7%BD%AE"><span class="toc-number">6.3.</span> <span class="toc-text">3. 安装部署插件并配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-%E6%9E%84%E5%BB%BA%E5%B9%B6%E9%83%A8%E7%BD%B2"><span class="toc-number">6.4.</span> <span class="toc-text">4. 构建并部署</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%83%E3%80%81%E7%BB%99%E5%AE%83%E7%BB%91%E4%B8%80%E4%B8%AA%E7%9F%AD%E5%9F%9F%E5%90%8D"><span class="toc-number">7.</span> <span class="toc-text">七、给它绑一个短域名</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%B7%AF%E7%BA%BF-A%EF%BC%9A%E5%85%8D%E8%B4%B9%E7%94%B3%E8%AF%B7-is-a-dev-%E5%AD%90%E5%9F%9F%E5%90%8D%EF%BC%88%E6%9C%AC%E5%8D%9A%E5%AE%A2%E9%87%87%E7%94%A8%EF%BC%89"><span class="toc-number">7.1.</span> <span class="toc-text">路线 A：免费申请 is-a.dev 子域名（本博客采用）</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B"><span class="toc-number">7.1.1.</span> <span class="toc-text">申请流程</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%90%88%E5%B9%B6%E4%B9%8B%E5%90%8E%EF%BC%9A%E5%88%87%E6%8D%A2%E9%85%8D%E7%BD%AE%EF%BC%88%E9%A1%BA%E5%BA%8F%E4%B8%8D%E8%83%BD%E9%94%99%EF%BC%89"><span class="toc-number">7.1.2.</span> <span class="toc-text">合并之后：切换配置（顺序不能错）</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%B7%AF%E7%BA%BF-B%EF%BC%9A%E8%87%AA%E5%B7%B1%E4%B9%B0%E4%B8%80%E4%B8%AA%E5%9F%9F%E5%90%8D"><span class="toc-number">7.2.</span> <span class="toc-text">路线 B：自己买一个域名</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AB%E3%80%81%E8%B8%A9%E5%9D%91%E6%B8%85%E5%8D%95"><span class="toc-number">8.</span> <span class="toc-text">八、踩坑清单</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B9%9D%E3%80%81%E6%97%A5%E5%B8%B8%E5%86%99%E4%BD%9C%E4%B8%8E%E5%8F%91%E5%B8%83"><span class="toc-number">9.</span> <span class="toc-text">九、日常写作与发布</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8D%81%E3%80%81%E6%9C%AC%E5%8D%9A%E5%AE%A2%E7%9A%84%E6%9C%80%E7%BB%88%E6%9E%B6%E6%9E%84"><span class="toc-number">10.</span> <span class="toc-text">十、本博客的最终架构</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/09/10/build-your-own-website/" title="从零搭建自己的技术博客：Hexo + GitHub Pages + 免费短域名实战">从零搭建自己的技术博客：Hexo + GitHub Pages + 免费短域名实战</a><time datetime="2026-09-10T08:30:00.000Z" title="Created 2026-09-10 16:30:00">2026-09-10</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/01/05/Kiro%E8%BF%9C%E7%A8%8B%E8%BF%9E%E6%8E%A5%E6%8F%92%E4%BB%B6%E4%BD%BF%E7%94%A8/" title="Kiro远程连接插件使用">Kiro远程连接插件使用</a><time datetime="2026-01-05T09:04:11.000Z" title="Created 2026-01-05 17:04:11">2026-01-05</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Rui Cheng</span><span class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.1</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.3</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.3"></script><script src="/js/main.js?v=5.5.3"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
