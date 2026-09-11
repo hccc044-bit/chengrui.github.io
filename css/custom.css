@@ -1,0 +1,179 @@
+/* ==========================================================================
+   首页 Banner 视觉增强
+   --------------------------------------------------------------------------
+   依赖：source/img/hero-bg.svg（背景图）
+   作用域：全部规则都限定在 #page-header.full_page（仅首页 Banner），
+          不影响文章页、归档页等其他页面的顶部区域。
+   加载顺序：由 _config.butterfly.yml 的 inject.head 注入，
+            位于主题 main.css 之后，同优先级下自定义规则胜出。
+   ========================================================================== */
+
+/* --- 动画关键帧 ---------------------------------------------------------- */
+
+/* 元素上浮入场 */
+@keyframes heroRise {
+  from { opacity: 0; transform: translate3d(0, 22px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+/* 标题下方装饰线展开 */
+@keyframes heroBarGrow {
+  from { opacity: 0; transform: scaleX(0); }
+  to   { opacity: 1; transform: scaleX(1); }
+}
+
+/* 背景辉光缓慢漂移，制造「活」的感觉 */
+@keyframes heroDrift {
+  from { transform: translate3d(-1.6%, -1.2%, 0) scale(1.04); opacity: .7; }
+  to   { transform: translate3d(1.6%, 1.6%, 0) scale(1.1);  opacity: 1; }
+}
+
+/* 打字机光标 */
+@keyframes heroCursor {
+  0%, 45%   { opacity: 1; }
+  50%, 100% { opacity: .12; }
+}
+
+/* 下拉箭头呼吸感 */
+@keyframes heroArrow {
+  0%, 100% { opacity: .55; transform: translateY(0); }
+  50%      { opacity: 1;   transform: translateY(6px); }
+}
+
+/* --- 1. 背景层：叠加动态辉光 -------------------------------------------- */
+/* 主题的 :before 已用作 mask 遮罩，这里用 :after 叠加一层会呼吸的冷光，
+   并显式设定 z-index，确保它压在背景之上、文字之下。 */
+#page-header.full_page::after {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(920px 480px at 16% 20%, rgba(34, 211, 238, .20), transparent 62%),
+    radial-gradient(780px 420px at 86% 76%, rgba(99, 102, 241, .18), transparent 62%),
+    radial-gradient(620px 340px at 52% 96%, rgba(56, 189, 248, .12), transparent 68%);
+  content: '';
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: heroDrift 20s ease-in-out infinite alternate;
+}
+
+/* 文字与箭头必须浮在辉光层之上 */
+#page-header.full_page #site-info,
+#page-header.full_page #scroll-down {
+  z-index: 3;
+}
+
+/* --- 2. 主标题 ---------------------------------------------------------- */
+#page-header.full_page #site-title {
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: .01em;
+  text-shadow:
+    0 0 26px rgba(56, 189, 248, .45),
+    0 0 72px rgba(14, 165, 233, .26),
+    0 4px 26px rgba(0, 0, 0, .55);
+  animation: heroRise .9s .1s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+@media (min-width: 768px) {
+  #page-header.full_page #site-title {
+    font-size: 3.35em;
+  }
+}
+
+/* 标题下方的渐变装饰线 */
+#page-header.full_page #site-title::after {
+  display: block;
+  width: 76px;
+  height: 3px;
+  margin: 22px auto 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(34, 211, 238, 0),
+    #22d3ee 24%,
+    #818cf8 76%,
+    rgba(129, 140, 248, 0)
+  );
+  box-shadow: 0 0 16px rgba(34, 211, 238, .8);
+  content: '';
+  animation: heroBarGrow .9s .48s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+/* --- 3. 副标题：等宽字体 + 青色辉光 ------------------------------------ */
+#page-header.full_page #site-subtitle {
+  margin-top: 10px;
+  color: #8fe8ff;
+  font-family: "JetBrains Mono", "Cascadia Mono", "SFMono-Regular",
+    Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 1em;
+  letter-spacing: .05em;
+  text-shadow:
+    0 0 14px rgba(34, 211, 238, .6),
+    0 2px 10px rgba(0, 0, 0, .6);
+  animation: heroRise .9s .42s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+@media (min-width: 768px) {
+  #page-header.full_page #site-subtitle {
+    font-size: 1.28em;
+  }
+}
+
+/* 打字机光标（typed.js 生成，用更高优先级覆盖其默认样式） */
+#page-header.full_page #site-subtitle .typed-cursor {
+  color: #22d3ee;
+  font-weight: 400;
+  text-shadow: 0 0 14px rgba(34, 211, 238, 1);
+  animation: heroCursor 1.05s steps(1, end) infinite;
+}
+
+/* --- 4. 下拉箭头 -------------------------------------------------------- */
+#page-header.full_page #scroll-down .scroll-down-effects {
+  color: #a5f3fc;
+  text-shadow: 0 0 16px rgba(34, 211, 238, .9);
+  animation: heroArrow 2.4s ease-in-out infinite;
+}
+
+/* --- 5. 导航栏标题：轻微收紧字距，显得更利落 --------------------------- */
+#page-header .nav-site-title .site-name {
+  letter-spacing: .02em;
+  font-weight: 700;
+}
+
+/* --- 6. 小屏适配：缩小装饰线间距，避免文字被挤 ------------------------- */
+@media (max-width: 768px) {
+  #page-header.full_page #site-title::after {
+    width: 56px;
+    margin: 16px auto 2px;
+  }
+
+  #page-header.full_page #site-subtitle {
+    margin-top: 8px;
+    letter-spacing: .03em;
+  }
+}
+
+/* --- 7. 深色模式：略微提亮辉光，避免整体过暗 --------------------------- */
+[data-theme="dark"] #page-header.full_page::after {
+  background:
+    radial-gradient(920px 480px at 16% 20%, rgba(34, 211, 238, .26), transparent 62%),
+    radial-gradient(780px 420px at 86% 76%, rgba(129, 140, 248, .24), transparent 62%),
+    radial-gradient(620px 340px at 52% 96%, rgba(56, 189, 248, .16), transparent 68%);
+}
+
+/* --- 8. 尊重系统的「减少动态效果」偏好 --------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  #page-header.full_page::after,
+  #page-header.full_page #site-title,
+  #page-header.full_page #site-title::after,
+  #page-header.full_page #site-subtitle,
+  #page-header.full_page #subtitle,
+  #page-header.full_page .typed-cursor,
+  #page-header.full_page #scroll-down .scroll-down-effects {
+    animation: none !important;
+  }
+}
