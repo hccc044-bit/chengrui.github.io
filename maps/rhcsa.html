@@ -125,6 +125,11 @@ td code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-si
 footer{max-width:1280px;margin:0 auto;padding:8px 24px 40px;color:var(--tx3);font-size:12.5px}
 .hidden{display:none !important}
 .hl{background:var(--doingbg);border-radius:3px;padding:0 2px}
+.node.titlehit{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.node.titlehit h4{color:var(--accent)}
+.hits{font-size:12.5px;color:var(--tx3);white-space:nowrap}
+.hits b{color:var(--accent);font-weight:600}
+.hits.none{color:var(--todo)}
 @media (max-width:900px){
   .layout{grid-template-columns:1fr;padding:16px;gap:16px}
   aside{position:static;max-height:none}
@@ -142,7 +147,8 @@ footer{max-width:1280px;margin:0 auto;padding:8px 24px 40px;color:var(--tx3);fon
     <div class="hdbar">
       <div class="stat" id="stat"></div>
       <span class="spacer"></span>
-      <input type="search" id="q" placeholder="搜索知识点 / 命令…">
+      <input type="search" id="q" placeholder="搜索知识点 / 命令 / 题目…">
+      <span class="hits" id="hits"></span>
       <button id="expandAll">展开全部答案</button>
       <button id="toggleTheme">切换主题</button>
     </div>
@@ -996,6 +1002,15 @@ const MAP = [
 ];
 
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const stripTags = s => String(s == null ? '' : s).replace(/<[^>]*>/g, ' ');
+
+// 只用于纯文本（节点标题）：先转义再包高亮，不破坏原有 HTML
+function hlText(text, kw) {
+  const t = esc(text);
+  if (!kw) return t;
+  const safe = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return t.replace(new RegExp('(' + safe + ')', 'ig'), '<span class="hl">$1</span>');
+}
 
 function renderTree() {
   const t = document.getElementById('tree');
@@ -1099,22 +1114,84 @@ function bindCollapse() {
 
 function bindSearch() {
   const box = document.getElementById('q');
+  const out = document.getElementById('hits');
+
   box.addEventListener('input', () => {
     const kw = box.value.trim().toLowerCase();
+    let hitNodes = 0, hitQuiz = 0, titleHits = 0, openChaps = 0, nameHits = 0;
+
     MAP.forEach(ch => {
-      let shown = 0;
+      const sec = document.getElementById('chap-' + ch.id);
+      if (!sec) return;
+
+      // 第 1 层：章节名 + 章节说明
+      const chapHay = (stripTags(ch.name) + ' ' + stripTags(ch.note || '')).toLowerCase();
+      const chapHit = !!kw && chapHay.indexOf(kw) !== -1;
+
+      let nodeShown = 0;
+
+      // 第 2 层：知识点节点（标题 / 正文 / 命令表 / 结论）
       ch.nodes.forEach((n, i) => {
         const el = document.getElementById('node-' + ch.id + '-' + i);
         if (!el) return;
-        const hay = (n.t + ' ' + (n.p || []).join(' ') + ' ' + (n.ul || []).join(' ') + ' ' +
-                     (n.c || []).map(x => x.join(' ')).join(' ') + ' ' + (n.k || []).join(' ')).toLowerCase();
-        const hit = !kw || hay.indexOf(kw) !== -1;
+        const h4 = el.querySelector('h4');
+        const title = h4 ? h4.textContent : stripTags(n.t);
+        const hay = (title + ' ' + stripTags((n.p || []).join(' ')) + ' ' +
+                     stripTags((n.ul || []).join(' ')) + ' ' +
+                     stripTags((n.c || []).map(x => x.join(' ')).join(' ')) + ' ' +
+                     stripTags((n.k || []).join(' '))).toLowerCase();
+        const ownHit = !!kw && hay.indexOf(kw) !== -1;
+        const titleHit = !!kw && title.toLowerCase().indexOf(kw) !== -1;
+        const hit = !kw || chapHit || ownHit;
         el.classList.toggle('hidden', !hit);
-        if (hit) shown++;
+        el.classList.toggle('titlehit', titleHit);
+        if (h4) h4.innerHTML = kw ? hlText(title, kw) : esc(title);
+        if (hit) nodeShown++;
+        if (ownHit) hitNodes++;
+        if (titleHit) titleHits++;
       });
-      const sec = document.getElementById('chap-' + ch.id);
-      if (sec) sec.classList.toggle('hidden', kw && shown === 0);
+
+      // 第 3 层：练习题（题干 + 答案）
+      let quizShown = 0;
+      const qwrap = document.getElementById('quiz-' + ch.id);
+      if (qwrap) {
+        qwrap.querySelectorAll('details.quiz').forEach((d, i) => {
+          const q = (ch.quiz || [])[i];
+          if (!q) return;
+          const qTxt = stripTags(q.q).toLowerCase();
+          const aTxt = stripTags((q.a || []).join(' ')).toLowerCase();
+          const qHit = !!kw && (qTxt.indexOf(kw) !== -1 || aTxt.indexOf(kw) !== -1);
+          const hit = !kw || chapHit || nodeShown > 0 || qHit;
+          d.classList.toggle('hidden', !hit);
+          // 只在「命中答案、题干里没有」时自动展开，其余保持折叠
+          d.open = !!kw && qTxt.indexOf(kw) === -1 && aTxt.indexOf(kw) !== -1;
+          if (hit) quizShown++;
+          if (qHit) hitQuiz++;
+        });
+      }
+
+      if (kw) {
+        const any = chapHit || nodeShown > 0 || quizShown > 0;
+        if (any) { openChaps++; if (chapHit) nameHits++; }
+        sec.classList.toggle('hidden', !any);
+      } else {
+        sec.classList.remove('hidden');
+      }
     });
+
+    if (!kw) { out.textContent = ''; out.classList.remove('none'); return; }
+    if (openChaps === 0) {
+      out.textContent = '无匹配';
+      out.classList.add('none');
+      return;
+    }
+    out.classList.remove('none');
+    const segs = [];
+    if (hitNodes) segs.push('命中 <b>' + hitNodes + '</b> 个知识点');
+    if (hitQuiz) segs.push('<b>' + hitQuiz + '</b> 道题');
+    if (nameHits) segs.push('整章展开 <b>' + nameHits + '</b> 章');
+    if (titleHits) segs.push('标题命中 <b>' + titleHits + '</b>');
+    out.innerHTML = segs.length ? segs.join(' · ') : '已过滤';
   });
 }
 
