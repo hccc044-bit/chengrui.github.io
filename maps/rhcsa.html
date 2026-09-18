@@ -721,7 +721,8 @@ const MAP = [
         ['parted /dev/sdb unit mib print', '看分区表与分区列表']
       ],
       k: ['★ blkid 的输出分两类字段：TYPE= / UUID= 是<b>文件系统</b>的；PARTUUID= / PARTLABEL= 是<b>分区表</b>的。分过区但没格式化，blkid 也会退出码 0。',
-          '→ 所以判据是「有没有 TYPE=」，不是「有没有输出」。']
+          '→ 所以判据是「有没有 TYPE=」，不是「有没有输出」。',
+          '★ 分清「动手<b>前</b>核对」和「动手<b>后</b>验收」，两者用的不是同一批命令：<code>lsblk -f</code> 看内核实时状态、<code>parted print free</code> 看分区表里记了什么 —— 这是动手前要过的两道关；<code>blkid</code> / <code>wipefs</code> 验的是「这块盘上已经有什么签名」，属于流程最后一环的事后验证。<span class="no">拿事后命令当事前确认，顺序就反了。</span>']
     },
     {
       t: 'parted 分区',
@@ -733,7 +734,8 @@ const MAP = [
         ['partprobe /dev/sdb', '让内核重读分区表（有时 lsblk 看不到新分区）'],
         ['fdisk -l /dev/sdb', '另一种查看方式']
       ],
-      k: ['★ Error: unrecognised disk label 的意思不是「里面没有分区」，而是「连分区表这个概念本身都还没有」。',
+      k: ['★ 分区表写完，内核还不知道 —— <code>mklabel</code> / <code>mkpart</code> 之后必须 <code>partprobe /dev/sdb</code> 让内核重读。漏掉这一步，下一步 <code>mkfs.xfs /dev/sdb1</code> 会报 <code>cannot open /dev/sdb1: No such file or directory</code>：那时设备节点确实还没被 udev 建出来，<b>「没有」是真的没有</b>，别去怀疑盘坏了。',
+          '★ <code>Error: unrecognised disk label</code> 的意思不是「里面没有分区」，而是「连分区表这个概念本身都还没有」。',
           '→ 有分区表但一个分区都没建时，parted 不报这个错，它会显示 Partition Table: gpt，分区列表为空。',
           '★ 分区不从 0 开始，是两个原因叠加：① GPT 表本身占 34 个扇区 = <b>17.4 kB</b>（mklabel gpt 之后 Free Space 正是从 17.4kB 起，可自查）；② 1MiB 起点 = 第 2048 个 512B 扇区，能被 4 KiB 物理扇区整除 —— 这叫对齐，不对齐会触发「读-改-写」惩罚，SSD / RAID / 虚拟盘全都吃这个亏。',
           '→ 对比 msdos：MBR 只占 1 个扇区，所以 /dev/sda 的 Free Space 从 1024B 开始。',
@@ -751,6 +753,7 @@ const MAP = [
         ['dumpe2fs -h /dev/sdb1 / xfs_info /mnt/data', '看文件系统详细参数']
       ],
       k: ['★ mkfs 不可逆：它直接覆盖超级块，没有 undo、没有回收站。敲错设备名的后果是那块盘上的数据永久消失，而且它退出码 0、一声不响。',
+          '★ 不加 <code>-f</code> 时 mkfs 自己会检查签名：目标上已有文件系统（哪怕只是残留签名）它会<b>直接拒绝</b>，并提示 use -f to force overwrite。这是它<b>自带的保护</b>，不是故障 —— 看到这个报错别顺手就加 <code>-f</code>，先确认盘是不是你要动的那块。',
           '★ 动手前的三盏灯：尺寸对不对（lsblk 的 SIZE）、有没有签名（blkid 的 TYPE=）、有没有在用（MOUNTPOINT 是否为空 / 是否在 fstab 里）。']
     },
     {
@@ -783,7 +786,8 @@ const MAP = [
           '★ 第 5 字段 dump：给早已淘汰的 dump 备份工具用，一律写 0。<br>第 6 字段 fsck 顺序：<b>只有 0 / 1 / 2 三个合法值</b>，1 是<b>根分区专属</b>（最先检查），2 是之后并行检查，0 是不检查。xfs 惯例写 0 0（xfs 不走 fsck，用离线的 xfs_repair）；ext4 的数据分区写 0 2。',
           '★ 第 1 字段不必非写 UUID：<code>/dev/mapper/&lt;vg&gt;-&lt;lv&gt;</code>（如 rlm-root）同样稳定 —— 卷名写在 LVM 元数据里，不随内核 sd 命名漂移。会漂的只有 <code>/dev/sdX</code>。',
           '★ fstab 写错的最坏结果不是「挂不上」，而是「整机进 emergency mode」，SSH 都连不上。所以永远不要拿 reboot 当第一道检查。',
-          '→ 稳妥顺序：先 mount -a（应用层）→ findmnt --verify（语法层）→ 最后才重启。']
+          '→ 稳妥顺序：先 mount -a（应用层）→ findmnt --verify（语法层）→ 最后才重启。',
+          '★ 改 fstab 之前先 <code>cp /etc/fstab /etc/fstab.bak</code>（改动前备份是通用习惯）。用 <code>&gt;&gt;</code> 追加有两个坑：① 末行没有换行符时，新行会被拼到上一行末尾，整行写坏；② 追加是纯文本操作，写错了<b>当场不报错</b>，要等 <code>mount -a</code> 或重启才炸。更稳的是用编辑器在正确位置插一行。']
     },
     {
       t: 'LVM：物理卷 / 卷组 / 逻辑卷',
@@ -910,6 +914,33 @@ const MAP = [
         '<div class="lbl">结论</div>',
         '<p>gpt 根本没有「主分区 / 扩展分区 / 逻辑分区」这套概念。<code>primary</code> 在 gpt 盘上不报错，但<span class="no">也没有你以为的那层意思</span>。写它无害，不写更干净。</p>'
       ]
+    },
+    {
+      q: '「findmnt --verify 通过了」能证明 fstab 写对了吗？为什么验证前必须先 umount？',
+      a: [
+        '<div class="lbl">两个命令验的是两层，缺一不可</div>',
+        '<div class="tblwrap"><table><tr><th></th><th>验什么</th><th>验不到什么</th></tr>',
+        '<tr><td><code>findmnt --verify</code></td><td><b>静态</b>：字段数、语法、挂载点目录是否存在、选项是否被支持。不做实际挂载</td><td>设备名 / UUID 写错它照样报 Success —— 语法合法 ≠ 挂得上</td></tr>',
+        '<tr><td><code>umount</code> + <code>mount -a</code></td><td><b>动态</b>：按 fstab 真挂一遍 —— 这就是开机时 systemd 干的事</td><td>只看结果，不会告诉你语法哪里不规范</td></tr></table></div>',
+        '<div class="lbl">完整顺序</div>',
+        '<pre>systemctl daemon-reload\nfindmnt --verify                  # 静态：语法与引用\numount /mnt/data                  # ★ 必须先卸载\nmount -a                          # 动态：无输出 = 成功\nfindmnt /mnt/data && df -h /mnt/data</pre>',
+        '<div class="lbl">为什么必须先 umount</div>',
+        '<p><code>mount -a</code> 判断「要不要挂这条」看的是<b>挂载点</b>是否已经出现在挂载树里（不是看设备）。所以手工 <code>mount</code> 过之后再 <code>mount -a</code>，它会认为「这个点已经挂着」直接跳过 —— <span class="no">一条 fstab 都不会被读到，等于什么都没验</span>。反过来，如果那个挂载点上挂了别的东西，它同样会跳过。</p>'
+      ]
+    },
+    {
+      q: '「盘接上不是应该自动挂载吗？」—— 自动挂载到底是什么机制？',
+      a: [
+        '<div class="lbl">自动挂载 = fstab 里已经写了规则，不是系统魔法</div>',
+        '<p>开机时 systemd 读 <code>/etc/fstab</code>，为每一条生成一个 <code>.mount</code> 单元 —— <code>/</code>、<code>/boot</code>、swap 都是这么挂上来的。所以「写进 fstab」和「开机自动挂载」是同一件事。</p>',
+        '<div class="lbl">那桌面环境里 U 盘为什么自己就出来了</div>',
+        '<p>那是 <b>udisks2</b>（桌面环境的自动挂载服务）干的，挂到 <code>/run/media/&lt;用户&gt;/&lt;卷标&gt;</code>。它和 fstab 是两套东西。</p>',
+        '<div class="tblwrap"><table><tr><th></th><th>谁干的</th><th>持久吗</th><th>落在哪</th></tr>',
+        '<tr><td>开机挂载</td><td>systemd 读 fstab</td><td><b>持久</b></td><td>你指定的挂载点</td></tr>',
+        '<tr><td>插 U 盘</td><td>udisks2</td><td>拔了就没</td><td>/run/media/...</td></tr></table></div>',
+        '<div class="lbl">结论</div>',
+        '<p>服务器和考试环境没有桌面，<span class="no">没有 udisks2 这层兜底</span>。想让一块盘开机就在，唯一的办法是写进 fstab。</p>'
+      ]
     }
   ]
 },
@@ -981,7 +1012,7 @@ const MAP = [
     {
       t: '统一问法',
       p: ['每条验收命令都要先问一遍：<b>它究竟验到了哪一层？</b>只有能证明「事情真的做成了」的那一层才算过。'],
-      k: ['★ 下面 7 个实例都是「命令报成功 / 看起来正常」，但实际没做到。']
+      k: ['★ 下面 8 个实例都是「命令报成功 / 看起来正常」，但实际没做到。']
     },
     {
       t: '实例 1 · dnf repolist 不联网',
@@ -1021,6 +1052,12 @@ const MAP = [
       t: '实例 7 · hexo deploy 说成功但没推上去',
       p: ['本地提交完成了，远端 main 还停在旧提交 —— 工具打印的成功信息不可信。'],
       k: ['→ 核对的唯一方法：比本地 HEAD 与远端实际提交。']
+    },
+    {
+      t: '实例 8 · 静态文件里找不到运行时的值',
+      p: ['改完前端代码后，去线上那份静态 HTML 里搜新生成的属性，搜不到就以为「没部署成功」。'],
+      k: ['→ 那个属性是页面加载后由 JS 渲染出来的 —— 静态文件里只有<b>生成它的那段代码</b>，本来就不会有值。',
+          '★ 换场景一样成立：<b>验证的对象要和结论在同一层。</b>想看渲染结果就真跑一遍再读 DOM；想看服务真实状态就问 API / systemctl；想确认远端变了就去问远端。拿「产物」当「行为」的证据，等于什么都没验。']
     },
     {
       t: '同一族的通用教训',
