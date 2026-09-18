@@ -720,7 +720,10 @@ const MAP = [
       ],
       k: ['★ Error: unrecognised disk label 的意思不是「里面没有分区」，而是「连分区表这个概念本身都还没有」。',
           '→ 有分区表但一个分区都没建时，parted 不报这个错，它会显示 Partition Table: gpt，分区列表为空。',
-          '★ 从左端 1MiB 开始而不是 0，是为了避开分区表的元数据区。']
+          '★ 分区不从 0 开始，是两个原因叠加：① GPT 表本身占 34 个扇区 = <b>17.4 kB</b>（mklabel gpt 之后 Free Space 正是从 17.4kB 起，可自查）；② 1MiB 起点 = 第 2048 个 512B 扇区，能被 4 KiB 物理扇区整除 —— 这叫对齐，不对齐会触发「读-改-写」惩罚，SSD / RAID / 虚拟盘全都吃这个亏。',
+          '→ 对比 msdos：MBR 只占 1 个扇区，所以 /dev/sda 的 Free Space 从 1024B 开始。',
+          '★ parted 显示的单位是<b>十进制</b>（kB / MB / GB），你输入的是<b>二进制</b>（KiB / MiB / GiB）。所以输入 1MiB → 1025MiB，print 出来是 1049kB → 1075MB，大小显示 1074MB —— 数字没变错，只是换了一把尺子（1024 MiB = 1073.74 MB）。想看 MiB 口径：<code>parted /dev/sdb unit MiB print</code>。',
+          '★ <code>mkpart primary xfs 1MiB 1025MiB</code> 里的 <code>primary</code> 在 gpt 盘上<b>没有类型含义，只会被存成分区名</b>。证据：msdos 盘 print 的列名是 Type，gpt 盘是 Name；blkid 的输出里出现 <code>PARTLABEL="primary"</code>。']
     },
     {
       t: 'mkfs —— 整个存储域里最危险的一条命令',
@@ -762,6 +765,8 @@ const MAP = [
         ['findmnt --verify', '★ 语法层验收，不会真的挂']
       ],
       k: ['★ 示例行：UUID=750822f7-... /mnt/data xfs defaults 0 0',
+          '★ 第 5 字段 dump：给早已淘汰的 dump 备份工具用，一律写 0。<br>第 6 字段 fsck 顺序：<b>只有 0 / 1 / 2 三个合法值</b>，1 是<b>根分区专属</b>（最先检查），2 是之后并行检查，0 是不检查。xfs 惯例写 0 0（xfs 不走 fsck，用离线的 xfs_repair）；ext4 的数据分区写 0 2。',
+          '★ 第 1 字段不必非写 UUID：<code>/dev/mapper/&lt;vg&gt;-&lt;lv&gt;</code>（如 rlm-root）同样稳定 —— 卷名写在 LVM 元数据里，不随内核 sd 命名漂移。会漂的只有 <code>/dev/sdX</code>。',
           '★ fstab 写错的最坏结果不是「挂不上」，而是「整机进 emergency mode」，SSH 都连不上。所以永远不要拿 reboot 当第一道检查。',
           '→ 稳妥顺序：先 mount -a（应用层）→ findmnt --verify（语法层）→ 最后才重启。']
     },
@@ -829,8 +834,9 @@ const MAP = [
       a: [
         '<div class="lbl">UUID 的特点</div>',
         '<p>在 mkfs 那一刻生成，跟着文件系统走，永久不变。而 <code>/dev/sdX</code> 的名字是内核按探测顺序临时分配的。</p>',
-        '<div class="lbl">最坏的后果不是「挂不上」</div>',
-        '<p>挂不上只是报错。<span class="no">真正危险的是挂错了盘却安静地成功</span> —— 你以为在往 /mnt/data 写，实际写进了另一块盘。加盘、接外置存储、调整顺序都可能让设备名重排。</p>',
+        '<div class="lbl">两种坏结果，都不是「报个错」而已</div>',
+        '<p>① <b>设备根本不存在</b>：那块盘换了名字 → 挂载失败 → 没加 <code>nofail</code> 时 systemd 的 local-fs.target 也跟着失败 → <span class="no">整机掉进 emergency mode，SSH 都连不上</span>，得进控制台把那一行注释掉才能开机。</p>',
+        '<p>② <b>挂错了盘却安静地成功</b>：另一块盘上恰好也有同名分区 → 你以为在往 /mnt/data 写，实际写进了别处，全程没有任何报错。</p>',
         '<div class="lbl">但要说实话</div>',
         '<p>考试里写设备名也能得分（官方参考解就写的 /dev/vdb2）。选 UUID 是工程上更稳，不是考试硬要求。</p>'
       ]
@@ -856,7 +862,38 @@ const MAP = [
         '<tr><td>单盘容量</td><td>2 TiB 上限</td><td>极大</td></tr>',
         '<tr><td>兼容性</td><td>老系统/老引导都认</td><td>现代系统默认</td></tr></table></div>',
         '<div class="lbl">结论</div>',
-        '<p>这块盘只有 8 GiB、只打算放一两个分区 —— <b>两者都行</b>。选 gpt 更现代、没有分区数顾虑；选 msdos 在考试里也完全能得分（官方参考解用的是 msdos）。<span class="ok">关键是你能说出选择理由，而不是记住某一个。</span></p>'
+        '<p>这块盘只有 8 GiB、只打算放一两个分区 —— <b>两者都行</b>。选 gpt 更现代、没有分区数顾虑；选 msdos 在考试里也完全能得分（官方参考解用的是 msdos）。<span class="ok">关键是你能说出选择理由，而不是记住某一个。</span></p>',
+        '<div class="lbl">2 TiB 这个数字到底是谁的</div>',
+        '<p>MBR 分区表用 <b>4 个字节</b>存起始 LBA → 最多 2³² 个扇区 × 512 B = <b>2 TiB</b>；GPT 用 <b>8 个字节</b> → 2⁶⁴ 个扇区 ≈ 8 ZiB。<span class="no">所以「2 TiB 上限」是 msdos 的身份证，不是 gpt 的</span> —— 这一条最容易记反。</p>'
+      ]
+    },
+    {
+      q: 'parted 里输入的是 1MiB → 1025MiB，为什么 print 出来显示 1049kB → 1075MB、大小 1074MB？是建错了吗？',
+      a: [
+        '<div class="lbl">没建错，是 parted 换了一把尺子</div>',
+        '<p>parted 默认按<b>十进制</b>显示（1 MB = 1000 kB），而命令行里输入的是<b>二进制</b>单位（1 MiB = 1048576 B）。MiB 中间那个 i 就是 binary 的意思。</p>',
+        '<div class="tblwrap"><table><tr><th>你输入</th><th>实际字节</th><th>parted 显示</th></tr>',
+        '<tr><td>1 MiB</td><td>1 048 576</td><td>1049 kB</td></tr>',
+        '<tr><td>1025 MiB</td><td>1 074 790 400</td><td>1075 MB</td></tr>',
+        '<tr><td>差值 = 1024 MiB</td><td>1 073 741 824</td><td><b>1074 MB</b></td></tr></table></div>',
+        '<div class="lbl">想看 MiB 口径就加 unit</div>',
+        '<pre>parted /dev/sdb unit MiB print</pre>',
+        '<div class="lbl">同一个原因</div>',
+        '<p>让一块标称 1 TB 的硬盘在系统里显示成 931 GB；也让 1024 MiB 的 xfs 分区在 <code>df</code> 里只报 960M（这一层再叠加 xfs 的元数据与日志开销）。分区起点为什么不是 0：gpt 表本身吃掉 34 个扇区 = 17.4 kB，之后 1MiB 起点是为了 4 KiB 对齐。</p>'
+      ]
+    },
+    {
+      q: 'mkpart primary xfs 1MiB 1025MiB 里的 primary 是什么？在 gpt 盘上它还有意义吗？',
+      a: [
+        '<div class="lbl">看 print 的列名就知道答案</div>',
+        '<div class="tblwrap"><table><tr><th>磁盘</th><th>print 的列名</th><th>primary 的含义</th></tr>',
+        '<tr><td>/dev/sda（msdos）</td><td>Number Start End Size <b>Type</b> File system Flags</td><td>分区类型 —— 主分区</td></tr>',
+        '<tr><td>/dev/sdb（gpt）</td><td>Number Start End Size File system <b>Name</b> Flags</td><td>只是一个名字，没有类型含义</td></tr></table></div>',
+        '<div class="lbl">铁证</div>',
+        '<pre>blkid /dev/sdb1\n# TYPE="xfs" PARTLABEL="primary" PARTUUID="..."</pre>',
+        '<p>那个 <code>PARTLABEL="primary"</code> 就是 gpt 存下来的分区名。</p>',
+        '<div class="lbl">结论</div>',
+        '<p>gpt 根本没有「主分区 / 扩展分区 / 逻辑分区」这套概念。<code>primary</code> 在 gpt 盘上不报错，但<span class="no">也没有你以为的那层意思</span>。写它无害，不写更干净。</p>'
       ]
     }
   ]
