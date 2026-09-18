@@ -130,6 +130,19 @@ footer{max-width:1280px;margin:0 auto;padding:8px 24px 40px;color:var(--tx3);fon
 .hits{font-size:12.5px;color:var(--tx3);white-space:nowrap}
 .hits b{color:var(--accent);font-weight:600}
 .hits.none{color:var(--todo)}
+
+/* 深链定位与复制链接 */
+.node{position:relative}
+.node h4{padding-right:78px}
+.cp{position:absolute;top:11px;right:12px;border:1px solid var(--bd);background:var(--panel);color:var(--tx3);
+  font-size:11.5px;padding:2px 8px;border-radius:6px;cursor:pointer;opacity:.5;transition:opacity .15s}
+.node:hover .cp{opacity:1}
+.cp:hover{color:var(--tx);border-color:var(--tx3)}
+.cp.done{color:var(--ok);border-color:var(--okbd);opacity:1}
+@keyframes flashfade{0%{background:var(--doingbg)}100%{background:var(--bg)}}
+.node.flash,.chap.flash>.chap-hd{animation:flashfade 1.8s ease-out}
+.node.flash{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+details.quiz:target{border-color:var(--accent)}
 @media (max-width:900px){
   .layout{grid-template-columns:1fr;padding:16px;gap:16px}
   aside{position:static;max-height:none}
@@ -162,6 +175,8 @@ footer{max-width:1280px;margin:0 auto;padding:8px 24px 40px;color:var(--tx3);fon
 
 <footer>
   <p>说明：本页是学习过程中的个人笔记，命令与结论都经过实验机实测；空白章节为尚未展开的能力域。</p>
+  <p>配套日志：<a href="/study-log/">学习日志</a> —— 每天做了什么、卡在哪、怎么解决的。每条日志末尾都有「能力索引」，可以直接跳回本页对应的知识点。</p>
+  <p>用法：每一节右上角的「复制链接」给出的是这一节的可分享地址，粘进日志就能从当天记录跳到对应知识点。链接形如 <code>/maps/rhcsa.html#节点标识</code>，节点标识由标题派生，标题不改链接就不漂。</p>
 </footer>
 
 <script>
@@ -1049,6 +1064,16 @@ function hlText(text, kw) {
   return t.replace(new RegExp('(' + safe + ')', 'ig'), '<span class="hl">$1</span>');
 }
 
+// 节点锚点：由标题稳定派生的 slug。标题不变则链接不漂，插删其它节点也不影响。
+function slug(s){
+  return String(s).trim().toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^0-9a-z\u4e00-\u9fa5_-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 64);
+}
+
 function renderTree() {
   const t = document.getElementById('tree');
   let html = '<h2>目录</h2>';
@@ -1079,7 +1104,9 @@ function renderContent() {
     if (ch.note) html += '<p class="chap-note">' + ch.note + '</p>';
 
     ch.nodes.forEach((n, i) => {
-      html += '<div class="node" id="node-' + ch.id + '-' + i + '">';
+      const nid = n.id || slug(n.t);
+      html += '<div class="node" id="node-' + ch.id + '-' + i + '" data-nid="' + esc(nid) + '">';
+      html += '<button class="cp" type="button" data-cp="#' + esc(nid) + '" title="复制这一节的可分享链接">复制链接</button>';
       html += '<h4>' + esc(n.t) + '</h4>';
       (n.p || []).forEach(p => { html += '<p>' + p + '</p>'; });
       if (n.ul) { html += '<ul>'; n.ul.forEach(x => { html += '<li>' + x + '</li>'; }); html += '</ul>'; }
@@ -1104,7 +1131,7 @@ function renderContent() {
     if (ch.quiz && ch.quiz.length) {
       html += '<div id="quiz-' + ch.id + '">';
       ch.quiz.forEach((q, i) => {
-        html += '<details class="quiz"><summary>' + esc(q.q) + '</summary><div class="qbd">';
+        html += '<details class="quiz" id="quiz-' + ch.id + '-' + i + '"><summary>' + esc(q.q) + '</summary><div class="qbd">';
         q.a.forEach(x => {
           if (x.indexOf('<') === 0) html += x;
           else html += '<p>' + x + '</p>';
@@ -1232,6 +1259,80 @@ function bindSearch() {
   });
 }
 
+// ---------- 深链：接受 #chap-xxx / #quiz-xxx-0 / #节点slug，三种都认 ----------
+function resolveTarget(key) {
+  if (!key) return null;
+  try { const el = document.getElementById(key); if (el) return el; } catch (err) {}
+  try {
+    const safe = key.replace(/["\\]/g, '\\$&');
+    return document.querySelector('[data-nid="' + safe + '"]');
+  } catch (err) { return null; }
+}
+
+function goTo(el, mark) {
+  const chap = el.closest ? el.closest('.chap') : null;
+  if (chap) chap.classList.remove('collapsed');
+  if (el.tagName === 'DETAILS') el.open = true;
+  window.scrollTo({top: el.getBoundingClientRect().top + window.pageYOffset - 16, behavior: 'smooth'});
+  if (mark) {
+    el.classList.add('flash');
+    setTimeout(() => { el.classList.remove('flash'); }, 1900);
+  }
+  return true;
+}
+
+function handleHash() {
+  let key = '';
+  try { key = decodeURIComponent(location.hash.replace(/^#/, '')); }
+  catch (err) { key = location.hash.replace(/^#/, ''); }
+  if (!key) return;
+
+  const el = resolveTarget(key);
+  if (el) { goTo(el, true); return; }
+
+  // 兜底：slug 没对上时，把整串当关键词丢进搜索框，落到第一个命中
+  const box = document.getElementById('q');
+  if (!box) return;
+  box.value = key;
+  box.dispatchEvent(new Event('input'));
+  const hit = document.querySelector('#content .node.titlehit:not(.hidden)') ||
+              document.querySelector('#content .node:not(.hidden)');
+  if (hit) goTo(hit, true);
+  else {
+    const out = document.getElementById('hits');
+    out.classList.add('none');
+    out.textContent = '这个链接在页内没有对应章节';
+  }
+}
+
+function bindDeepLink() {
+  window.addEventListener('hashchange', handleHash);
+  handleHash();
+}
+
+function bindCopy() {
+  document.getElementById('content').addEventListener('click', e => {
+    const b = e.target.closest('.cp');
+    if (!b) return;
+    e.stopPropagation();
+    const hash = b.getAttribute('data-cp');
+    const url = location.origin + location.pathname + hash;
+    const done = () => {
+      if (b.classList.contains('done')) return;
+      b.classList.add('done');
+      const old = b.textContent;
+      b.textContent = '已复制';
+      setTimeout(() => { b.textContent = old; b.classList.remove('done'); }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, () => { location.hash = hash; done(); });
+    } else {
+      location.hash = hash;
+      done();
+    }
+  });
+}
+
 function bindButtons() {
   document.getElementById('expandAll').addEventListener('click', e => {
     const all = document.querySelectorAll('details.quiz');
@@ -1263,7 +1364,9 @@ renderStat();
 bindTree();
 bindCollapse();
 bindSearch();
+bindCopy();
 bindButtons();
+bindDeepLink();
 </script>
 </body>
 </html>

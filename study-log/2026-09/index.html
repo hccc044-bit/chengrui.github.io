@@ -1,0 +1,694 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>学习日志 · 2026 年 9 月 | Rui Cheng's Blog</title><meta name="author" content="Rui Cheng"><meta name="copyright" content="Rui Cheng"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="这个月从零把 Rocky Linux 9 实验机搭起来，走完环境底座 → 用户与组 → 权限与 ACL，并开进存储与挂载。 每天一条，新内容在最上面。每条末尾的「能力索引」指向 RHCSA 学习地图 上对应的知识点。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="学习日志 · 2026 年 9 月">
+<meta property="og:url" content="https://crui.is-a.dev/study-log/2026-09/index.html">
+<meta property="og:site_name" content="Rui Cheng&#39;s Blog">
+<meta property="og:description" content="这个月从零把 Rocky Linux 9 实验机搭起来，走完环境底座 → 用户与组 → 权限与 ACL，并开进存储与挂载。 每天一条，新内容在最上面。每条末尾的「能力索引」指向 RHCSA 学习地图 上对应的知识点。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://crui.is-a.dev/img/avatar.svg">
+<meta property="article:published_time" content="2026-08-31T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-18T12:53:42.260Z">
+<meta property="article:author" content="Rui Cheng">
+<meta property="article:tag" content="Linux">
+<meta property="article:tag" content="RHCSA">
+<meta property="article:tag" content="学习日志">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://crui.is-a.dev/img/avatar.svg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "学习日志 · 2026 年 9 月",
+  "url": "https://crui.is-a.dev/study-log/2026-09/",
+  "image": "https://crui.is-a.dev/img/avatar.svg",
+  "datePublished": "2026-08-31T16:00:00.000Z",
+  "dateModified": "2026-09-18T12:53:42.260Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Rui Cheng",
+      "url": "https://crui.is-a.dev"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.svg"><link rel="canonical" href="https://crui.is-a.dev/study-log/2026-09/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.5.3"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.12.0/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: true,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '学习日志 · 2026 年 9 月',
+  isHighlightShrink: true,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/css/custom.css"><link rel="icon" type="image/png" sizes="32x32" href="/img/favicon.png"><meta name="generator" content="Hexo 8.1.1"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.svg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">3</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">7</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">2</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/study-log/"><i class="fa-fw fas fa-book"></i><span> 学习日志</span></a></div><div class="menus_item"><a class="site-page" href="/maps/rhcsa.html"><i class="fa-fw fas fa-sitemap"></i><span> 学习地图</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Rui Cheng's Blog</span></a><a class="nav-page-title" href="/"><span class="site-name">学习日志 · 2026 年 9 月</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  Back to Home</span></span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/study-log/"><i class="fa-fw fas fa-book"></i><span> 学习日志</span></a></div><div class="menus_item"><a class="site-page" href="/maps/rhcsa.html"><i class="fa-fw fas fa-sitemap"></i><span> 学习地图</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">学习日志 · 2026 年 9 月</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2026-08-31T16:00:00.000Z" title="Created 2026-09-01 00:00:00">2026-09-01</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2026-09-18T12:53:42.260Z" title="Updated 2026-09-18 20:53:42">2026-09-18</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0%E6%97%A5%E5%BF%97/">学习日志</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>这个月从零把 Rocky Linux 9 实验机搭起来，走完<strong>环境底座 → 用户与组 → 权限与 ACL</strong>，并开进<strong>存储与挂载</strong>。</p>
+<p>每天一条，<strong>新内容在最上面</strong>。每条末尾的「能力索引」指向 <a href="/maps/rhcsa.html">RHCSA 学习地图</a> 上对应的知识点。</p>
+<span id="more"></span>
+
+<h2 id="2026-09-18-星期五"><a href="#2026-09-18-星期五" class="headerlink" title="2026-09-18 星期五"></a>2026-09-18 星期五</h2><p>今天没碰实验机，全花在<strong>博客本身的结构</strong>上。起因是我发现日志越写越长，想「从当天的记录直接跳到知识图」，但现有结构做不到。做完之后，博客从「一篇无限增长的日志 + 一个站外 HTML」变成了<strong>索引页 + 按月日志 + 知识图</strong>。</p>
+<p><strong>今天做了什么</strong></p>
+<p><strong>① 先实测现状，才发现全是问题</strong></p>
+<table>
+<thead>
+<tr>
+<th>查到的东西</th>
+<th>实际情况</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>日志正文</td>
+<td>一篇装下全部 4 天，已经 28 KB</td>
+</tr>
+<tr>
+<td>日志右侧目录</td>
+<td><code>### 今天做了什么</code> 出现 <strong>4 次</strong>，Hexo 自动加了 <code>-1 -2 -3</code> 后缀</td>
+</tr>
+<tr>
+<td>地图页</td>
+<td>一个 78 KB 的单文件，在 Hexo 体系之外，分类 &#x2F; 标签 &#x2F; 归档全都用不上</td>
+</tr>
+<tr>
+<td><code>/categories/</code>、<code>/tags/</code></td>
+<td><strong>都是 404</strong> —— 但页面里处处在生成指向它们的链接</td>
+</tr>
+<tr>
+<td>导航菜单</td>
+<td><code>menu:</code> 是<strong>空的</strong>，全站一项都没有</td>
+</tr>
+</tbody></table>
+<p><strong>② 定下方向：日志按月拆，并且两端要能互相跳</strong></p>
+<p>三种内容回答三种问题，本来就不该塞在一起：</p>
+<table>
+<thead>
+<tr>
+<th>内容</th>
+<th>回答什么</th>
+<th>怎么组织</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>日志</td>
+<td>我<strong>哪一天</strong>做了什么</td>
+<td>按月</td>
+</tr>
+<tr>
+<td>地图</td>
+<td>这个<strong>机制</strong>怎么判断</td>
+<td>按能力域</td>
+</tr>
+</tbody></table>
+<p>于是：日志改成每月一篇（<code>/study-log/2026-09/</code>），<code>/study-log/</code> 变成索引页，并且<strong>每条日志末尾加「能力索引」</strong>，直接指向地图上对应的知识点。</p>
+<p><strong>③ 给地图加了可分享的深链</strong></p>
+<p>地图里原来的节点锚点是 <code>node-storage-3</code> 这种<strong>按序号</strong>生成的 —— 中间插一个节点，后面全部错位。改成由<strong>标题派生</strong>的稳定标识（形如 <code>#acl-的判定顺序最容易搞错的一处</code>），标题不改链接就不漂；每一节右上角加了「复制链接」，取到的地址可以直接粘进日志。</p>
+<p><strong>卡住的地方</strong></p>
+<p><strong>一、重复标题会让锚点悄悄漂移。</strong></p>
+<p><code>### 今天做了什么</code> 在一篇里出现 4 次，Hexo 把它们编成 <code>今天做了什么</code>、<code>今天做了什么-1</code>、<code>今天做了什么-2</code>、<code>今天做了什么-3</code>。这本身不算错，但意味着：<strong>只要往中间插一天，后面所有编号全部平移</strong>。任何指向「某天做了什么」的链接，第二天就可能指到别处。</p>
+<p>这不是美观问题，是<strong>链接不可引用</strong>。改法是把日志按天分节（<code>## 2026-09-18 星期五</code> 这种标题天然唯一），一天之内只用加粗小标题，不再产生重复标题。</p>
+<p><strong>二、我以为是「目录更紧凑」的开关，其实是另一回事。</strong></p>
+<p>我原本打算打开 <code>toc.style_simple</code>，理由是「长文章目录更紧凑」。去主题源码里看了一眼才发现：它实际的效果是<strong>侧边栏只保留目录，把作者卡、公告卡、最新文章卡全部不渲染</strong>，跟「紧凑」没关系。</p>
+<p>结论是<strong>这个开关不开</strong>。顺带又一次印证了老毛病 —— 我以为的那个对象，和系统里实际的那个对象，不是同一个。</p>
+<p><strong>三、<code>/categories/</code> 和 <code>/tags/</code> 默认不存在。</strong></p>
+<p>Hexo 不会自动生成这两个索引页，但主题照样在每个文章页渲染指向它们的链接 —— 于是全站静默死链，而且<strong>构建时不报任何错</strong>。要手动建页并注明类型：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">hexo new page categories   <span class="comment"># 再在生成的 front matter 里加 type: categories</span></span><br><span class="line">hexo new page tags         <span class="comment"># 同理加 type: tags</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>关键命令或配置</strong></p>
+<p>日志按月分篇，靠的是 front matter 里的 <code>permalink</code>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">title:</span> <span class="string">学习日志</span> <span class="string">·</span> <span class="number">2026</span> <span class="string">年</span> <span class="number">9</span> <span class="string">月</span></span><br><span class="line"><span class="attr">date:</span> <span class="number">2026-09-01 00:00:00</span></span><br><span class="line"><span class="attr">permalink:</span> <span class="string">study-log/2026-09/</span></span><br><span class="line"><span class="attr">categories:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">学习日志</span></span><br><span class="line"><span class="meta">---</span></span><br></pre></td></tr></table></figure>
+
+<p>地图的深链解析按三层兜底，所以链接写得不精确也不至于空手落地：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">① 先按元素 id 找          #chap-perm / #quiz-storage-0</span><br><span class="line">② 再按节点标识找          #acl-的判定顺序最容易搞错的一处</span><br><span class="line">③ 都对不上 → 整串当关键词丢进搜索框，落到第一个命中</span><br></pre></td></tr></table></figure>
+
+<p><strong>下一步</strong></p>
+<ol>
+<li>回到存储域：<code>/dev/sdc</code> 空盘 → <code>pvcreate</code> → 并入卷组 <code>rlm</code> → 扩 LV → <code>xfs_growfs</code>，目标是<strong>给根分区扩容</strong></li>
+<li>试一下新链路：在日志里点「能力索引」，看是不是真能跳到地图对应那一节</li>
+</ol>
+<p><strong>能力索引</strong> —— 今天涉及的知识点在地图上的位置：</p>
+<ul>
+<li><a href="/maps/rhcsa.html#chap-pitfall">验收会骗人速查</a><ul>
+<li><a href="/maps/rhcsa.html#%E5%90%8C%E4%B8%80%E6%97%8F%E7%9A%84%E9%80%9A%E7%94%A8%E6%95%99%E8%AE%AD">同一族的通用教训</a></li>
+</ul>
+</li>
+<li><a href="/maps/rhcsa.html">整张地图</a> —— 深链格式与「复制链接」的用法写在地图页脚</li>
+</ul>
+<h2 id="2026-09-17-星期四"><a href="#2026-09-17-星期四" class="headerlink" title="2026-09-17 星期四"></a>2026-09-17 星期四</h2><p>今天把「权限与 ACL」整域收尾，然后开进「存储与挂载」。中间顺手把 RHCSA 学习地图做出来挂到博客上了 —— 以后进度不只写在日志里，也画在图上。</p>
+<p><strong>今天做了什么</strong></p>
+<p><strong>① 权限域两题全部结项</strong></p>
+<p>07 题（ACL）我把欠着的三身份验收补做了，通过；08 题（协作目录）从方案到动手到验收全部走完。C 域到此关闭。</p>
+<p><strong>② 把 09-16 那条记录删了 —— 记忆文件和博客里都删了</strong></p>
+<p>昨天确实一整天没动手，那条日志留着只会让进度看着好看。判断是：<strong>日志反映真实进度，不为连续而凑字数。</strong> 但反过来的规矩也得守住 —— 有真实结论的那天，不能因为「没动手」就一起删掉。</p>
+<p><strong>③ 进入「存储与挂载」：先补环境和回滚锚点，再看盘</strong></p>
+<ul>
+<li>装 <code>dosfstools</code> —— 机器上原来没有 <code>mkfs.vfat</code>，而题库里有一题要 vfat，不装根本做不了</li>
+<li>在 VMware 里打快照 <code>storage-baseline</code>：存储操作会改分区表，动手前必须有回滚点</li>
+<li>看盘功课：<code>lsblk -f</code> &#x2F; <code>parted print</code> &#x2F; <code>wipefs</code> &#x2F; <code>df -hT</code> 四条互相印证，确认那两块新盘都是空的</li>
+</ul>
+<p><strong>④ 做了 RHCSA 学习地图挂到博客上</strong></p>
+<p>按能力域组织：7 个域 + 1 个附录。每个域下面是知识点、命令对照表（命令 + 中文释义）、可折叠答案的练习题。左侧能力树带状态圆点，已完成 &#x2F; 进行中 &#x2F; 未开始一眼可见，还带搜索。日志顶部「配套资料」里有入口。</p>
+<p><strong>卡住的地方</strong></p>
+<p><strong>一、验收命令第四次骗人，这次是我自己把命令写错了。</strong></p>
+<p>我用 <code>ls -ld /home/managers</code> 去验「非成员进不去」，跑出来退出码 0，看着像她能进。实测才搞明白：</p>
+<p><strong><code>ls -ld</code> 只对路径做一次 <code>stat()</code>，而 <code>stat</code> 只需要路径上每一级父目录的 <code>x</code>，对目标对象自己的权限一位都不要。</strong></p>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>实际在问什么</th>
+<th>非成员退出码</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ls -ld /home/managers</code></td>
+<td>只 stat 这个对象</td>
+<td><strong>0 ← 骗人的</strong></td>
+</tr>
+<tr>
+<td><code>ls /home/managers</code></td>
+<td>读目录内容，要目录的 <code>r</code></td>
+<td>2</td>
+</tr>
+<tr>
+<td><code>cd /home/managers</code></td>
+<td>进目录，要目录的 <code>x</code></td>
+<td>1</td>
+</tr>
+<tr>
+<td><code>touch /home/managers/zz</code></td>
+<td>建条目，要目录的 <code>wx</code></td>
+<td>1</td>
+</tr>
+</tbody></table>
+<p>口诀：<strong>想验什么动作，就敲那个动作本身</strong>；<code>stat</code> 类命令（<code>ls -ld</code> &#x2F; <code>ls -l</code> &#x2F; <code>test -r</code>）都不能代替。</p>
+<p><strong>二、<code>blkid</code> 有输出 ≠ 有文件系统。</strong></p>
+<p>我原来的判据是「有输出就是格式化过了」，错：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">blkid /dev/loop1p1     ← 这个分区根本没 mkfs</span><br><span class="line">→ /dev/loop1p1: PARTLABEL=&quot;primary&quot; PARTUUID=&quot;e64be28b-…&quot;   退出码 0</span><br></pre></td></tr></table></figure>
+
+<p>输出里的字段分两类：<code>TYPE=</code> &#x2F; <code>UUID=</code> 是<strong>文件系统</strong>的属性；<code>PARTUUID=</code> &#x2F; <code>PARTLABEL=</code> 只是<strong>分区表</strong>的属性。<strong>判据要改成看 <code>TYPE=</code> 字段，不是看有没有输出。</strong></p>
+<p><strong>三、SGID 只管一半：它管属组，不管权限位。</strong></p>
+<p>协作目录那题，SGID 一开，natasha 建的文件属组确实是 <code>sysmgrs</code> 了，但文件自己是 <code>-rw-r--r--</code>，组位只有 <code>r</code> —— <strong>组里其他人照样改不了，协作没实现。</strong></p>
+<p>新建文件的权限位由 <strong>umask</strong> 决定（022 → 644），SGID 碰不到它。要「组员能互相改文件」，必须再补一层<strong>默认 ACL</strong>。</p>
+<p><strong>四、默认 ACL 会接管 umask。</strong></p>
+<table>
+<thead>
+<tr>
+<th>目录</th>
+<th>令 <code>umask 077</code> 后新建的文件</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>有默认 ACL</td>
+<td><code>-rw-rw----+</code> ← umask 完全没生效</td>
+</tr>
+<tr>
+<td>无默认 ACL</td>
+<td><code>-rw-------.</code> ← umask 正常生效</td>
+</tr>
+</tbody></table>
+<p><strong>五、<code>-R</code> 在权限题里是高危动作。</strong></p>
+<p>对已经有文件的目录再跑一次 <code>chmod -R 2770</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-rw-r--r--. 1 natasha sysmgrs  --chmod -R 2770--&gt;  -rwxrws---. 1 natasha sysmgrs</span><br></pre></td></tr></table></figure>
+
+<p>文件被加上执行位、加上毫无意义的 setgid，连 other 的 <code>r</code> 都被砍了。这次目录恰好是空的所以没伤到东西，但 <code>-R</code> 以后要当危险参数对待。</p>
+<p><strong>六、我记错的一个点：ACL 组类不是「命中即止」，是并集。</strong></p>
+<p>我原来记的模型是「属主 → 具名用户 → 属组 → 其他，命中即止」。实测被推翻：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">文件属主 root、属组 sysmgrs、mode 640  → group::r--</span><br><span class="line">setfacl -m g:sysmgrs:rw  → group::r-- / group:sysmgrs:rw- / mask::rw-</span><br><span class="line">属组身份写入 → 退出码 0      ← 属组条目不够 rw，具名组条目把它救回来了</span><br></pre></td></tr></table></figure>
+
+<p>正确的判定是：</p>
+<ul>
+<li>属主 &#x2F; 具名用户：<strong>严格命中即止</strong>（写成 <code>---</code> 就是禁止，这条没变）</li>
+<li>组类：<strong>属组条目 ∪ 所有命中的具名组条目</strong>，再 ∩ mask；任一条够就放行</li>
+<li>都不命中 → <code>other::</code></li>
+</ul>
+<p><strong>七、两块待动的新盘，靠输出分不出来。</strong></p>
+<p>两块盘尺寸一样（都是 8G）、都是空盘、都没签名、都没挂载点 —— 三盏灯全绿，一模一样。<strong>唯一能区分的是设备名本身。</strong> 所以防错不能只靠「看输出」，得事前明确只动哪一块，敲之前复读一遍设备名。</p>
+<p><strong>关键命令或配置</strong></p>
+<p>协作目录的完整配方（SGID 管属组，默认 ACL 管权限位，两层都要）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> -p /home/managers</span><br><span class="line"><span class="built_in">chown</span> :sysmgrs /home/managers</span><br><span class="line"><span class="built_in">chmod</span> 2770 /home/managers                     <span class="comment"># 2=SGID；770 是目录自己的权限位</span></span><br><span class="line">setfacl -d -m g:sysmgrs:rw /home/managers     <span class="comment"># -d = default，给「以后新建的」定模板</span></span><br><span class="line"><span class="comment"># 不要加 -R：继承靠 -d，不靠 -R</span></span><br></pre></td></tr></table></figure>
+
+<p><code>-d</code> 和 <code>-R</code> 我一开始混成一个，其实是两回事：</p>
+<ul>
+<li><code>-d</code>（default）&#x3D; 给这个目录<strong>登记一份模板</strong>，管<strong>以后新建</strong>的条目</li>
+<li><code>-R</code>（recursive）&#x3D; 立刻把这次修改<strong>套到已经存在</strong>的条目上</li>
+</ul>
+<p><strong>继承根本不需要 <code>-R</code>。</strong> 而且模板只登记在<strong>你点名的那个目录</strong>上：已经存在的子目录不会自动获得，之后新建的子目录会自带模板并继续往下传。</p>
+<p>还有一条门槛：<strong>改 ACL 要求 euid &#x3D;&#x3D; 文件属主，或有 <code>CAP_FOWNER</code>。</strong> 对目录有 <code>w</code> 完全帮不上忙（我用组身份试过，<code>Operation not permitted</code>）。</p>
+<p>存储的地基是五层，只有最后一层跨重启：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">块设备 → 分区或卷 → 文件系统 → 挂载点 → /etc/fstab</span><br></pre></td></tr></table></figure>
+
+<p>验收也分三层，越往下越算数：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mount /dev/sdb1 /mnt/data         <span class="comment"># ① 只证明「现在能用」，重启归零</span></span><br><span class="line">mount -a &amp;&amp; findmnt --verify      <span class="comment"># ② 证明 fstab 语法和设备引用都对</span></span><br><span class="line">reboot                            <span class="comment"># ③ 考场唯一承认的验收</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>必须先过第 ② 层再重启</strong> —— fstab 写错会直接掉进 emergency mode，整台机器起不来。</p>
+<p>动盘前核对该不该动它，三条互相印证，不能只看一条：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">lsblk -f                  <span class="comment"># FSTYPE / UUID 列是空的</span></span><br><span class="line">parted /dev/sdb <span class="built_in">print</span>     <span class="comment"># Error: unrecognised disk label ← 连分区表都没有</span></span><br><span class="line">wipefs /dev/sdb           <span class="comment"># 无输出</span></span><br></pre></td></tr></table></figure>
+
+<p><code>parted print</code> 的三种状态值得记住：</p>
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th><code>parted print</code></th>
+<th><code>wipefs</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>完全空盘</td>
+<td><code>Error: unrecognised disk label</code></td>
+<td>无输出</td>
+</tr>
+<tr>
+<td>有分区表、无分区</td>
+<td><code>Partition Table: gpt</code>，分区列表空</td>
+<td><code>loop1 0x200 gpt</code> ← 分区表本身也是签名</td>
+</tr>
+<tr>
+<td>有分区表 + 分区</td>
+<td>列出分区行</td>
+<td>—</td>
+</tr>
+</tbody></table>
+<p><code>unrecognised disk label</code> 说的是<strong>连分区表都没有</strong>，不是「分区表里没有分区」。</p>
+<p><strong>关于怎么学，今天确认了两件事</strong></p>
+<ul>
+<li><strong>机制类内容我必须要图。</strong> 今天两次说「听不懂」和「给我个流程图」，换成图解之后一次就过了 —— 以后碰上机制，直接要图，别硬啃文字。</li>
+<li><strong>没学过的命令不能靠「你想想」跳过。</strong> 被问「mkfs 有没有回头路」时我完全答不上来，因为我根本不知道 <code>mkfs</code> 在干什么。先给一个最小可运行的演示再问判断题才有效：用 <code>dd</code> + <code>losetup</code> 造两块「假盘」，对其中一块 <code>mkfs -f</code> 重打一次，里面原来的文件就永久消失了，而且<strong>命令返回成功、一声不响</strong>。整个过程一点不碰真盘，安全和效果都和真盘一样。</li>
+</ul>
+<p><strong>下一步</strong></p>
+<ol>
+<li><strong>写存储闭环方案，先不执行</strong>：在 <code>/dev/sdb</code> 上切一个约 1 GiB 分区 → xfs → 挂到 <code>/mnt/data</code> → 重启自动挂载。要写清楚：命令序列、每一步属于五层的哪一层、每一步怎么验收、<strong><code>/etc/fstab</code> 那一行逐字</strong>。</li>
+<li>回答一个问题：<code>parted</code> 建分区表，选 <code>gpt</code> 还是 <code>msdos</code>，为什么？</li>
+<li>然后进存储三题：调整逻辑卷大小（<code>lvextend</code> + <code>xfs_growfs</code>）、添加交换分区、创建逻辑卷（<code>vgcreate -s</code> 定 PE 大小 &#x2F; <code>lvcreate -l</code> 是 PE 个数，再配 vfat）。</li>
+<li>一个要练的读数习惯：<code>ls -ld</code> &#x2F; <code>ls -l</code> 末尾是 <code>+</code> 还是 <code>.</code>。<code>+</code> &#x3D; 有扩展 ACL（含默认 ACL），<code>.</code> 只有 SELinux 上下文。今天我其实自己把 <code>getfacl</code> 打出来了，但没注意到「少了 <code>default:</code> 那几行」。</li>
+</ol>
+<p><strong>能力索引</strong> —— 今天涉及的知识点在地图上的位置：</p>
+<ul>
+<li><a href="/maps/rhcsa.html#chap-perm">权限与 ACL</a><ul>
+<li><a href="/maps/rhcsa.html#%E5%8D%8F%E4%BD%9C%E7%9B%AE%E5%BD%95sgid-%E4%B8%8E%E9%BB%98%E8%AE%A4-acl-%E5%90%84%E7%AE%A1%E4%B8%80%E5%8D%8A">协作目录：SGID 与默认 ACL 各管一半</a></li>
+<li><a href="/maps/rhcsa.html#umask">umask</a></li>
+<li><a href="/maps/rhcsa.html#acl-%E7%9A%84%E5%88%A4%E5%AE%9A%E9%A1%BA%E5%BA%8F%E6%9C%80%E5%AE%B9%E6%98%93%E6%90%9E%E9%94%99%E7%9A%84%E4%B8%80%E5%A4%84">ACL 的判定顺序（最容易搞错的一处）</a></li>
+<li><a href="/maps/rhcsa.html#%E7%89%B9%E6%AE%8A%E6%9D%83%E9%99%90%E4%BD%8D">特殊权限位</a></li>
+</ul>
+</li>
+<li><a href="/maps/rhcsa.html#chap-storage">存储与挂载</a><ul>
+<li><a href="/maps/rhcsa.html#%E5%AD%98%E5%82%A8%E7%9A%84%E4%BA%94%E5%B1%82%E7%BB%93%E6%9E%84">存储的五层结构</a></li>
+<li><a href="/maps/rhcsa.html#%E7%9C%8B%E7%9B%98%E4%B8%89%E4%BB%B6%E5%A5%97">看盘三件套</a></li>
+<li><a href="/maps/rhcsa.html#%E6%8C%82%E8%BD%BD%E4%B8%8E%E5%8D%B8%E8%BD%BD">挂载与卸载</a></li>
+<li><a href="/maps/rhcsa.html#etcfstab-%E7%9A%84%E5%85%AD%E4%B8%AA%E5%AD%97%E6%AE%B5">&#x2F;etc&#x2F;fstab 的六个字段</a></li>
+</ul>
+</li>
+<li><a href="/maps/rhcsa.html#chap-pitfall">验收会骗人速查</a><ul>
+<li><a href="/maps/rhcsa.html#%E5%AE%9E%E4%BE%8B-4-ls-ld-%E6%B5%8B%E4%B8%8D%E5%87%BA%E7%9B%AE%E5%BD%95%E6%9D%83%E9%99%90">实例 4 · ls -ld 测不出目录权限</a></li>
+<li><a href="/maps/rhcsa.html#%E5%AE%9E%E4%BE%8B-5-blkid-%E6%9C%89%E8%BE%93%E5%87%BA-%E6%9C%89%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F">实例 5 · blkid 有输出 ≠ 有文件系统</a></li>
+</ul>
+</li>
+</ul>
+<h2 id="2026-09-15-星期二"><a href="#2026-09-15-星期二" class="headerlink" title="2026-09-15 星期二"></a>2026-09-15 星期二</h2><p>今天主线是「用户与组 + 权限」这一大块，中间插了两件事：评估一套红帽官方培训资料、给实验机补磁盘。但最值得记的不是做了几道题 —— 而是今天我三次以为自己做完了，三次都被证明没验到位。</p>
+<p><strong>今天做了什么</strong></p>
+<p><strong>① 评估桌面那套红帽官方培训资料</strong></p>
+<p>一套 24 GB 的实验环境（一台 RHEL 9.1 的「真机」，内部再用 KVM 跑子虚拟机）+ 两套题库（EX200 16 页、EX294 39 页）。</p>
+<p>最重要的发现是：<strong>题库和实验环境是配套绑定的，拆不开。</strong> 题目依赖那台真机自己提供的软件源、DNS、NTP、NFS、容器镜像仓库，还依赖子机预置的两块 10 GB 磁盘。所以「只要题库」做不了题，「只要环境」又不知道练什么。</p>
+<p>决策：<strong>暂不解压。</strong> 宿主机总共 15.7 GB 内存，日常可用只剩 1.9 GB，而那个真机要 4 GB 起。改成在自己那台实验机上做题，题库里依赖真机的部分<strong>自己搭出来</strong> —— 搭的过程本身就是练习。</p>
+<p><strong>② 给实验机加了两块 8 GB 磁盘，打完快照 <code>baseline-2disks</code></strong></p>
+<p>之前只有一块盘、卷组里没有空闲空间，LVM 扩容、分区、文件系统这些题全做不了，现在解锁了。（尺寸和题库原环境不一样，但不影响任何一道题。）</p>
+<p>这里学到一个要点：<strong>快照是「按下快门那一刻的全量状态」，不是「你想要的状态」。</strong> 该清掉的临时目录没清，就被一起封存进去，回滚多少次都带着。</p>
+<p><strong>③ 回答了前一轮留下的两个问题</strong></p>
+<ul>
+<li><strong>排序题</strong>（9 个领域怎么排）：我的排法是「软件与网络 → 安全 → 基础工具 → 用户与组 → 文件系统与服务 → Shell 脚本 → 运行中系统 → 本地存储 → 容器」，依据是「从服务器初始化的基本操作，到常用操作，再到深入流程」。</li>
+<li><strong>默写题</strong>（不看资料写一个 repo 文件）：写出来了，五个字段齐全，还用上了 <code>$releasever</code> 变量 —— 比我预想的好。</li>
+</ul>
+<p><strong>④ 用户与组这题 —— 自己做完了，最终 6&#x2F;6</strong></p>
+<p>自己走了完整流程：先给六个相关文件拍 before 快照 → 建组、建三个用户 → 配口令 → <code>diff</code> 看系统到底改了哪几行 → 用 <code>id</code> 验结果。</p>
+<p><strong>⑤ 权限与 ACL 这题 —— 也做完了，最后配置完全正确</strong></p>
+<p>先写命令方案、再动手。做完后 <code>getfacl</code> 里：natasha 可读写、harry 无权限、其他用户可读，三条要求都满足。</p>
+<p><strong>卡住的地方</strong></p>
+<p><strong>一、三个「验收命令会骗人」的实例，全是今天撞出来的。</strong></p>
+<table>
+<thead>
+<tr>
+<th>我拿来验收的命令</th>
+<th>它实际验的层次</th>
+<th>骗在哪</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>dnf repolist</code></td>
+<td>只验「配置能不能读通」</td>
+<td>仓库地址写成根本不存在的目录，它照样全绿</td>
+</tr>
+<tr>
+<td><code>passwd -S &lt;用户&gt;</code></td>
+<td>只验「口令字段非空」</td>
+<td>字段里塞的是明文，它也报 <code>PS</code>（Password Set）</td>
+</tr>
+<tr>
+<td><code>vim 打开文件</code></td>
+<td>其实什么都没验</td>
+<td>不可写时它只是标个 <code>[readonly]</code>，不敲 <code>:wq</code> 一声不响</td>
+</tr>
+</tbody></table>
+<p>归纳成一句：<strong>每条验收命令只验某一层。要验「事情做成了」，就必须真的去做那件事。</strong></p>
+<p><strong>二、<code>useradd -p</code> 收的是「已加密的口令」，我传了明文。</strong></p>
+<p>结果那个用户的口令字段就是一串明文，等于密码没设 —— 用任何口令都登不进去。而 <code>passwd -S</code> 还报 <code>PS</code>，看着完全正常，只在括号里悄悄写了句「使用了备用认证方案」。正确做法是 <code>passwd &lt;用户&gt; --stdin</code>，或者先加密再传。</p>
+<p><strong>三、<code>chmod 2666</code> 里的那个 <code>2</code> 用错了对象。</strong></p>
+<p>我本意是「让权限被继承」，那是从协作目录那题借来的思路。但 <strong>SGID 只在「目录」上做继承，而且继承的是属组，不是权限位</strong>；放在普通文件上毫无作用，只在 <code>ls -l</code> 里多亮一个 <code>S</code>。文件层面要「继承」得用默认 ACL，那是另一种机制，而且也只对目录里新建的东西生效。</p>
+<p><strong>四、最有价值的一个坑：不是「顺序不对」，是「两个不同的文件被我当成同一个」。</strong></p>
+<p>我做了一个对照实验：先 <code>setfacl</code> 再 <code>chmod 644</code>，发现 natasha 还是能读写，据此断定「必须先 chmod」的说法是错的。实际上当时我手上有两个文件 —— 一个（真正做完的题）mask 是 <code>rw-</code>、能写；另一个（对照实验）mask 被压成了 <code>r--</code>、写不了。<strong>我把一个能写的和一个写不了的，当成「同一件事的两次验证」了。</strong></p>
+<p>而证明我错了的证据，<strong>就印在我自己贴出来的输出里</strong>：那两行 <code>user:natasha:rw-  #effective:r--</code> 和 <code>mask::r--</code> —— 我没读它们，改去看 vim 能不能打开。</p>
+<p><strong>关键命令或配置</strong></p>
+<p>仓库配置的验证要走三层，只有第三层算数：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">dnf repolist                                          <span class="comment"># ① 语法层：不联网，抓不到地址错</span></span><br><span class="line">dnf repolist -v 2&gt;&amp;1 | grep -E <span class="string">&quot;Repo-baseurl|Error&quot;</span>   <span class="comment"># ② 详情层：看实际连的地址</span></span><br><span class="line">dnf makecache                                         <span class="comment"># ③ 功能层：真能下到元数据才算过</span></span><br></pre></td></tr></table></figure>
+
+<p>注意那个 <code>2&gt;&amp;1</code> —— 报错走的是 stderr，不加它，下载失败时我会看到一个空输出，还不知道为什么。</p>
+<p>用户与组：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">groupadd sysmgrs</span><br><span class="line">useradd -G sysmgrs natasha          <span class="comment"># 附加组，主组仍是他自己的私有组</span></span><br><span class="line">useradd -s /sbin/nologin sarah</span><br><span class="line">passwd natasha --stdin              <span class="comment"># ← -p 传明文是错的</span></span><br><span class="line">getent shadow sarah                 <span class="comment"># 第 2 字段变成 $6$... 才算真设上了</span></span><br><span class="line"><span class="built_in">id</span> natasha                          <span class="comment"># 看 uid/gid 和附加组</span></span><br></pre></td></tr></table></figure>
+
+<p>权限 + ACL（<strong>先 chmod 定基线，再 setfacl</strong>）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cp</span> /etc/hosts /var/tmp/hosts</span><br><span class="line"><span class="built_in">chown</span> root:root /var/tmp/hosts</span><br><span class="line"><span class="built_in">chmod</span> 644 /var/tmp/hosts            <span class="comment"># 数字写法要放在 setfacl 之前</span></span><br><span class="line">setfacl -m u:natasha:rw /var/tmp/hosts</span><br><span class="line">setfacl -m u:harry:--- /var/tmp/hosts</span><br><span class="line">getfacl /var/tmp/hosts</span><br></pre></td></tr></table></figure>
+
+<p>验收要用目标身份<strong>真的写一次</strong>，而且同时看退出码和文件内容：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">runuser -u natasha -- sh -c <span class="string">&#x27;echo X &gt;&gt; /var/tmp/hosts&#x27;</span>; <span class="built_in">echo</span> $?</span><br><span class="line">runuser -u harry   -- <span class="built_in">cat</span> /var/tmp/hosts; <span class="built_in">echo</span> $?</span><br><span class="line">runuser -u nobody  -- <span class="built_in">cat</span> /var/tmp/hosts; <span class="built_in">echo</span> $?    <span class="comment"># 必须换第三个人</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>今天真正记住的判断</strong></p>
+<ul>
+<li><p><strong>「未验证」比「不会」更危险。</strong> 今天三次出错，没有一次是命令敲错，全是<strong>验收只做了一半</strong>。以后每条验收命令都先问一句：它验的是「配置读通了」，还是「事情做成了」？</p>
+</li>
+<li><p><strong>ACL 的判定是「命中即止」，不是层层叠加。</strong> 属主 → 具名用户 → 属组&#x2F;具名组 → 其他用户，命中第一个就结束。所以「其他用户给了读、但某个具名用户要求不能读」并不矛盾 —— 他在第二步就被截停了，根本走不到最后。</p>
+</li>
+<li><p><strong>mask 是具名条目的天花板。</strong> 具名用户的真实权限 &#x3D; 自己的条目 ∩ mask。</p>
+</li>
+<li><p><strong><code>chmod</code> 的数字写法一定会重写 mask，符号写法只动你点名的位。</strong> 有 ACL 的文件上敲 <code>chmod 644</code>，是把中间那一位数字写进 <code>mask</code>，可能悄悄砍掉具名用户的权限；<code>chmod o=r</code> 只改其他用户，mask 原地不动。我原先说「chmod 必须在 setfacl 之前」太绝对了 —— 真正的判据是 <strong>chmod 之后 mask 够不够用</strong>。</p>
+</li>
+<li><p><strong>有扩展 ACL 的文件，<code>ls -l</code> 中间那三位显示的是 mask，不是属组权限。</strong> 看着像 664，实际可能完全不是，只看 <code>ls -l</code> 会误判。</p>
+</li>
+<li><p><strong>root 不能当验收工具。</strong> 把文件权限设成 000，root 读它照样返回成功（它有 CAP_DAC_OVERRIDE，权限位对它不生效）。必须换一个没有特权的身份去验。</p>
+</li>
+<li><p><strong>只测相关人员，发现不了「其他用户」配错。</strong> 今天有一组数据：把「其他用户」的读权限关掉之后，natasha 和 harry 的结果<strong>一点没变</strong>，只有换上去的第三个人变了 —— 因为他们两个都在第二步被具名条目截停了。这类错误只能靠第三个人暴露。</p>
+</li>
+<li><p><strong>「我在 A 上成功了」不能用来否定「B 上失败了」，先确认 A 和 B 的状态是否相同。</strong> 这就是我今天明明做对了、却坚持自己有理的根因。</p>
+</li>
+<li><p><strong>验证只能验证「你已经写出来的东西」，发现不了「你根本不知道要写什么」。</strong> 默写 repo 那题，我自己说「比较模糊」的地方，恰好就是漏掉的地方；而我当时想到的验收方式是「用下载判断」，它能检查我写出来的内容，检查不了我没写的字段。</p>
+</li>
+<li><p><strong>这 9 个领域不是一条线，是三层。</strong> 我的排序错在两处，根因是<strong>混用了两套标准</strong>（前半段按「什么时候用」、后半段按「依赖多深」）：</p>
+<ol>
+<li><strong>环境底座</strong>（网络与主机名、软件源、防火墙&#x2F;SELinux）—— 必须先做，做完就不动</li>
+<li><strong>贯穿工具</strong>（基础工具与文本处理、运行中系统、Shell 脚本）—— 没有「学完」这一天，要练到条件反射</li>
+<li><strong>专题模块</strong>（用户与组+权限、存储与挂载、容器）—— 可以逐个攻，按分量排队</li>
+</ol>
+<p>只有第 1、3 层适合排序。另外我把「运行中系统」排太后了（它从第 6 题起就全程渗透），把「本地存储」排在了文件系统之后（它其实是挂载和 fstab 的地基）。</p>
+</li>
+<li><p><strong>学法要改：不按题号走，按能力走。</strong> 题库是抽样，能力是全集，把题做完 ≠ 会做，碰到变体照样废。所以现在改成：题面原文贴出来当<strong>例子</strong>，然后按能力域（系统底座 &#x2F; 存储挂载 &#x2F; 用户组权限 &#x2F; 安全 &#x2F; 运行中排障 &#x2F; 文件文本归档 &#x2F; 容器）一项一项练，每项都要能独立复现、并且自己能验收。</p>
+</li>
+</ul>
+<p><strong>下一步</strong></p>
+<ol>
+<li><strong>先补权限那题的正式验收</strong> —— 三身份的那张结果表，我自己跑一遍（结论我大概知道，但验收动作要自己做）。</li>
+<li>进<strong>协作目录（SGID）</strong>，正好接上我「想用 2666 实现继承」的错误起点 —— 要在 <strong>SGID</strong> 和<strong>默认 ACL</strong> 之间自己选一个，并说出理由。</li>
+<li>两道顺延的问题：① 协作目录是 SGID、默认 ACL，还是两个都要？② 如果要求「其他用户可读写、但谁都不能执行」，<code>chmod</code> 写什么、放在 <code>setfacl</code> 前还是后？</li>
+</ol>
+<p>另外还欠两个概念没补：口令的 9 个字段分别由谁控制（用 <code>chage -l</code> 看比直接读文件直观），以及每个用户被自动分配的那批从属 ID 是干什么用的（和后面的容器题有关）。</p>
+<p><strong>能力索引</strong> —— 今天涉及的知识点在地图上的位置：</p>
+<ul>
+<li><a href="/maps/rhcsa.html#chap-user">用户与组</a><ul>
+<li><a href="/maps/rhcsa.html#%E8%B4%A6%E5%8F%B7%E4%BF%A1%E6%81%AF%E8%90%BD%E5%9C%A8%E5%85%AD%E4%B8%AA%E6%96%87%E4%BB%B6%E9%87%8C">账号信息落在六个文件里</a></li>
+<li><a href="/maps/rhcsa.html#useradd-usermod-userdel">useradd &#x2F; usermod &#x2F; userdel</a></li>
+<li><a href="/maps/rhcsa.html#%E4%B8%BB%E7%BB%84%E4%B8%8E%E9%99%84%E5%8A%A0%E7%BB%84-%E5%86%B3%E5%AE%9A%E6%96%B0%E5%BB%BA%E6%96%87%E4%BB%B6%E7%9A%84%E5%B1%9E%E7%BB%84">主组与附加组 —— 决定新建文件的属组</a></li>
+<li><a href="/maps/rhcsa.html#%E8%AE%BE%E7%BD%AE%E5%8F%A3%E4%BB%A4">设置口令</a></li>
+</ul>
+</li>
+<li><a href="/maps/rhcsa.html#chap-perm">权限与 ACL</a><ul>
+<li><a href="/maps/rhcsa.html#%E4%B8%89%E7%BB%84%E4%B9%9D%E4%BD%8D">三组九位</a></li>
+<li><a href="/maps/rhcsa.html#chmod%E6%95%B0%E5%AD%97%E5%86%99%E6%B3%95-vs-%E7%AC%A6%E5%8F%B7%E5%86%99%E6%B3%95">chmod：数字写法 vs 符号写法</a></li>
+<li><a href="/maps/rhcsa.html#mask-%E6%89%80%E6%9C%89%E5%85%B7%E5%90%8D%E6%9D%A1%E7%9B%AE%E7%9A%84%E5%A4%A9%E8%8A%B1%E6%9D%BF">mask —— 所有具名条目的天花板</a></li>
+<li><a href="/maps/rhcsa.html#acl-%E7%9A%84%E5%88%A4%E5%AE%9A%E9%A1%BA%E5%BA%8F%E6%9C%80%E5%AE%B9%E6%98%93%E6%90%9E%E9%94%99%E7%9A%84%E4%B8%80%E5%A4%84">ACL 的判定顺序（最容易搞错的一处）</a></li>
+</ul>
+</li>
+<li><a href="/maps/rhcsa.html#chap-env">环境底座</a><ul>
+<li><a href="/maps/rhcsa.html#dnf-yum-%E6%8D%A2%E6%BA%90">dnf &#x2F; yum 换源</a></li>
+</ul>
+</li>
+<li><a href="/maps/rhcsa.html#chap-pitfall">验收会骗人速查</a><ul>
+<li><a href="/maps/rhcsa.html#%E5%AE%9E%E4%BE%8B-1-dnf-repolist-%E4%B8%8D%E8%81%94%E7%BD%91">实例 1 · dnf repolist 不联网</a></li>
+<li><a href="/maps/rhcsa.html#%E5%AE%9E%E4%BE%8B-2-passwd-s-%E5%8F%AA%E9%AA%8C%E5%AD%97%E6%AE%B5%E9%9D%9E%E7%A9%BA">实例 2 · passwd -S 只验字段非空</a></li>
+<li><a href="/maps/rhcsa.html#%E5%AE%9E%E4%BE%8B-3-vim-%E6%89%93%E5%BC%80%E4%BA%86%E6%96%87%E4%BB%B6-%E8%83%BD%E5%86%99">实例 3 · vim 打开了文件 ≠ 能写</a></li>
+</ul>
+</li>
+</ul>
+<h2 id="2026-09-14-星期一"><a href="#2026-09-14-星期一" class="headerlink" title="2026-09-14 星期一"></a>2026-09-14 星期一</h2><p>今天干了两件事：第一次真正动手排障一个网络问题（前后排了四轮才挖到根因），以及把实验机的初始化全部收尾。</p>
+<p><strong>今天做了什么</strong></p>
+<p><strong>① 网络专项第一次实操：VMware NAT 改网段之后不通外网</strong></p>
+<p>起因是我把实验机的地址从 1 网段改成了 30 网段，结果上不了网。</p>
+<p>先搞清了一个本质：<strong>NAT 模式下虚拟机连的不是物理网络，而是 VMware 虚拟出来的一台「隐形路由器」（VMnet8）</strong>。它有固定的三个约定：</p>
+<table>
+<thead>
+<tr>
+<th>地址</th>
+<th>归属</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>.1</code></td>
+<td>宿主机上的 VMnet8 虚拟网卡</td>
+</tr>
+<tr>
+<td><code>.2</code></td>
+<td>NAT 网关，整个虚拟网络唯一的出口</td>
+</tr>
+<tr>
+<td><code>.128–.254</code></td>
+<td>VMware 自带的 DHCP 地址池</td>
+</tr>
+</tbody></table>
+<p>所以改网段相当于把这台路由器搬到了另一个小区 —— <strong>宿主机侧和虚拟机侧必须同时跟上，少一侧就断网</strong>。</p>
+<p>排查是在宿主机侧直接读权威配置完成的：VMware 的虚拟网络配置是纯文本，就在 <code>C:\ProgramData\VMware\</code> 下（<code>vmnetnat.conf</code> &#x2F; <code>vmnetdhcp.conf</code>），比在图形界面里翻要直接。另外宿主机上 <code>arp -a</code> 能一眼看出虚拟机的真实 IP，比进虚拟机敲命令还快。</p>
+<p><strong>② 环境初始化收尾</strong></p>
+<p>换 yum 源、补齐缺的工具、把 SELinux 和 firewalld 恢复开启、打完 <code>baseline</code> 快照 —— 环境准备这一阶段到此结束。</p>
+<p><strong>卡住的地方</strong></p>
+<p><strong>一整天都栽在同一种推理上：把「某条 ping 失败」直接等同于「网络坏了」。</strong> 一小时内出现了三次：</p>
+<ol>
+<li>ping 不通网关 → 以为网关或网络有故障</li>
+<li>ping 不通 <code>223.5.5.5</code> → 以为还是 ping 的问题</li>
+<li>ping 不通 <code>114.114.114.114</code> → 以为 DNS 不通</li>
+</ol>
+<p>三次全是误判。要练的判断力是：<strong>先问「这条命令到底在测什么」，再问「它失败意味着什么」。</strong></p>
+<p>比如 <code>ping 114.114.114.114</code> —— 它本身就是 IP，这条路根本不查 DNS，失败只说明对方（或出口防火墙）不回应 ICMP；而 <code>ping www.baidu.com</code> 能通，就已经证明 DNS 完全正常了。真正的 DNS 故障长这样，报错出现在解析阶段，根本不会打印出 IP：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ping: www.baidu.com: Name or service not known</span><br></pre></td></tr></table></figure>
+
+<p><strong>另一件事：我说「初始化完成」的时候，其实只做了一半。</strong> 换源我是照着阿里云文档抄的，glob 写成了 <code>rocky-*.repo</code>，静默漏掉了最要紧的 <code>rocky.repo</code>（baseos &#x2F; appstream &#x2F; crb 三个仓库全在里面），结果最常用的三个源一个都没换成。教训是：<strong>动手之后要自己跑一条客观证据命令，再宣布完成。</strong></p>
+<p><strong>关键命令或配置</strong></p>
+<p>排障按这个顺序查（每一步的结论都不一样）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">ip -br a                <span class="comment"># IP 和掩码对不对</span></span><br><span class="line">ip r                    <span class="comment"># 默认路由的下一跳是谁</span></span><br><span class="line"><span class="built_in">cat</span> /etc/resolv.conf    <span class="comment"># DNS 指向谁</span></span><br><span class="line">ping -c2 223.5.5.5      <span class="comment"># 绕过 DNS，测纯 IP 出网</span></span><br><span class="line">ping -c2 www.baidu.com  <span class="comment"># 测 DNS 解析</span></span><br></pre></td></tr></table></figure>
+
+<p>真凶是<strong>默认网关填成了 <code>.1</code>，应该是 <code>.2</code></strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> nmcli con mod &lt;连接名&gt; ipv4.gateway 192.168.30.2</span><br><span class="line"><span class="built_in">sudo</span> nmcli con up &lt;连接名&gt;</span><br><span class="line">ip r    <span class="comment"># 期望看到 default via 192.168.30.2</span></span><br></pre></td></tr></table></figure>
+
+<p>换 yum 源（Rocky 9 的真实文件名是小写的 <code>rocky.repo</code>，不是 <code>Rocky-*.repo</code>）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cp</span> -a /etc/yum.repos.d /root/yum.repos.d.bak</span><br><span class="line">sed -i -e <span class="string">&#x27;s|^mirrorlist=|#mirrorlist=|g&#x27;</span> \</span><br><span class="line">       -e <span class="string">&#x27;s|^#baseurl=http://dl.rockylinux.org/$contentdir|baseurl=https://mirrors.aliyun.com/rockylinux|g&#x27;</span> \</span><br><span class="line">       /etc/yum.repos.d/rocky.repo</span><br><span class="line">dnf clean all &amp;&amp; dnf makecache</span><br></pre></td></tr></table></figure>
+
+<p>验收不能只看「命令没报错」，要看 dnf 实际解析出来的地址：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dnf repolist -v 2&gt;/dev/null | grep -E <span class="string">&quot;^Repo-id|^Repo-baseurl&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>换源前实际在走 USTC，<strong>113 KB&#x2F;s</strong>；换完之后 <strong>BaseOS 19 MB&#x2F;s &#x2F; AppStream 22 MB&#x2F;s</strong>，带宽差了一个数量级还多。</p>
+<p><strong>几条今天真正记住的判断</strong></p>
+<ul>
+<li><strong>网关是谁是「被指定」的，不是靠习惯推出来的。</strong> 我下意识觉得网关就是本网段第一个可用地址（<code>.1</code>），但 VMware 把 <code>.1</code> 给了宿主机网卡、<code>.2</code> 给了 NAT 设备。真实网络里网关是谁，只能查设计文档或问规划者。</li>
+<li><strong>ping 同网段的地址根本不经过网关。</strong> 两台同 <code>/24</code> 的机器互 ping 靠的是直接 ARP，路由表和默认网关完全不参与 —— 所以「ping 不通网关」这个说法本身就不准确，它真正的含义是二层 ARP 不通。</li>
+<li><strong>双向都不通 &#x3D; 链路层问题；只有一个方向不通 &#x3D; 防火墙。</strong> 今天宿主机能 ping 通虚拟机、虚拟机 ping 不通宿主机，顺着这条推，问题就在宿主机 Windows 防火墙（VMnet8 被 Windows 归为「公用网络」，默认不响应入站 ping）。这是个假问题，不影响上网，和真问题叠在一起，一开始被混为一谈了。</li>
+<li><strong>官方文档也可能是为旧大版本写的。</strong> 阿里云镜像页给的命令用的是 <code>Rocky-*.repo</code>，那是 Rocky 8 的命名，在 Rocky 9 上要么完全不生效、要么只静默改一半。照抄任何 glob 之前，先 <code>ls</code> 核对本机真实文件名。</li>
+<li><strong><code>setenforce 0</code> 临时判断故障是正常手段，永久 disabled 不是。</strong> 一旦 disabled 并重启过，想恢复就得 <code>touch /.autorelabel</code> 做全盘 relabel。幸好我是在重启之前改回来的，一条 <code>setenforce 1</code> 就完事，零副作用 —— 这个「还没重启」的窗口很值钱。</li>
+<li><strong>判断「某事有没有做过」，不能只看我以为的那个位置。</strong> 比如备份，我以为会在某个目录、没看到就以为没做，实际人家用的是另一个位置。要先搜索，多路径找一遍，再下结论。</li>
+</ul>
+<p><strong>下一步</strong></p>
+<p>明天开始 <strong>RHCSA 第一阶段</strong>。先自己回答两个问题（不许查资料直接抄）：</p>
+<ol>
+<li>EX200 的 9 个考纲领域，按什么标准排序？分值、依赖关系，还是日常使用频率？</li>
+<li>已经有工作经验的几块（dnf、服务管理、网络），要不要重学？如果要，重学该学什么？</li>
+</ol>
+<p>另外今天还找了一套 RHCSA &#x2F; RHCE 的实验环境资料，准备后面照着多练实机。</p>
+<p><strong>能力索引</strong> —— 今天涉及的知识点在地图上的位置：</p>
+<ul>
+<li><a href="/maps/rhcsa.html#chap-env">环境底座</a><ul>
+<li><a href="/maps/rhcsa.html#%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%9A%84%E4%B8%89%E6%96%B9%E8%A7%92%E8%89%B2nat-%E6%A8%A1%E5%BC%8F">虚拟机网络的三方角色（NAT 模式）</a></li>
+<li><a href="/maps/rhcsa.html#%E7%94%A8-nmcli-%E9%85%8D%E9%9D%99%E6%80%81-ip">用 nmcli 配静态 IP</a></li>
+<li><a href="/maps/rhcsa.html#%E7%BD%91%E7%BB%9C%E4%B8%8D%E9%80%9A%E7%9A%84%E5%88%86%E5%B1%82%E6%8E%92%E6%9F%A5%E9%A1%BA%E5%BA%8F">网络不通的分层排查顺序</a></li>
+<li><a href="/maps/rhcsa.html#dnf-yum-%E6%8D%A2%E6%BA%90">dnf &#x2F; yum 换源</a></li>
+<li><a href="/maps/rhcsa.html#selinux">SELinux</a></li>
+<li><a href="/maps/rhcsa.html#firewalld">firewalld</a></li>
+<li><a href="/maps/rhcsa.html#%E5%BF%AB%E7%85%A7%E5%B7%A5%E4%BD%9C%E6%B5%81">快照工作流</a></li>
+</ul>
+</li>
+</ul>
+<h2 id="2026-09-11-星期五"><a href="#2026-09-11-星期五" class="headerlink" title="2026-09-11 星期五"></a>2026-09-11 星期五</h2><p><strong>今天做了什么</strong></p>
+<p>把 RHCE 和 CKA 两个证的备考方向定下来了，顺手把能查到的官方大纲核对了一遍，发现三个和网上老攻略不一样的地方。</p>
+<p><strong>三个关键发现</strong></p>
+<ol>
+<li><strong>RHCE 有前置证书。</strong> 可以直接报名 EX294，但红帽规定<strong>必须同时持有有效的 RHCSA（EX200）才会授予 RHCE 称号</strong>。所以真实路径是 RHCSA → RHCE，跳不过去。</li>
+<li><strong>RHCE 新版已经改名并加考。</strong> RHEL 10 版本的官方名称改成了「Red Hat Certified Advanced System Administrator in Ansible」，新增 <code>ansible-navigator</code>、VS Code 工作流、Git 基本操作三项考点。网上大量老资料不覆盖这部分，不能照老攻略学。</li>
+<li><strong>RHCE 有个隐藏评分点：配置必须在重启后仍然生效。</strong> 服务、挂载、防火墙、用户，只要 <code>reboot</code> 后失效就是零分。这是最高频的失分原因。</li>
+</ol>
+<p><strong>CKA 的分数分布（决定复习时间怎么分配）</strong></p>
+<table>
+<thead>
+<tr>
+<th>考点域</th>
+<th>权重</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Troubleshooting 故障排查</td>
+<td>30%</td>
+</tr>
+<tr>
+<td>Cluster Architecture 集群架构与安装</td>
+<td>25%</td>
+</tr>
+<tr>
+<td>Services &amp; Networking 服务与网络</td>
+<td>20%</td>
+</tr>
+<tr>
+<td>Workloads &amp; Scheduling 工作负载与调度</td>
+<td>15%</td>
+</tr>
+<tr>
+<td>Storage 存储</td>
+<td>10%</td>
+</tr>
+</tbody></table>
+<p>Troubleshooting 独占 30%，是最重的部分，也是唯一能靠练习真正拉开差距的地方。</p>
+<p><strong>两个考试的共同点（决定了学法）</strong></p>
+<ul>
+<li>都是 <strong>100% 纯实操</strong>，全程在真实环境里敲命令，一道选择题都没有。</li>
+<li>考试环境<strong>不提供互联网</strong>：RHCE 只能查考场内的产品文档，CKA 只能查 kubernetes.io&#x2F;docs。</li>
+<li>推论：<strong>凡是「需要搜一下才知道怎么写」的内容，就等于不会。</strong> 必须练到能默写。</li>
+</ul>
+<p><strong>关键命令</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 一次性把剩余空间全扩给逻辑卷并同步扩文件系统，-r 是关键，很多人会漏</span></span><br><span class="line">lvextend -r -l +100%FREE /dev/vg_data/lv_app</span><br><span class="line"></span><br><span class="line"><span class="comment"># CKA 提速：开考第一件事就设别名，能省十几分钟</span></span><br><span class="line"><span class="built_in">alias</span> k=kubectl</span><br><span class="line"><span class="built_in">export</span> <span class="keyword">do</span>=<span class="string">&quot;--dry-run=client -o yaml&quot;</span></span><br><span class="line">k run nginx --image=nginx <span class="variable">$do</span> &gt; pod.yaml</span><br></pre></td></tr></table></figure>
+
+<p><strong>下一步</strong></p>
+<p>搭 3 台 Rocky Linux 10 虚拟机（control &#x2F; node1 &#x2F; node2），先把 RHCSA 的<strong>存储、SELinux、firewalld</strong> 三块练到不用查资料——这三块也是后面 EX294 要用 Ansible 重新实现一遍的内容。</p>
+<p><strong>能力索引</strong> —— 这一天主要是定方向、核对考纲，地图上对应的大块还没展开。能挂的先挂两个：</p>
+<ul>
+<li><a href="/maps/rhcsa.html#lvm%E7%89%A9%E7%90%86%E5%8D%B7-%E5%8D%B7%E7%BB%84-%E9%80%BB%E8%BE%91%E5%8D%B7">存储与挂载 · LVM：物理卷 &#x2F; 卷组 &#x2F; 逻辑卷</a></li>
+<li><a href="/maps/rhcsa.html">整张地图</a></li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://crui.is-a.dev">Rui Cheng</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://crui.is-a.dev/study-log/2026-09/">https://crui.is-a.dev/study-log/2026-09/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E5%AD%A6%E4%B9%A0%E6%97%A5%E5%BF%97/">学习日志</a><a class="post-meta__tags" href="/tags/RHCSA/">RHCSA</a><a class="post-meta__tags" href="/tags/Linux/">Linux</a></div><div class="post-share"><div class="social-share" data-image="/img/avatar.svg" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/09/10/build-your-own-website/" title="从零搭建自己的技术博客：Hexo + GitHub Pages + 免费短域名实战"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info"><div class="info-1"><div class="info-item-1">Previous</div><div class="info-item-2">从零搭建自己的技术博客：Hexo + GitHub Pages + 免费短域名实战</div></div><div class="info-2"><div class="info-item-1">把自己写的东西放到一个属于自己的网址上，是一件比想象中简单的事。这篇文章记录我从零搭起这个博客、并给它绑上一个免费短域名的完整过程，包括所有踩过的坑。 本站就是这套方案的产物：源码用 Hexo，托管在 GitHub Pages，短域名 crui.is-a.dev 通过 is-a.dev 免费申请。整个过程零服务器、零费用、不需要备案。   一、先想清楚要什么在动手之前，先明确三个问题，它们决定了技术选型：    问题 本方案的选择 为什么    内容会频繁变动吗？ 不会，主要是写文章 静态站点足够，不需要数据库   有服务器吗？ 没有 用 GitHub Pages 免费托管   需要动态功能吗？ 不需要 纯静态最省心，也最快   静态博客 + 免费托管的组合，是目前个人技术博客性价比最高的方案：  零成本：GitHub Pages 免费，自定义域名也可以免费 零运维：不用管服务器、不用配 Nginx、不用续费 免备案：GitHub 服务器在海外，无需 ICP 备案 版本可追溯：文章就是 Markdown 文件，扔进 Git 仓库，写错了随时回滚  代价是：纯静态、没有后台管理界面...</div></div></div></a><a class="pagination-related" href="/2026/01/05/Kiro%E8%BF%9C%E7%A8%8B%E8%BF%9E%E6%8E%A5%E6%8F%92%E4%BB%B6%E4%BD%BF%E7%94%A8/" title="Kiro远程连接插件使用"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">Kiro远程连接插件使用</div></div><div class="info-2"><div class="info-item-1">在使用 Kiro 进行远程 SSH 时，发现官方扩展中的微软 SSH 插件不支持 Remote 功能。推荐使用以下第三方插件替代： 插件下载🔗 open-remote-ssh v0.0.49 安装步骤 下载 .vsix 文件   打开 Kiro，点击左侧 扩展图标   点击右上角 ⋯ → 从 VSIX 安装   选择下载的文件，完成安装即可使用   安装后即可正常通过 SSH 远程连接服务器。  </div></div></div></a></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.svg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Rui Cheng</div><div class="author-info-description">Notes on Linux, HPC and the tools I use.</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">3</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">7</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">2</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/hccc044-bit"><i class="fab fa-github"></i><span>Follow Me</span></a></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">Welcome! This blog collects my hands-on notes on Linux, HPC, Kubernetes and developer tools.</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#2026-09-18-%E6%98%9F%E6%9C%9F%E4%BA%94"><span class="toc-number">1.</span> <span class="toc-text">2026-09-18 星期五</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2026-09-17-%E6%98%9F%E6%9C%9F%E5%9B%9B"><span class="toc-number">2.</span> <span class="toc-text">2026-09-17 星期四</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2026-09-15-%E6%98%9F%E6%9C%9F%E4%BA%8C"><span class="toc-number">3.</span> <span class="toc-text">2026-09-15 星期二</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2026-09-14-%E6%98%9F%E6%9C%9F%E4%B8%80"><span class="toc-number">4.</span> <span class="toc-text">2026-09-14 星期一</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2026-09-11-%E6%98%9F%E6%9C%9F%E4%BA%94"><span class="toc-number">5.</span> <span class="toc-text">2026-09-11 星期五</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/09/10/build-your-own-website/" title="从零搭建自己的技术博客：Hexo + GitHub Pages + 免费短域名实战">从零搭建自己的技术博客：Hexo + GitHub Pages + 免费短域名实战</a><time datetime="2026-09-10T08:30:00.000Z" title="Created 2026-09-10 16:30:00">2026-09-10</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/study-log/2026-09/" title="学习日志 · 2026 年 9 月">学习日志 · 2026 年 9 月</a><time datetime="2026-08-31T16:00:00.000Z" title="Created 2026-09-01 00:00:00">2026-09-01</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/01/05/Kiro%E8%BF%9C%E7%A8%8B%E8%BF%9E%E6%8E%A5%E6%8F%92%E4%BB%B6%E4%BD%BF%E7%94%A8/" title="Kiro远程连接插件使用">Kiro远程连接插件使用</a><time datetime="2026-01-05T09:04:11.000Z" title="Created 2026-01-05 17:04:11">2026-01-05</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Rui Cheng</span><span class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.1</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.3</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.3"></script><script src="/js/main.js?v=5.5.3"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
