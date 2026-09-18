@@ -1074,6 +1074,22 @@ function slug(s){
     .slice(0, 64);
 }
 
+// 节点标识：标题相同的节点会撞出同一个标识，所以先数一遍 —— 撞了的按所属章节加后缀区分。
+let NIDS = {};
+function buildNids() {
+  const cnt = {};
+  MAP.forEach(ch => ch.nodes.forEach(n => {
+    const k = n.id || slug(n.t);
+    cnt[k] = (cnt[k] || 0) + 1;
+  }));
+  const out = {};
+  MAP.forEach(ch => ch.nodes.forEach((n, i) => {
+    const k = n.id || slug(n.t);
+    out[ch.id + '-' + i] = cnt[k] > 1 ? k + '-' + ch.id : k;
+  }));
+  return out;
+}
+
 function renderTree() {
   const t = document.getElementById('tree');
   let html = '<h2>目录</h2>';
@@ -1095,6 +1111,7 @@ function renderTree() {
 
 function renderContent() {
   const c = document.getElementById('content');
+  NIDS = buildNids();
   let html = '';
   MAP.forEach(ch => {
     html += '<section class="chap" id="chap-' + ch.id + '">';
@@ -1104,7 +1121,7 @@ function renderContent() {
     if (ch.note) html += '<p class="chap-note">' + ch.note + '</p>';
 
     ch.nodes.forEach((n, i) => {
-      const nid = n.id || slug(n.t);
+      const nid = NIDS[ch.id + '-' + i];
       html += '<div class="node" id="node-' + ch.id + '-' + i + '" data-nid="' + esc(nid) + '">';
       html += '<button class="cp" type="button" data-cp="#' + esc(nid) + '" title="复制这一节的可分享链接">复制链接</button>';
       html += '<h4>' + esc(n.t) + '</h4>';
