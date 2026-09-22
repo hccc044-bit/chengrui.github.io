@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>从磁盘到 LVM · 层级关系图</title>
+<style>
+:root{
+  --bg:#ffffff; --panel:#f6f7f9; --panel2:#eceff2; --bd:#e1e4e8;
+  --tx:#1f2328; --tx2:#57606a; --tx3:#8b949e;
+  --code:#f2f4f7; --accent:#2f6f4f; --warn:#b42318; --warnbg:#fdeceb;
+  --l0:#888780; --l1:#BA7517; --l2:#378ADD; --l3:#7F77DD; --l4:#1D9E75; --l5:#639922; --l6:#D85A30;
+}
+html[data-theme="dark"]{
+  --bg:#14171a; --panel:#1b1f23; --panel2:#22272b; --bd:#30363d;
+  --tx:#e6edf3; --tx2:#9aa4ae; --tx3:#6e7681;
+  --code:#1b1f23; --accent:#5bbd8e; --warn:#f85149; --warnbg:#2d1618;
+  --l0:#B4B2A9; --l1:#EF9F27; --l2:#85B7EB; --l3:#AFA9EC; --l4:#5DCAA5; --l5:#97C459; --l6:#F0997B;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--tx);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+header{padding:26px 24px 18px;border-bottom:1px solid var(--bd)}
+.hd{max-width:1120px;margin:0 auto}
+h1{margin:0;font-size:22px;font-weight:600;letter-spacing:-.2px}
+.sub{margin:6px 0 0;color:var(--tx2);font-size:13.5px}
+.hdbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+.spacer{flex:1 1 auto}
+button{font-family:inherit;font-size:13px;padding:7px 12px;border:1px solid var(--bd);border-radius:8px;
+  background:var(--panel);color:var(--tx2);cursor:pointer}
+button:hover{border-color:var(--tx3);color:var(--tx)}
+.nav a{font-size:13px;margin-right:14px;color:var(--tx2)}
+main{max-width:1120px;margin:0 auto;padding:22px 24px 8px}
+section{margin-bottom:30px}
+h2{font-size:16px;font-weight:600;margin:0 0 4px;display:flex;align-items:center;gap:9px}
+h2::before{content:"";width:3px;height:15px;border-radius:2px;background:var(--accent);flex:0 0 auto}
+h2 .n{font-size:12px;color:var(--tx3);font-weight:400}
+p.lead{margin:8px 0 14px;color:var(--tx2);font-size:13.5px}
+
+.stepstrip{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 16px;font-size:12.5px;color:var(--tx2)}
+.stepstrip .st{padding:4px 9px;border:1px solid var(--bd);border-radius:7px;background:var(--panel);white-space:nowrap}
+.stepstrip .st b{color:var(--tx);font-weight:500}
+.stepstrip .sep{color:var(--tx3)}
+.stepstrip .st.on{border-color:var(--l4);color:var(--l4)}
+
+.scrollwrap{overflow-x:auto;padding-bottom:6px}
+.stack{min-width:740px}
+.lyr{border:1px solid var(--bd);border-left:4px solid var(--bd);border-radius:10px;
+  padding:10px 12px 12px;margin-top:10px;background:var(--bg);transition:background .12s}
+.lyr:hover{background:var(--panel)}
+.lyr[data-l="0"]{border-left-color:var(--l0)}
+.lyr[data-l="1"]{border-left-color:var(--l1)}
+.lyr[data-l="2"]{border-left-color:var(--l2)}
+.lyr[data-l="3"]{border-left-color:var(--l3)}
+.lyr[data-l="4"]{border-left-color:var(--l4)}
+.lyr[data-l="5"]{border-left-color:var(--l5)}
+.lyr[data-l="6"]{border-left-color:var(--l6)}
+.lhd{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;cursor:pointer;user-select:none}
+.lhd .lnum{font-size:11.5px;font-weight:700;color:var(--bg);background:var(--tx3);
+  width:19px;height:19px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+.lhd b{font-size:14px;font-weight:600}
+.lhd .lmeta{font-size:12px;color:var(--tx3)}
+.lhd .lcmd{margin-left:auto;font-size:12px;color:var(--tx2);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.lcm{margin:4px 0 0;font-size:12.5px;color:var(--tx2)}
+.band{margin-top:8px;padding:6px 10px;border-radius:7px;background:var(--panel2);font-size:12.5px;color:var(--tx2)}
+.band b{color:var(--tx);font-weight:500}
+.mut{color:var(--tx3)}
+.collapsed>.lbody{display:none}
+.caret{margin-left:6px;color:var(--tx3);font-size:11px}
+.caret::after{content:"▾"}
+.collapsed .caret::after{content:"▸"}
+
+table{border-collapse:collapse;width:100%;font-size:13px}
+.tblwrap{overflow-x:auto}
+th,td{border:1px solid var(--bd);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:600;color:var(--tx2);font-size:12.5px;white-space:nowrap}
+td code,li code,p code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.4px;
+  background:var(--code);padding:1px 5px;border-radius:4px}
+td .lv{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:7px;vertical-align:baseline}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.card{border:1px solid var(--bd);border-radius:10px;padding:12px 14px;background:var(--bg)}
+.card h3{margin:0 0 6px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px}
+.card h3::before{content:"";width:3px;height:13px;border-radius:2px;background:var(--accent);flex:0 0 auto}
+.card p{margin:0 0 6px;font-size:13.2px}
+.card ul{margin:6px 0 0;padding-left:19px}
+.card li{font-size:13.2px;margin-bottom:5px}
+.card li::marker{color:var(--tx3)}
+
+.key{position:relative;padding:8px 12px 8px 30px;border-radius:8px;background:var(--warnbg);
+  color:var(--warn);font-size:13.2px;margin-bottom:6px;line-height:1.62}
+.key::before{content:"!";position:absolute;left:11px;top:8px;font-weight:700}
+.key.mem{background:var(--panel);color:var(--tx2)}
+.key.mem::before{content:"→";color:var(--accent);font-weight:600}
+
+.chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12.5px;
+  padding:10px 12px;border:1px solid var(--bd);border-radius:9px;background:var(--panel);margin-bottom:8px}
+.chain .cu{font-size:12.5px;color:var(--tx2);min-width:92px;font-weight:500;color:var(--tx)}
+.chain .n{padding:3px 9px;border-radius:7px;border:1px solid var(--bd);background:var(--bg);white-space:nowrap}
+.chain .n.pv{border-color:var(--l2)} .chain .n.vg{border-color:var(--l3)}
+.chain .n.lv{border-color:var(--l4)} .chain .n.fs{border-color:var(--l5)}
+.chain .n.mp{border-color:var(--l6)} .chain .n.pt{border-color:var(--l1)}
+.chain .ar{color:var(--tx3)}
+footer{max-width:1120px;margin:0 auto;padding:6px 24px 40px;color:var(--tx3);font-size:12.5px}
+</style>
+</head>
+<body>
+<header>
+  <div class="hd">
+    <h1>从磁盘到 LVM · 层级关系图</h1>
+    <p class="sub">谁包含谁、谁是可选层、哪一层是可逆的 —— 一页看完。图上的设备名与数字取自实验机实测。</p>
+    <div class="hdbar">
+      <div class="nav">
+        <a href="/maps/rhcsa.html">RHCSA 学习地图</a>
+        <a href="/study-log/">学习日志</a>
+      </div>
+      <div class="spacer"></div>
+      <button id="tbtn" type="button">切换深色</button>
+      <button id="expand" type="button">全部展开</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<section>
+  <h2>一、包含关系总览 <span class="n">外层包住内层，从磁盘一直套到挂载点</span></h2>
+  <p class="lead">点每一层的标题行可以折叠它的内部。数字是这台机器上 <code>/dev/sdc</code> 的真实值。</p>
+  <div class="stepstrip">
+    <span class="st"><b>1</b> parted</span><span class="sep">→</span>
+    <span class="st"><b>2</b> partprobe</span><span class="sep">→</span>
+    <span class="st"><b>3</b> pvcreate</span><span class="sep">→</span>
+    <span class="st"><b>4</b> vgcreate</span><span class="sep">→</span>
+    <span class="st"><b>5</b> lvcreate</span><span class="sep">→</span>
+    <span class="st on"><b>6</b> mkfs</span><span class="sep">→</span>
+    <span class="st on"><b>7</b> mount + fstab</span>
+  </div>
+
+  <div class="scrollwrap">
+  <div class="stack" id="stack">
+
+    <div class="lyr" data-l="0">
+      <div class="lhd"><span class="lnum">0</span><b>磁盘 /dev/sdc</b>
+        <span class="lmeta">8192 MiB · VMware Virtual S</span>
+        <span class="lcmd">硬件层</span><span class="caret"></span></div>
+      <p class="lcm">硬件／虚拟层。LVM 看不见"磁盘"，它只认识"块设备"。</p>
+      <div class="lbody">
+        <div class="band"><b>磁盘头部 1 MiB</b>　GPT 分区表 + 对齐保留　<span class="mut">不在任何分区里，所以不占分区尺寸</span></div>
+
+        <div class="lyr" data-l="1">
+          <div class="lhd"><span class="lnum">1</span><b>分区 /dev/sdc1</b>
+            <span class="lmeta">4096 MiB · Flags: lvm</span>
+            <span class="lcmd">parted · 可选层</span><span class="caret"></span></div>
+          <p class="lcm">只是"设备层的准备动作"，<b>不属于 LVM 的任何一层</b>。整盘直接当 PV 也完全可行。</p>
+          <div class="lbody">
+            <div class="lyr" data-l="2">
+              <div class="lhd"><span class="lnum">2</span><b>PV 物理卷</b>
+                <span class="lmeta">Physical Volume</span>
+                <span class="lcmd">pvcreate /dev/sdc1</span><span class="caret"></span></div>
+              <p class="lcm">"已经登记进 LVM 的设备"。<b>不做任何空间切割</b>，只是在设备上写了个标签。</p>
+              <div class="lbody">
+                <div class="band"><b>LVM 标签 + 元数据</b>（几 MiB）　<span class="mut">计入 PV、不计入 VG；<code>pvdisplay</code> 里叫 not usable</span></div>
+
+                <div class="lyr" data-l="3">
+                  <div class="lhd"><span class="lnum">3</span><b>VG 卷组 test</b>
+                    <span class="lmeta">PE 4 MiB（默认）</span>
+                    <span class="lcmd">vgcreate test /dev/sdc1</span><span class="caret"></span></div>
+                  <p class="lcm">一本账：把 PV 的数据区<b>切成等大的 PE 格子</b>记下来。<code>VG Size = PE × Total PE</code>。</p>
+                  <div class="lbody">
+                    <div class="band">格子池：<b>[PE][PE][PE]…</b>　<span class="mut">已划走的格子归某个 LV，剩下的算 VFree</span></div>
+
+                    <div class="lyr" data-l="4">
+                      <div class="lhd"><span class="lnum">4</span><b>LV 逻辑卷 /dev/test/vo</b>
+                        <span class="lmeta">200 MiB = 50 个 PE</span>
+                        <span class="lcmd">lvcreate -n vo -L 200MiB test</span><span class="caret"></span></div>
+                      <p class="lcm">从账上划走 50 个格子，凑成一块<b>可以格式化的块设备</b>。</p>
+                      <div class="lbody">
+                        <div class="band">设备节点：<b>/dev/mapper/test-vo</b>　<span class="mut">另有软链 <code>/dev/test/vo</code>，两条路径指向同一个卷</span></div>
+
+                        <div class="lyr" data-l="5">
+                          <div class="lhd"><span class="lnum">5</span><b>文件系统 xfs</b>
+                            <span class="lmeta">写在 LV 之上</span>
+                            <span class="lcmd">mkfs.xfs /dev/test/vo</span><span class="caret"></span></div>
+                          <p class="lcm">这一层才是"能存文件"的地方。<b>mkfs 不可逆</b>，会盖掉原有签名。</p>
+                          <div class="lbody">
+                            <div class="lyr" data-l="6">
+                              <div class="lhd"><span class="lnum">6</span><b>挂载点 /vo ＋ fstab</b>
+                                <span class="lmeta">跨重启还认得</span>
+                                <span class="lcmd">mount / vim /etc/fstab</span></div>
+                              <p class="lcm">让别人（systemd）下次开机知道该做什么。没有 fstab 那一行，重启就"忘了"。</p>
+                              <div class="band">fstab：<b>UUID=… /vo xfs defaults 0 0</b>　<span class="mut">第 5 字段 dump=0；第 6 字段 fsck 顺序，xfs 写 0</span></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  </div>
+</section>
+
+<section>
+  <h2>二、每一层由谁产生 <span class="n">命令、查法、撤销</span></h2>
+  <p class="lead">注意"撤销"那一列：<b>越往下越难回头</b>。LVM 的三层都能拆，文件系统开始就不能了。</p>
+  <div class="tblwrap">
+  <table>
+    <thead><tr><th>层</th><th>对象</th><th>诞生命令</th><th>怎么查</th><th>怎么撤</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td><span class="lv" style="background:var(--l0)"></span>0</td><td>磁盘</td><td>虚拟机加盘／接硬件</td><td><code>lsblk</code></td><td>—</td><td>LVM 看不见它，只认块设备</td></tr>
+      <tr><td><span class="lv" style="background:var(--l1)"></span>1</td><td>分区</td><td><code>parted mkpart</code>＋<code>set N lvm on</code></td><td><code>parted print</code></td><td><code>parted rm N</code></td><td>可选；分区表记得标记成 lvm</td></tr>
+      <tr><td><span class="lv" style="background:var(--l2)"></span>2</td><td>PV</td><td><code>pvcreate</code></td><td><code>pvs</code>／<code>pvdisplay</code></td><td><code>pvremove</code></td><td>登记设备，不切空间</td></tr>
+      <tr><td><span class="lv" style="background:var(--l3)"></span>3</td><td>VG</td><td><code>vgcreate</code>（<code>-s</code> 定 PE）</td><td><code>vgs</code>／<code>vgdisplay</code></td><td><code>vgremove</code></td><td>账本；可 <code>vgextend</code> 收新 PV</td></tr>
+      <tr><td><span class="lv" style="background:var(--l4)"></span>4</td><td>LV</td><td><code>lvcreate</code>（<code>-l</code> 格数／<code>-L</code> 大小）</td><td><code>lvs</code>／<code>lvdisplay</code></td><td><code>lvremove</code></td><td>划走 n 格，得到可格式化的块设备</td></tr>
+      <tr><td><span class="lv" style="background:var(--l5)"></span>5</td><td>文件系统</td><td><code>mkfs.xfs</code>／<code>mkfs.vfat</code></td><td><code>blkid</code>／<code>lsblk -f</code></td><td>重做 mkfs（数据没了）</td><td>不可逆，动手前先快照</td></tr>
+      <tr><td><span class="lv" style="background:var(--l6)"></span>6</td><td>挂载 ＋ 持久化</td><td><code>mount</code>＋写 <code>/etc/fstab</code></td><td><code>findmnt</code>／<code>df -h</code></td><td><code>umount</code>＋删那一行</td><td>决定重启后还在不在</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>三、三条真实链路对照 <span class="n">LVM 是可选的中间层</span></h2>
+  <p class="lead">同一台机器上跑着三条不同的链路。看第二行 —— <b>没有 LVM 也完全能挂载</b>，LVM 只是"可以伸缩"的那条路。</p>
+
+  <div class="chain">
+    <span class="cu">链路 A（根分区）</span>
+    <span class="n pt">sda2</span><span class="ar">→</span><span class="n pv">PV</span><span class="ar">→</span>
+    <span class="n vg">VG rlm</span><span class="ar">→</span><span class="n lv">LV rlm-root</span><span class="ar">→</span>
+    <span class="n fs">xfs</span><span class="ar">→</span><span class="n mp">/</span>
+    <span class="mut">　＋ LV rlm-swap → swap</span>
+  </div>
+  <div class="chain">
+    <span class="cu">链路 B（数据盘）</span>
+    <span class="n pt">sdb1</span><span class="ar">→</span>
+    <span class="n fs">xfs</span><span class="ar">→</span><span class="n mp">/mnt/data</span>
+    <span class="mut">　没有 LVM 这一层</span>
+  </div>
+  <div class="chain">
+    <span class="cu">链路 C（在做）</span>
+    <span class="n pt">sdc1</span><span class="ar">→</span><span class="n pv">PV</span><span class="ar">→</span>
+    <span class="n vg">VG test</span><span class="ar">→</span><span class="n lv">LV vo</span><span class="ar">→</span>
+    <span class="mut">待 mkfs.xfs → 待挂 /vo</span>
+  </div>
+</section>
+
+<section>
+  <h2>四、关系性质辨析 <span class="n">最容易想歪的四件事</span></h2>
+  <div class="cards">
+    <div class="card">
+      <h3>包含 vs 认领</h3>
+      <p>磁盘 ⊃ 分区 是<b>包含</b>（物理上就在里面）。</p>
+      <p>VG 对 PV 是<b>认领</b>：一个 PV 只能属于一个 VG；一个 VG 却能吃下多个 PV（<code>vgextend</code>）。</p>
+    </div>
+    <div class="card">
+      <h3>哪一层才"产生空间"</h3>
+      <ul>
+        <li><code>pvcreate</code>：不产生空间，只贴标签</li>
+        <li><code>vgcreate</code>：不产生空间，只把已有空间切成格子记账</li>
+        <li><code>lvcreate</code>：把格子凑成一块<b>能格式化的设备</b></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>LV 不是新磁盘，但有设备名</h3>
+      <p>LV 是 VG 里的一段，不是物理设备。但 LVM 为它建了设备节点：</p>
+      <p><code>/dev/mapper/test-vo</code>，并有软链 <code>/dev/test/vo</code>。两条路指同一个卷。</p>
+    </div>
+    <div class="card">
+      <h3>文件系统是"写在其上"</h3>
+      <p>不是"装在里面"。所以文件系统可以写在 LV 上，也可以直接写在分区上（链路 B）。</p>
+      <p>换一层地基，就得重新 <code>mkfs</code>。</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>五、这一路的坑 <span class="n">实测踩过的</span></h2>
+  <div class="key"><b><code>pvs</code>/<code>vgs</code>/<code>lvs</code> 里的 <code>&lt;</code> 是显示取整</b>，不是"空间被吃了"。真实值略小于显示值就加 <code>&lt;</code>。实测：<code>/dev/sda2</code> 7167 MiB → <code>&lt;7.00g</code>；<code>/dev/sdc1</code> 正好 4096 MiB → <code>4.00g</code>（不加）。</div>
+  <div class="key"><b>真正"吃掉"空间的是 PV 的标签与元数据</b>，它计入 PV、不计入 VG。所以 <code>VG Size</code> 会比 <code>PVSize</code> 少几 MiB，这是正常的。</div>
+  <div class="key"><b>LV 大小永远是 PE 的整数倍</b>。凑不出正好时只能多给一点。真题里"50 个扩展单元 × 扩展块 16MiB"＝ 800MiB，考的就是这个语义。</div>
+  <div class="key"><b><code>mkfs</code> 不可逆</b>。它不"格式化"一个空壳，它会盖掉设备上原有的文件系统签名；有签名时还会拒绝执行（除非 <code>-f</code>），这是保护不是 bug。</div>
+  <div class="key"><b>fstab 写错的最坏结果是进 emergency mode</b>，不是"少挂一个目录"。所以改完先 <code>mount -a</code> ＋ <code>findmnt --verify</code>，最后才考虑重启。</div>
+  <div class="key mem"><b>XFS 只能扩不能缩</b>；ext4 能缩但必须先卸载。扩容还要记住是两个动作：<code>lvextend</code>（改 LVM 的账）＋ <code>xfs_growfs</code>（撑满文件系统）。</div>
+  <div class="key mem"><b>命令族命名规律</b>：<code>pvs</code>/<code>vgs</code>/<code>lvs</code> 是一行一个对象的汇总，<code>pvdisplay</code> 一类是单个对象详情。LVM 里<b>没有</b>单数的 <code>pv</code>/<code>vg</code>/<code>lv</code>（<code>pv</code> 是另一个无关程序）。</div>
+</section>
+</main>
+
+<footer>
+  <p>实验机实测整理；设备名与容量取自 <code>/dev/sdc</code> 的真实操作过程。返回 <a href="/maps/rhcsa.html">RHCSA 学习地图</a>　·　<a href="/study-log/">学习日志</a></p>
+</footer>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  var btn = document.getElementById('tbtn');
+  var KEY = 'lvm-map-theme';
+  function paint(){
+    var d = root.dataset.theme === 'dark';
+    btn.textContent = d ? '切换浅色' : '切换深色';
+  }
+  try{
+    var saved = localStorage.getItem(KEY);
+    if(saved){ root.dataset.theme = saved; }
+    else if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){ root.dataset.theme = 'dark'; }
+  }catch(e){}
+  paint();
+  btn.addEventListener('click', function(){
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem(KEY, root.dataset.theme); }catch(e){}
+    paint();
+  });
+
+  var layers = [].slice.call(document.querySelectorAll('.lyr'));
+  layers.forEach(function(l){
+    var hd = l.querySelector('.lhd');
+    if(!hd) return;
+    hd.addEventListener('click', function(){ l.classList.toggle('collapsed'); });
+  });
+
+  var ex = document.getElementById('expand');
+  ex.addEventListener('click', function(){
+    var anyOpen = layers.some(function(l){ return !l.classList.contains('collapsed'); });
+    layers.forEach(function(l){ l.classList.toggle('collapsed', anyOpen); });
+    ex.textContent = anyOpen ? '全部展开' : '全部折叠';
+  });
+})();
+</script>
+</body>
+</html>

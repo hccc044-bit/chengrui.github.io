@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RHCSA 学习地图 · Rui Cheng</title>
+<style>
+:root{
+  --bg:#ffffff; --panel:#f6f7f9; --panel2:#eceff2; --bd:#e1e4e8;
+  --tx:#1f2328; --tx2:#57606a; --tx3:#8b949e;
+  --ok:#1a7f37; --okbg:#e9f6ee; --okbd:#b7e0c4;
+  --doing:#9a6700; --doingbg:#fff6dd; --doingbd:#e8d18a;
+  --todo:#57606a; --todobg:#eef1f4; --todobd:#d8dee4;
+  --code:#f2f4f7; --accent:#2f6f4f; --warn:#b42318; --warnbg:#fdeceb;
+}
+html[data-theme="dark"]{
+  --bg:#14171a; --panel:#1b1f23; --panel2:#22272b; --bd:#30363d;
+  --tx:#e6edf3; --tx2:#9aa4ae; --tx3:#6e7681;
+  --ok:#3fb950; --okbg:#16281c; --okbd:#2c4a36;
+  --doing:#d29922; --doingbg:#2a2314; --doingbd:#4a3d18;
+  --todo:#8b949e; --todobg:#22272b; --todobd:#30363d;
+  --code:#1b1f23; --accent:#5bbd8e; --warn:#f85149; --warnbg:#2d1618;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--tx);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+header{padding:28px 24px 20px;border-bottom:1px solid var(--bd)}
+.hd{max-width:1280px;margin:0 auto}
+h1{margin:0;font-size:23px;font-weight:600;letter-spacing:-.2px}
+.sub{margin:6px 0 0;color:var(--tx2);font-size:13.5px}
+.hdbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:16px}
+.stat{display:flex;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;
+  font-size:12.5px;border:1px solid var(--bd);background:var(--panel);color:var(--tx2);white-space:nowrap}
+.pill b{color:var(--tx);font-weight:600}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:0 0 auto}
+.d-ok{background:var(--ok)} .d-doing{background:var(--doing)} .d-todo{background:var(--todo)}
+.spacer{flex:1 1 auto}
+input[type=search]{padding:7px 12px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);
+  color:var(--tx);font-size:13.5px;min-width:190px;outline:none;font-family:inherit}
+input[type=search]:focus{border-color:var(--accent)}
+button{font-family:inherit;font-size:13px;padding:7px 12px;border:1px solid var(--bd);border-radius:8px;
+  background:var(--panel);color:var(--tx2);cursor:pointer}
+button:hover{border-color:var(--tx3);color:var(--tx)}
+
+.layout{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:264px minmax(0,1fr);gap:28px;padding:24px}
+
+aside{position:sticky;top:20px;align-self:start;max-height:calc(100vh - 40px);overflow:auto;
+  border:1px solid var(--bd);border-radius:12px;background:var(--panel);padding:14px}
+aside h2{margin:0 0 10px;font-size:12.5px;color:var(--tx3);font-weight:600;letter-spacing:.4px}
+.tnode{margin-bottom:2px}
+.tchap{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px;cursor:pointer;
+  font-size:13.5px;font-weight:500;color:var(--tx)}
+.tchap:hover{background:var(--panel2)}
+.tkids{margin:0 0 6px 20px;border-left:1px solid var(--bd);padding-left:8px}
+.tkid{display:block;padding:4px 8px;border-radius:6px;font-size:12.5px;color:var(--tx2);cursor:pointer}
+.tkid:hover{background:var(--panel2);color:var(--tx)}
+
+main{min-width:0}
+.chap{border:1px solid var(--bd);border-radius:12px;margin-bottom:22px;overflow:hidden;background:var(--bg)}
+.chap-hd{display:flex;align-items:center;gap:12px;padding:15px 18px;background:var(--panel);cursor:pointer;
+  border-bottom:1px solid var(--bd)}
+.chap-hd h3{margin:0;font-size:16.5px;font-weight:600;flex:1 1 auto}
+.chap-num{font-size:12px;color:var(--tx3);font-variant-numeric:tabular-nums}
+.chap-bd{padding:4px 18px 18px}
+.chap.collapsed .chap-bd{display:none}
+.chap-note{margin:12px 0 0;padding:10px 12px;border-radius:8px;background:var(--panel);
+  color:var(--tx2);font-size:13px;border:1px solid var(--bd)}
+
+.tag{font-size:11.5px;padding:2px 9px;border-radius:999px;border:1px solid;white-space:nowrap;font-weight:500}
+.tag.ok{color:var(--ok);background:var(--okbg);border-color:var(--okbd)}
+.tag.doing{color:var(--doing);background:var(--doingbg);border-color:var(--doingbd)}
+.tag.todo{color:var(--todo);background:var(--todobg);border-color:var(--todobd)}
+
+.node{border:1px solid var(--bd);border-radius:10px;padding:14px 16px;margin-top:14px;background:var(--bg)}
+.node h4{margin:0 0 10px;font-size:14.5px;font-weight:600;display:flex;align-items:center;gap:8px}
+.node h4::before{content:"";width:3px;height:14px;border-radius:2px;background:var(--accent);flex:0 0 auto}
+.node p{margin:0 0 9px;font-size:13.8px;color:var(--tx)}
+.node ul{margin:0 0 9px;padding-left:20px}
+.node li{font-size:13.8px;margin-bottom:5px}
+.node li::marker{color:var(--tx3)}
+
+.cmds{margin:10px 0 0;border:1px solid var(--bd);border-radius:8px;overflow:hidden}
+.cmd{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);border-bottom:1px solid var(--bd)}
+.cmd:last-child{border-bottom:none}
+.cmd code{display:block;padding:8px 12px;background:var(--code);font-size:12.8px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--tx);
+  white-space:pre-wrap;word-break:break-word;border-right:1px solid var(--bd);line-height:1.55}
+.cmd span{padding:8px 12px;font-size:12.8px;color:var(--tx2);line-height:1.6}
+
+.keys{margin:10px 0 0}
+.key{position:relative;padding:8px 12px 8px 30px;border-radius:8px;background:var(--warnbg);
+  color:var(--warn);font-size:13.2px;margin-bottom:6px;border:1px solid transparent;line-height:1.62}
+.key::before{content:"!";position:absolute;left:11px;top:8px;font-weight:700}
+.key.mem{background:var(--panel);color:var(--tx2);border-color:var(--bd)}
+.key.mem::before{content:"→";color:var(--accent);font-weight:600}
+
+details.quiz{margin-top:12px;border:1px solid var(--doingbd);border-radius:9px;overflow:hidden;background:var(--doingbg)}
+details.quiz>summary{cursor:pointer;padding:10px 14px;font-size:13.5px;font-weight:500;color:var(--doing);
+  list-style:none;display:flex;gap:9px;align-items:flex-start}
+details.quiz>summary::-webkit-details-marker{display:none}
+details.quiz>summary::before{content:"题";flex:0 0 auto;width:19px;height:19px;border-radius:5px;
+  background:var(--doing);color:var(--bg);font-size:11.5px;font-weight:700;display:flex;
+  align-items:center;justify-content:center;margin-top:2px}
+.qbd{padding:0 14px 14px 42px;font-size:13.3px;color:var(--tx)}
+.qbd .lbl{font-size:12px;color:var(--tx3);margin:8px 0 4px}
+.qbd pre{margin:6px 0;padding:9px 11px;background:var(--code);border-radius:7px;overflow:auto;
+  font-size:12.5px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;line-height:1.55}
+.qbd ul{padding-left:19px;margin:6px 0}
+.qbd li{margin-bottom:4px}
+.qbd .ok{color:var(--ok);font-weight:500}
+.qbd .no{color:var(--warn);font-weight:500}
+
+.tblwrap{overflow-x:auto;margin:10px 0 0}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border:1px solid var(--bd);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:600;color:var(--tx2);font-size:12.5px}
+td code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;
+  background:var(--code);padding:1px 5px;border-radius:4px}
+
+footer{max-width:1280px;margin:0 auto;padding:8px 24px 40px;color:var(--tx3);font-size:12.5px}
+.hidden{display:none !important}
+.hl{background:var(--doingbg);border-radius:3px;padding:0 2px}
+.node.titlehit{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.node.titlehit h4{color:var(--accent)}
+.hits{font-size:12.5px;color:var(--tx3);white-space:nowrap}
+.hits b{color:var(--accent);font-weight:600}
+.hits.none{color:var(--todo)}
+
+/* 深链定位与复制链接 */
+.node{position:relative}
+.node h4{padding-right:78px}
+.cp{position:absolute;top:11px;right:12px;border:1px solid var(--bd);background:var(--panel);color:var(--tx3);
+  font-size:11.5px;padding:2px 8px;border-radius:6px;cursor:pointer;opacity:.5;transition:opacity .15s}
+.node:hover .cp{opacity:1}
+.cp:hover{color:var(--tx);border-color:var(--tx3)}
+.cp.done{color:var(--ok);border-color:var(--okbd);opacity:1}
+@keyframes flashfade{0%{background:var(--doingbg)}100%{background:var(--bg)}}
+.node.flash,.chap.flash>.chap-hd{animation:flashfade 1.8s ease-out}
+.node.flash{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+details.quiz:target{border-color:var(--accent)}
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr;padding:16px;gap:16px}
+  aside{position:static;max-height:none}
+  .cmd{grid-template-columns:1fr}
+  .cmd code{border-right:none;border-bottom:1px solid var(--bd)}
+  header{padding:20px 16px 16px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="hd">
+    <h1>RHCSA 学习地图</h1>
+    <p class="sub">按能力域组织的知识树 · 每节含知识点、命令释义、内联练习题（答案可折叠）· 已完成部分带标记</p>
+    <div class="hdbar">
+      <div class="stat" id="stat"></div>
+      <span class="spacer"></span>
+      <input type="search" id="q" placeholder="搜索知识点 / 命令 / 题目…">
+      <span class="hits" id="hits"></span>
+      <button id="expandAll">展开全部答案</button>
+      <button id="toggleTheme">切换主题</button>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside id="tree"></aside>
+  <main id="content"></main>
+</div>
+
+<footer>
+  <p>说明：本页是学习过程中的个人笔记，命令与结论都经过实验机实测；空白章节为尚未展开的能力域。</p>
+  <p>配套日志：<a href="/study-log/">学习日志</a> —— 每天做了什么、卡在哪、怎么解决的。每条日志末尾都有「能力索引」，可以直接跳回本页对应的知识点。</p>
+  <p>用法：每一节右上角的「复制链接」给出的是这一节的可分享地址，粘进日志就能从当天记录跳到对应知识点。链接形如 <code>/maps/rhcsa.html#节点标识</code>，节点标识由标题派生，标题不改链接就不漂。</p>
+</footer>
+
+<script>
+const ST = {
+  ok:   {name: '已完成', cls: 'ok',   dot: 'd-ok'},
+  doing:{name: '进行中', cls: 'doing', dot: 'd-doing'},
+  todo: {name: '未开始', cls: 'todo',  dot: 'd-todo'}
+};
+
+const MAP = [
+{
+  id: 'env', name: '一、环境底座', status: 'ok',
+  note: '实验环境的初始化。这一层不先做通，后面的题全都做不了 —— 没有可用软件源就装不了包，网络不通就取不到证据。',
+  nodes: [
+    {
+      t: '虚拟机网络的三方角色（NAT 模式）',
+      p: ['虚拟机用 NAT 模式时，实际有<b>三个</b>东西要分清，改网段时必须两侧同时改，缺一侧就断网。'],
+      c: [
+        ['VMnet8 虚拟网卡（宿主机侧）', '宿主机上的虚拟网卡，通常占网段第一个地址，如 192.168.30.1'],
+        ['NAT 网关', 'VMware 的 NAT 服务，通常占第二个地址，如 192.168.30.2 —— ★ 虚拟机的网关要填这个'],
+        ['DHCP 池', '默认从 .128 开始分配，静态 IP 要避开这个区间']
+      ],
+      k: ['★ 最容易错的一格：把网关填成 .1（填成了宿主机网卡地址）。.1 是宿主机自己，不是出口。',
+          '改网段要同时改 VMware 虚拟网络编辑器（vmnetcfg）和虚拟机内部配置，只改一侧必断。']
+    },
+    {
+      t: '用 nmcli 配静态 IP',
+      c: [
+        ['nmcli con show', '列出所有网络连接（connection）的名字，改配置要用这个名字'],
+        ['nmcli con mod "System eth0" ipv4.addresses 192.168.30.22/24', '设置静态地址与掩码位数'],
+        ['nmcli con mod "System eth0" ipv4.gateway 192.168.30.2', '设置默认网关'],
+        ['nmcli con mod "System eth0" ipv4.dns "223.5.5.5"', '设置 DNS 服务器'],
+        ['nmcli con mod "System eth0" ipv4.method manual', '★ 必须改成 manual，否则继续走 DHCP，手填的地址不生效'],
+        ['nmcli con up "System eth0"', '让改动作在运行中生效'],
+        ['ip a / ip r', '验证：看地址有没有、默认路由指向对不对']
+      ],
+      k: ['→ 四条 ipv4.* 必须一次配全，最后别忘 ipv4.method manual。']
+    },
+    {
+      t: '网络不通的分层排查顺序',
+      p: ['排查的本质是「先把范围缩小，再定位」。不要一上来就猜，按下面顺序拆：'],
+      c: [
+        ['ip a', '本机有没有拿到正确地址（第 3 层）'],
+        ['ip r', '默认路由指向哪个网关'],
+        ['ping 网关', '通不通 → 判断是「本段内」还是「出网」的问题'],
+        ['ping 223.5.5.5（纯 IP）', '通 → 链路与外网没问题，问题在域名解析'],
+        ['ping baidu.com（域名）', '不通 → 查 /etc/resolv.conf 里的 DNS'],
+        ['cat /etc/resolv.conf', '看实际生效的 DNS']
+      ],
+      k: ['★ 判读口诀：本机能通、虚拟机能通宿主机、但通不出网关 → 先怀疑网关地址填错。',
+          '★ 拆方向：把我 ping 你 和 你 ping 我 分开测，单向不通通常是防火墙，双向不通通常是链路或地址。']
+    },
+    {
+      t: 'dnf / yum 换源',
+      p: ['默认源在国内下载很慢，换成镜像站后速度可以从 113 KB/s 提到 20 MB/s 以上。'],
+      c: [
+        ['ls /etc/yum.repos.d/', '★ 先看本机真实的文件名 —— 照抄别处的文件名会漏改（Rocky 9 是 rocky.repo，不是 Rocky-BaseOS.repo）'],
+        ['cp -a /etc/yum.repos.d /etc/yum.repos.d.bak', '改之前先备份原始配置'],
+        ['dnf repolist', '列出已启用的仓库'],
+        ['dnf repolist -v', '看每个仓库的真实 URL（这一条会联网）'],
+        ['dnf makecache', '真正下载元数据 —— 只有走到这一步才算验证通过'],
+        ['dnf clean all && dnf makecache', '清掉旧缓存再重建，换源后建议做一次']
+      ],
+      k: ['★ $releasever 在 Rocky 9 上解析为 9（不是 9.7）。用包版本去猜它会写成不可用的地址。',
+          '★ repo 文件里 baseurl 才是关键；mirrorlist 需要注释掉，否则它会盖过 baseurl。']
+    },
+    {
+      t: '仓库配置的字段格式',
+      c: [
+        ['[BaseOS]', '仓库 ID（方括号里的名字），随便起但要唯一'],
+        ['name=BaseOS', '仓库描述，人类看的，不影响功能'],
+        ['baseurl=https://mirrors.aliyun.com/rockylinux/$releasever/BaseOS/$basearch/os/', '实际下载地址，支持两个变量：$releasever 和 $basearch'],
+        ['gpgcheck=0', '是否校验包签名。练习环境图省事关掉；生产环境应保持 1'],
+        ['enabled=1', '是否启用这个仓库（0 = 停用）']
+      ],
+      k: ['★ 一个 repo 文件里可以写多个 [节]，每个节是一个独立仓库。']
+    },
+    {
+      t: 'SELinux',
+      p: ['红帽系发行版的内核级强制访问控制。考试必考，练习环境必须保持 Enforcing。'],
+      c: [
+        ['getenforce', '看当前模式：Enforcing / Permissive / Disabled'],
+        ['setenforce 0', '临时切到宽容模式（重启失效）—— 排查时可以用，改完记得 setenforce 1'],
+        ['vim /etc/selinux/config', '永久修改；SELINUX=enforcing 是推荐值'],
+        ['ls -Z /path', '看文件的安全上下文（如 httpd_sys_content_t）'],
+        ['semanage fcontext -a -t httpd_sys_content_t "/web(/.*)?"', '给一个路径模式登记上下文规则'],
+        ['restorecon -Rv /web', '按规则把上下文实际刷上去'],
+        ['ausearch -m AVC -ts recent', '查被 SELinux 拦下来的记录（审计日志）']
+      ],
+      k: ['★ 永久改成 Disabled 之后再想恢复，必须 touch /.autorelabel 并重启，让全盘重新打标签 —— 非常费时。所以别关。',
+          '★ 判断拦路的是不是 SELinux：临时 setenforce 0 再试。变好了就是它，改完记得切回去。']
+    },
+    {
+      t: 'firewalld',
+      c: [
+        ['systemctl is-active firewalld', '服务是否在跑'],
+        ['firewall-cmd --state', '同上的简写'],
+        ['firewall-cmd --list-all', '看当前区域（zone）放行了什么服务、端口'],
+        ['firewall-cmd --add-service=http', '临时放行 http（立即生效，重启丢）'],
+        ['firewall-cmd --add-service=http --permanent', '永久放行（不立即生效）'],
+        ['firewall-cmd --reload', '把 permanent 规则加载进运行时'],
+        ['firewall-cmd --add-port=8080/tcp --permanent', '放行自定义端口']
+      ],
+      k: ['★ 临时规则和永久规则是两套，要两个都做（或加 --permanent 后 reload）才算配好。',
+          '★ 排查时的顺序：先看服务在不在跑 → 再看 zone 放行了什么 → 最后才怀疑上游。']
+    },
+    {
+      t: '快照工作流',
+      p: ['RHCSA 是单机考试，练习时只需一台机器。用「初始化一次 + 打快照 + 练坏就回滚」代替反复重装。'],
+      k: ['★ 动手改分区表、改 fstab、动网络配置之前，先拍一张快照 —— 这些操作错了会让整机起不来，SSH 都进不去，只能在控制台救。',
+          '→ fstab 写错的表现：系统进入 emergency mode，所有非根挂载失败。']
+    }
+  ],
+  quiz: [
+    {
+      q: '配置仓库后，怎么确认它真的能用？（提示：说清每一步验证的是哪一层）',
+      a: [
+        '<div class="lbl">三层阶梯 —— 必须走到能下载那一层</div>',
+        '<pre>dnf repolist          # 第 1 层：不联网，只读配置。baseurl 写成 404 也报成功</pre>',
+        '<pre>dnf repolist -v       # 第 2 层：联网，会去下载元数据。地址不对这里会报错</pre>',
+        '<pre>dnf makecache         # 第 3 层：真正把元数据落到本地缓存。这才是「做到了」</pre>',
+        '<div class="lbl">为什么要分三层</div>',
+        '<p>因为 <code>dnf repolist</code> 只验「配置语法读通了」，不验「地址可达」。这是典型的<span class="no">验收命令会骗人</span>。</p>'
+      ]
+    },
+    {
+      q: '虚拟机能 ping 通宿主机和网关，但 ping 不通 8.8.8.8，也 ping 不通 baidu.com。你会按什么顺序排查？',
+      a: [
+        '<ul>',
+        '<li><code>ip r</code> 先确认默认路由指向的网关地址 —— <b>最常见的原因就是网关填成了 .1</b>（宿主机网卡地址），而不是 NAT 网关 .2</li>',
+        '<li>确认对了之后 <code>cat /etc/resolv.conf</code>，看 DNS 有没有配</li>',
+        '<li>用 <code>ping 223.5.5.5</code> 区分「网络不通」和「域名解析不通」：<b>能 ping 通 IP 但 ping 不通域名 = 纯 DNS 问题</b></li>',
+        '</ul>',
+        '<div class="lbl">结论</div>',
+        '<p>分层的意义是：每一层只回答一个问题，能让范围立刻减半。</p>'
+      ]
+    }
+  ]
+},
+{
+  id: 'user', name: '二、用户与组', status: 'ok',
+  note: 'EX200 里分值最密集的一块（题库 6 道）。核心不是记命令，而是知道 useradd 到底往哪几个文件里写了什么。',
+  nodes: [
+    {
+      t: '账号信息落在六个文件里',
+      c: [
+        ['/etc/passwd', '账号主表：用户名:口令占位:UID:GID:说明:家目录:登录shell。所有用户都可读'],
+        ['/etc/shadow', '口令与有效期：只有 root 可读。字段 2 存放加密后的口令'],
+        ['/etc/group', '组表：组名:口令占位:GID:成员列表（附加组成员）'],
+        ['/etc/gshadow', '组口令与组管理员，基本不用'],
+        ['/etc/subuid', '给每个用户划的从属 UID 段（rootless 容器用）'],
+        ['/etc/subgid', '同上，从属 GID 段']
+      ],
+      k: ['★ 判定「一件事到底改了什么」，最可靠的方法是动手前后各拷一份然后 diff —— 比看文档准。',
+          '→ cp -a /etc/{passwd,shadow,group,gshadow,subuid,subgid} /tmp/before/ ，操作后再 diff。']
+    },
+    {
+      t: '/etc/passwd 的 7 个字段',
+      c: [
+        ['用户名', '登录名'],
+        ['口令占位', '通常是 x，真正的口令在 /etc/shadow'],
+        ['UID', '用户 ID。0 = root；普通用户一般从 1000 起'],
+        ['GID', '★ 主组 ID。新建文件的属组由它决定'],
+        ['GECOS', '描述信息（全名、电话等），可空'],
+        ['家目录', '登录后的起始目录'],
+        ['登录 shell', '★ 写 /sbin/nologin 或 /bin/false 就禁止交互式登录']
+      ],
+      k: ['→ 想看某个字段的含义，对照一个真实用户读一遍最快：id 用户名 + getent passwd 用户名']
+    },
+    {
+      t: '/etc/shadow 的 9 个字段',
+      c: [
+        ['1 用户名', '与 passwd 对应'],
+        ['2 加密口令', '★ 必须是 crypt() 的输出（$6$ 开头的一长串）。写 !! 或 * 表示从未设过口令/已锁定'],
+        ['3 最后一次修改日期', '从 1970-01-01 起的天数（如 20711 = 2026-09-15），不是日期字符串'],
+        ['4 最短使用天数', 'MIN_DAYS，0 表示随时可改'],
+        ['5 最长使用天数', '★ MAX_DAYS，默认 99999 ≈ 永不过期。考题常要求改成 25 / 90'],
+        ['6 过期前警告天数', '默认 7'],
+        ['7 失效宽限期', '口令过期后仍可登录的天数'],
+        ['8 账号过期日期', '同样是从 1970 起的天数，空 = 永不过期'],
+        ['9 保留字段', '未使用']
+      ],
+      k: ['★ 字段 3～8 用 chage -l 用户名 看最直观（它会翻译成人话）；改默认值用 chage 或 /etc/login.defs。',
+          '★ 口令字段只要「非空」，passwd -S 就报 PS —— 里面塞明文它也报成功。这是假成功。']
+    },
+    {
+      t: 'useradd / usermod / userdel',
+      c: [
+        ['useradd -u 1500 alice', '指定 UID'],
+        ['useradd -g staff alice', '★ 指定主组（小写 g）'],
+        ['useradd -G sysmgrs,dev alice', '★ 指定附加组（大写 G），多个用逗号分隔'],
+        ['useradd -s /sbin/nologin alice', '指定登录 shell（禁止登录用）'],
+        ['useradd -d /data/alice -m alice', '指定家目录并创建它'],
+        ['useradd -c "Alice Wang" alice', '加描述信息'],
+        ['useradd -r svc', '建系统账号（不建家目录、UID 落在系统区间）'],
+        ['useradd -D', '查看/修改默认值（家目录前缀、默认 shell、默认组）'],
+        ['usermod -aG sysmgrs alice', '★ 追加附加组。漏掉 -a 会「覆盖」原有附加组，是经典事故'],
+        ['usermod -g staff alice', '改主组'],
+        ['usermod -L alice / -U alice', '锁定 / 解锁账号'],
+        ['usermod -s /sbin/nologin alice', '改 shell'],
+        ['userdel -r alice', '删用户并连带删除家目录与邮件'],
+        ['groupadd sysmgrs', '建组'],
+        ['groupmod -n new old', '改组名'],
+        ['gpasswd -a alice sysmgrs', '把用户加进组（等价于 usermod -aG）'],
+        ['groupdel sysmgrs', '删组']
+      ],
+      k: ['★ 改完组关系后，该用户已经登录的会话不会立刻拿到新组（要重新登录或 newgrp）。',
+          '★ useradd 默认会创建一个同名私有组（USERGROUPS_ENAB=yes 的副作用）。']
+    },
+    {
+      t: '主组与附加组 —— 决定新建文件的属组',
+      p: ['这是最容易混的一处。一个用户只能有<b>一个主组</b>，但可以有<b>多个附加组</b>。'],
+      ul: [
+        '<b>主组</b>：写在 /etc/passwd 第 4 字段，<b>新建文件时属组就是它</b>。',
+        '<b>附加组</b>：只写在 /etc/group 的成员列表里，<b>只用来「获得额外权限」，不影响新建文件的属组</b>。'
+      ],
+      c: [
+        ['id alice', '一次看全：uid / gid（主组）/ groups（主组 + 所有附加组）'],
+        ['groups alice', '只列组名'],
+        ['getent group sysmgrs', '看某个组有哪些成员'],
+        ['newgrp sysmgrs', '在当前会话里临时切换主组']
+      ],
+      k: ['★ 结论：即使 alice 和 bob 都在 sysmgrs 附加组里，alice 新建的文件属组仍然是 alice 的私有组，不是 sysmgrs —— 因为属组只看主组。',
+          '→ 想让目录里新建的文件自动属于某个组，靠的是目录上的 SGID 位（见下一章）。']
+    },
+    {
+      t: 'UID 与 GID 是两条独立的编号序列',
+      p: ['新建 alice 得到 uid=1000、gid=1001，这不是 bug。'],
+      k: ['→ uid 只在 /etc/passwd 里找下一个空号；gid 只在 /etc/group 里找。先建了组 sysmgrs（吃掉 1000），用户的私有组就顺延到 1001。',
+          '★ 所以「同名用户和组号码不一样」是正常现象。']
+    },
+    {
+      t: '设置口令',
+      c: [
+        ['passwd alice', '交互式设置，需要输两遍'],
+        ['echo "新口令" | passwd --stdin alice', '脚本化设置（RHEL 系保留了这个扩展）'],
+        ['echo "alice:新口令" | chpasswd', '可移植性更好的脚本化写法'],
+        ['passwd -l alice', '锁定账号（在口令字段前加 !）'],
+        ['passwd -S alice', '★ 看状态，会输出 PS / LK / NP。注意它只验「字段非空」'],
+        ['chage -d 0 alice', '强制用户下次登录必须改口令'],
+        ['useradd -p "密文" alice', '★ -p 需要的是<b>已经加密</b>的口令，不是明文']
+      ],
+      k: ['★ useradd -p flectrag 这种写法看着没报错，实际是坏的 —— 口令字段里被塞进了明文，登录时系统做的是 crypt(输入, 存储值) == 存储值，永远不可能成立。',
+          '★ 判断有没有真设上：getent shadow alice 看第二个字段是不是 $6$ 开头的长串；只有 passwd -S 报 PS 不算数。',
+          '→ 生产环境避免 -p 传明文：它会进 ~/.bash_history，执行瞬间还留在进程参数表里（ps 能看到）。']
+    },
+    {
+      t: '口令有效期：chage',
+      c: [
+        ['chage -l alice', '★ 把 /etc/shadow 的字段 3～8 翻译成人话，最直观的核对工具'],
+        ['chage -M 25 alice', '最长使用天数改 25（对应字段 5）'],
+        ['chage -m 1 alice', '最短使用天数'],
+        ['chage -W 7 alice', '过期前警告天数'],
+        ['chage -I 5 alice', '失效宽限期'],
+        ['chage -E 2027-01-01 alice', '账号过期日期（支持日期格式，自动换算成天数）'],
+        ['chage -d 0 alice', '把最后修改日期设为 0 → 强制下次登录改口令']
+      ],
+      k: ['★ 全局默认值在 /etc/login.defs（PASS_MAX_DAYS / PASS_WARN_AGE / UID_MIN / SUB_UID_MIN 等）。',
+          '→ 「改默认值」的题要同时考虑：已有的用户不会自动变，需要 chage 单独处理。']
+    },
+    {
+      t: 'subuid / subgid —— 给容器的备用身份额度',
+      p: ['每个普通用户被划走一段 65536 个 UID/GID，首尾相接互不重叠：'],
+      c: [
+        ['cat /etc/subuid', '如 alice:100000:65536 → 100000 ~ 165535'],
+        ['grep SUB_UID /etc/login.defs', '看起点 SUB_UID_MIN 与段长 SUB_UID_COUNT']
+      ],
+      k: ['→ 用途：rootless 容器（podman）用内核的 user namespace 把容器内的 uid 0 映射到宿主机的 100000。',
+          '★ 好处是权限被圈死：容器里的「root」在宿主机眼里只是某个普通用户名下的一段编号，拿不到真 root。',
+          '→ 没有这段 subuid/subgid，普通用户直接 podman run 会起不来。']
+    }
+  ],
+  quiz: [
+    {
+      q: '创建三个用户 natasha、harry、sarah，要求：组 sysmgrs 存在；natasha 与 harry 的附加组是 sysmgrs；sarah 不允许交互式登录且不属于 sysmgrs；三个人的口令都是 flectrag。写出命令，并说明怎么验收。',
+      a: [
+        '<div class="lbl">命令</div>',
+        '<pre>groupadd sysmgrs\nuseradd -G sysmgrs natasha\nuseradd -G sysmgrs harry\nuseradd -s /sbin/nologin sarah\n\necho "flectrag" | passwd --stdin natasha\necho "flectrag" | passwd --stdin harry\necho "flectrag" | passwd --stdin sarah</pre>',
+        '<div class="lbl">验收</div>',
+        '<pre>id natasha      # 必须含 gid 与 1000(sysmgrs)\nid harry        # 同上\nid sarah        # ★ 只能有 sarah 自己的组，不能出现 sysmgrs\ngrep sysmgrs /etc/group    # 成员列表 = natasha,harry\n\ngetent shadow sarah        # ★ 第 2 字段必须是 $6$ 开头的长串，不能是明文</pre>',
+        '<div class="lbl">易错点</div>',
+        '<ul>',
+        '<li><code>useradd -s nologin</code> 会报 invalid shell —— <b>shell 必须写完整路径</b> <code>/sbin/nologin</code></li>',
+        '<li>把口令设成 <code>-p flectrag</code> 是坏的：<code>-p</code> 要的是密文。<b>验收要看 shadow 字段形态，不能只信 passwd -S</b></li>',
+        '</ul>'
+      ]
+    },
+    {
+      q: '把用户 alice 调到 staff 组作为主组，同时保留她原有的附加组 sysmgrs。两条命令怎么写？其中哪一条漏一个字母就会出事？',
+      a: [
+        '<pre>usermod -g staff alice        # 改主组（小写 g）\nusermod -aG sysmgrs alice     # 追加附加组（大写 G，带 -a）</pre>',
+        '<div class="lbl">出事的那个</div>',
+        '<p>第二条。漏掉 <code>-a</code> 写成 <code>usermod -G sysmgrs alice</code>，语义会从「追加」变成「<span class="no">设置为仅这几个</span>」，她原有的其它附加组全部被清掉。</p>',
+        '<div class="lbl">为什么容易记反</div>',
+        '<ul>',
+        '<li><code>-g</code> 小写 = 主组（primary group，只有一个）</li>',
+        '<li><code>-G</code> 大写 = 附加组（supplementary，可以很多个），配 <code>-a</code> 才是追加</li>',
+        '</ul>'
+      ]
+    },
+    {
+      q: '/etc/shadow 里某用户那一行是 alice:$6$rounds=100000$xyz$AbC...:20711:0:99999:7::: ，请说出第 3、5、6 个字段分别是什么，以及「口令 25 天后过期」要改哪个字段、用什么命令。',
+      a: [
+        '<ul>',
+        '<li>字段 3 = <code>20711</code>，从 1970-01-01 起的天数（= 2026-09-15）</li>',
+        '<li>字段 5 = <code>99999</code>，口令最长使用天数（≈ 永不过期）</li>',
+        '<li>字段 6 = <code>7</code>，过期前提前警告的天数</li>',
+        '</ul>',
+        '<div class="lbl">改法</div>',
+        '<pre>chage -M 25 alice      # 改字段 5\nchage -l alice         # 验收：Maximum number of days between password change : 25</pre>',
+        '<div class="lbl">为什么用 chage -l 验收</div>',
+        '<p>它把这 9 个字段翻译成人话，比对着冒号数位置可靠得多。</p>'
+      ]
+    }
+  ]
+},
+{
+  id: 'perm', name: '三、权限与 ACL', status: 'ok',
+  note: '这一章的密度最高，也是「验收命令会骗人」的重灾区。核心是两条：判定顺序（命中即止 / 组类并集），以及 mask 是天花板。',
+  nodes: [
+    {
+      t: '三组九位',
+      p: ['<code>ls -l</code> 输出的第一段共 10 个字符：第 1 位是类型，后 9 位分成三组，每组 rwx。'],
+      c: [
+        ['-rwxr-x---', '普通文件；属主 rwx、属组 r-x、其他 ---'],
+        ['drwxrws---', '目录；★ 结尾的 s = 属组位上的 setgid'],
+        ['-rw-rw-r--+', '★ 结尾的 + = 这个对象带扩展 ACL'],
+        ['drwxrws---.', '★ 结尾的 . = 只有 SELinux 上下文，没有扩展 ACL'],
+        ['ls -l', '显示的是 mask，不是 group::（对象有 ACL 时这一点很关键）']
+      ],
+      k: ['★ 读数口诀：末尾 + 有 ACL；末尾 . 只有 SELinux；中间的 s/S 是 setgid 位，和 ACL 无关。']
+    },
+    {
+      t: '目录上的 r / w / x 是另外三个意思',
+      c: [
+        ['r', '能列出目录里的条目名（ls 能出结果）'],
+        ['w', '能在目录里增删改名条目（建文件、删文件）'],
+        ['x', '能穿越、能进入（cd 进去，或作为路径中间层被穿过）'],
+        ['touch 目录/新文件', '需要目录的 wx（若要覆盖已有文件还要看文件本身）']
+      ],
+      k: ['★ 删一个文件看的是「目录有没有 w」，跟文件自己的权限无关。',
+          '★ 目录的权限和文件的权限是两套，互不遗传。']
+    },
+    {
+      t: 'chmod：数字写法 vs 符号写法',
+      c: [
+        ['chmod 640 f', '数字：一次性重写整串 mode。★ 中间那位会写进 mask'],
+        ['chmod u=rw,g=r,o= f', '符号：只动点名的那几位'],
+        ['chmod o=r f', '★ 只改 other，不碰组位（因此不会动 mask）'],
+        ['chmod a-x f', '所有人去掉执行位'],
+        ['chmod +x script.sh', '加执行位'],
+        ['chmod u+s f', '加 SUID'],
+        ['chmod g+s dir', '★ 给目录加 SGID'],
+        ['chmod +t dir', '加 Sticky（如 /tmp）']
+      ],
+      k: ['★ 有扩展 ACL 的文件上，数字写法会改 mask，符号写法不会 —— 这就是「设了 setfacl 又被 chmod 砍掉」的根源。',
+          '→ 所以规则不是「谁先谁后」，而是「这条 chmod 有没有动到组位」。']
+    },
+    {
+      t: '特殊权限位',
+      c: [
+        ['SUID（4）', '文件被任何用户执行时，以属主身份运行（如 passwd）。写在文件上才有意义'],
+        ['SGID（2）', '★ 写在<b>目录</b>上：目录里新建的条目，属组自动继承为该目录的属组'],
+        ['Sticky（1）', '写在目录上：只有属主能删自己的文件（典型是 /tmp）'],
+        ['chmod -R 2770 dir', '★ 高危：-R 会把「给目录定的策略」照抄到里面的文件上']
+      ],
+      k: ['★ SGID 继承的是「属组归属」，不是「权限位」。',
+          '★ 对已经存在的普通文件跑 chmod -R 2770，会把文本文件加上执行位和毫无意义的 setgid：-rw-r--r-- → -rwxrws---。',
+          '★ 「继承」必须凑齐「目录 + 新建」两个条件；一个躺在那里不动的旧文件谈不上继承。']
+    },
+    {
+      t: '协作目录：SGID 与默认 ACL 各管一半',
+      p: ['目标：目录里的新文件自动属于某组，且组员之间能互相修改。这是<b>两件事</b>，需要两个工具。'],
+      c: [
+        ['mkdir /home/managers', '建目录'],
+        ['chgrp sysmgrs /home/managers', '把目录的属组设为 sysmgrs'],
+        ['chmod 2770 /home/managers', '★ 2 是 SGID（继承属组），770 = 组可读写、其他人无权限'],
+        ['setfacl -d -m g:sysmgrs:rw /home/managers', '★ 默认 ACL：让将来新建的文件组有 rw —— SGID 做不到这件事']
+      ],
+      k: ['→ SGID 管「归谁」，默认 ACL 管「能不能动」。两半都齐了才叫协作目录。',
+          '★ 默认 ACL 只管之后新建的条目。对已存在的文件无效，要另外 chmod -R g+w 或 setfacl -R -m 修。',
+          '★ -d（default，管未来）和 -R（recursive，管现存）是两个互不相干的东西，别当成一对。']
+    },
+    {
+      t: 'umask',
+      c: [
+        ['umask', '查看当前掩码，常见 0022'],
+        ['umask -S', '用符号形式显示'],
+        ['umask 077', '临时设置（只影响当前 shell）'],
+        ['vim /etc/profile 或 /etc/bashrc', '永久设置的位置']
+      ],
+      k: ['→ 新文件的权限 = 创建时请求的 mode ∩ 非 umask。请求 0666、umask 022 → 0644。',
+          '★ 但目录一旦有了默认 ACL，umask 就被架空了 —— 新文件权限改由默认 ACL 派生。']
+    },
+    {
+      t: 'ACL 的判定顺序（最容易搞错的一处）',
+      p: ['内核按顺序判，不同层次的规则不一样：'],
+      c: [
+        ['① euid == 文件属主？', '用 user:: 位，定案'],
+        ['② 命中某条具名用户条目？', '用那条，定案 —— ★ 这条是严格的「命中即止」，即使它是 --- 也定案'],
+        ['③ 属于属组 或 命中某条具名组？', '★ 是「并集」：属组条目 ∪ 所有命中的具名组条目，取并集后再 ∩ mask，任一条满足即放行'],
+        ['④ 以上都不命中', '用 other:: 位']
+      ],
+      k: ['★ 由此得出两条必背结论：',
+          '① 「禁止某人」只能给他留一条空权限条目（user:bob:---），不能删条目 —— 删了他会掉到 other，权限反而变大。',
+          '② 只测 natasha / harry 是测不出 other 那一位的，因为他们都在第 ② ③ 步就被截停了。要验「其他用户」必须换一个第三身份（如 nobody）。']
+    },
+    {
+      t: 'mask —— 所有具名条目的天花板',
+      p: ['文件一旦有了扩展 ACL，九位的含义就被重新分配：'],
+      c: [
+        ['user::', '属主位（原本的一组 rwx）'],
+        ['mask::', '★ 原本的「组位」被改成 mask —— 它是所有具名条目（具名用户 + 具名组 + group::）的上限'],
+        ['other::', '其他位'],
+        ['getfacl 的 #effective:', '「这个身份真实生效的权限」，= 条目 ∩ mask']
+      ],
+      k: ['★ 具名用户的真实权限 = 它的条目 ∩ mask。条目写了 rw-，mask 是 r--，那它就只剩 r--。',
+          '★ 判据不是「chmod 放在 setfacl 前面还是后面」，而是「这条 chmod 有没有动到组位」。符号写法不碰组位，数字写法必碰。']
+    },
+    {
+      t: 'ACL 常用命令',
+      c: [
+        ['getfacl file', '查看 ACL（--omit-header 去掉前三行注释）'],
+        ['setfacl -m u:alice:rw file', '给具名用户加读写'],
+        ['setfacl -m g:devs:rx file', '给具名组加读执行'],
+        ['setfacl -m u:bob:--- file', '★ 禁止 bob —— 留一条空权限条目，不能删条目'],
+        ['setfacl -x u:bob file', '删掉 bob 的条目（★ 他会掉回 other）'],
+        ['setfacl -b file', '清空所有扩展 ACL'],
+        ['setfacl -d -m g:devs:rw dir', '在目录上设默认 ACL（只影响将来新建的条目）'],
+        ['setfacl -R -m g:devs:rw dir', '递归套用到已存在的条目'],
+        ['setfacl -k dir', '删除目录上的默认 ACL']
+      ],
+      k: ['★ 改 ACL 的门槛是「属主 或 root」，不是「对文件有 w」。组的 w 完全帮不上忙 —— 报错是 Operation not permitted。',
+          '★ 用 setfacl -m o::- 关掉 other 之后，只有既非属主、又没有具名条目、也不在属组里的那个身份会受影响。所以验证要用外人。']
+    }
+  ],
+  quiz: [
+    {
+      q: '把 /etc/hosts 复制到 /var/tmp/hosts，要求：属主属组都是 root；任何用户都没有执行权限；natasha 能读写；harry 不能读也不能写；其他所有用户（当前或未来）都能读。写出命令序列与验收命令。',
+      a: [
+        '<div class="lbl">命令（顺序很重要）</div>',
+        '<pre>cp /etc/hosts /var/tmp/hosts\nchown root:root /var/tmp/hosts\nchmod 644 /var/tmp/hosts                    # ★ 放在 setfacl 之前\nsetfacl -m u:natasha:rw /var/tmp/hosts\nsetfacl -m u:harry:--- /var/tmp/hosts</pre>',
+        '<div class="lbl">为什么用 644 而不是 600 或 2666</div>',
+        '<ul>',
+        '<li>600 会关掉 other，第 6 条要求当场挂掉（要 other 可读）</li>',
+        '<li>2666 的 6 会把写权限发给所有人（超出要求），且那个 2（SGID）对普通文件毫无意义</li>',
+        '<li>644 + ACL 正好：属主 rw、other r、natasha 靠 ACL 拿到 rw、harry 靠 ACL 被挡</li>',
+        '</ul>',
+        '<div class="lbl">验收（四条，缺一条都不算过）</div>',
+        '<pre>getfacl --omit-header /var/tmp/hosts\n#  期望看到 user:natasha:rw- / user:harry:--- / other::r--\n#  ★ 并且不能出现 #effective: 字样\n\nrunuser -u natasha -- sh -c "echo t >> /var/tmp/hosts"; echo $?   # 期望 0\nrunuser -u harry   -- sh -c "cat /var/tmp/hosts >/dev/null 2>&1"; echo $?   # 期望非 0\nrunuser -u nobody  -- sh -c "cat /var/tmp/hosts >/dev/null 2>&1"; echo $?   # ★ 期望 0</pre>',
+        '<div class="lbl">两个关键点</div>',
+        '<ul>',
+        '<li>harry 读不了，不是因为 other 被关，而是因为他在第 ② 步被具名条目截停，<b>根本走不到 other 那一关</b></li>',
+        '<li>第 4 条必须换一个「不在那三个人里」的身份测（nobody），否则测不到 other 这一类</li>',
+        '</ul>'
+      ]
+    },
+    {
+      q: 'setfacl -m u:harry:--- 和 setfacl -x u:harry 差在哪？做完题后换成后者，harry 还能读吗？',
+      a: [
+        '<div class="lbl">差别</div>',
+        '<ul>',
+        '<li><code>-m u:harry:---</code> 是<b>留一条空权限条目</b>：harry 在第 ② 步命中它并定案，有效权限为空</li>',
+        '<li><code>-x u:harry</code> 是<b>把条目删掉</b>：harry 在第 ② 步不再命中，继续往下走，在第 ④ 步捡到 <code>other::r--</code></li>',
+        '</ul>',
+        '<div class="lbl">实测结果</div>',
+        '<pre>setfacl -x u:harry /var/tmp/hosts\nsu - harry -c "cat /var/tmp/hosts"     # → 可以读 ✅</pre>',
+        '<div class="lbl">结论</div>',
+        '<p><span class="ok">删条目是给他松绑，不是给他上锁。</span>「禁止某人」只有留空权限条目这一个做法。</p>'
+      ]
+    },
+    {
+      q: '文件先 setfacl -m u:natasha:rw，再 chmod 644，natasha 还能写吗？如果把 chmod 换成 o=r 呢？',
+      a: [
+        '<div class="lbl">结论表</div>',
+        '<div class="tblwrap"><table><tr><th>写在 setfacl 之后的形式</th><th>mask::</th><th>natasha 写</th></tr>',
+        '<tr><td><code>chmod o=r</code>（符号）</td><td>不变，仍 rw-</td><td><span class="ok">能（退出码 0）</span></td></tr>',
+        '<tr><td><code>chmod 644</code>（数字）</td><td>被改写成 r--</td><td><span class="no">不能（退出码 1，Permission denied）</span></td></tr></table></div>',
+        '<div class="lbl">为什么</div>',
+        '<p>有扩展 ACL 的文件里，<b>九位的「中间三位」就是 mask</b>。数字写法一次性重写整串 mode，中间那位（644 里的 4）直接写进了 mask，于是 natasha 的 <code>rw-</code> 被砍成 <code>r--</code>。符号写法只动点名的位，组位原封不动。</p>',
+        '<div class="lbl">怎么看出来</div>',
+        '<pre>getfacl file\n# user:natasha:rw-      #effective:r--     ← ★ 这行就是 mask 砍出来的痕迹</pre>',
+        '<p><span class="no">注意：</span>别用「vim 能打开这个文件」当证据 —— 文件不可写时 vim 只是把 buffer 标成 readonly，不敲 :wq 它什么都不说。要看退出码，或比对写入前后 md5。</p>'
+      ]
+    },
+    {
+      q: '目录 /home/managers 设了 setfacl -d -m g:sysmgrs:rw，但没有加 -R。在里面新建子目录 sub，再在 sub 里建文件，会继承到组写权限吗？如果 sub 是设默认 ACL 之前就存在的呢？',
+      a: [
+        '<div class="lbl">两个场景的答案不同</div>',
+        '<div class="tblwrap"><table><tr><th>子目录</th><th>里面新建的文件</th><th>原因</th></tr>',
+        '<tr><td><code>sub-new</code>（设 -d 之后新建）</td><td><span class="ok">-rw-rw----+ 继承成功</span></td><td>新建子目录会自动带上整套 default:，并继续往下传</td></tr>',
+        '<tr><td><code>sub-old</code>（设 -d 之前就存在）</td><td><span class="no">-rw-r--r--. 没继承</span></td><td>模板只登记在「你点名的那个目录」上，老目录没被登记</td></tr></table></div>',
+        '<div class="lbl">一句话记牢</div>',
+        '<p>默认 ACL 是「<b>登记在你点名的目录上的一份模板</b>」：已存在的子目录不自动获得，之后新建的子目录会自动带上并一代代往下传。要对已存在的子树生效，才需要补 <code>-R</code>。</p>',
+        '<div class="lbl">顺带一个副作用</div>',
+        '<p>新文件的 <code>other::</code> 会变成 <code>---</code>，因为 <code>other::</code> 也是从默认 ACL 整份继承下来的。这是特性不是 bug，但要知道。</p>'
+      ]
+    },
+    {
+      q: '别人给你一个目录，让你「确认非成员进不去」。你用 ls -ld dir 测出退出码 0，能下结论说「他能进」吗？',
+      a: [
+        '<div class="lbl">不能。这条命令根本没测目录自己的权限</div>',
+        '<p><code>ls -ld</code> 属于「看一眼门牌」—— 它只对路径做一次 <code>stat()</code>，而 stat 只需要<b>路径上每一级父目录的 x</b>，对目标对象自己的权限一位都不要。</p>',
+        '<div class="lbl">要测就敲那个动作本身</div>',
+        '<div class="tblwrap"><table><tr><th>命令</th><th>实际在问什么</th><th>需要的权限</th></tr>',
+        '<tr><td><code>ls -ld dir</code></td><td>只 stat 这个对象</td><td>父目录的 x（骗人的）</td></tr>',
+        '<tr><td><code>ls dir</code></td><td>读目录内容</td><td>目录的 r</td></tr>',
+        '<tr><td><code>cd dir</code></td><td>进入目录</td><td>目录的 x</td></tr>',
+        '<tr><td><code>touch dir/zz</code></td><td>在里面建条目</td><td>目录的 wx</td></tr></table></div>',
+        '<div class="lbl">口诀</div>',
+        '<p><span class="ok">想验什么动作，就敲那个动作本身。</span>stat 类命令（<code>ls -ld</code>、<code>test -r</code>、<code>test -w</code>）都不能代替。</p>'
+      ]
+    }
+  ]
+},
+{
+  id: 'storage', name: '四、存储与挂载', status: 'doing',
+  note: '正在进行。存储操作的共同特点是「改错了整机起不来」，所以动手前必须有快照锚点。',
+  nodes: [
+    {
+      t: '存储的五层结构',
+      p: ['从一块裸盘到一个开机自动挂载的目录，中间要穿过五层。<b>换层必须「格式化」一次，不能跳。</b>'],
+      c: [
+        ['① 块设备', '/dev/sdb —— 一块裸盘，内核认得它，但它上面什么都没有'],
+        ['② 分区 / 卷', '/dev/sdb1 或 /dev/myvg/mylv —— 切出一块可用的空间。分区和 LVM 逻辑卷是同一层的两种方案'],
+        ['③ 文件系统', 'mkfs.xfs / ext4 / vfat —— 写入超级块，让它「能被读懂」'],
+        ['④ 挂载点', '/mnt/data —— 一个普通空目录，把文件系统接到目录树上'],
+        ['⑤ /etc/fstab', '★ 唯一跨重启的一层。前四层重启全部归零']
+      ],
+      k: ['★ 准确说法不是「必须先分区」，而是「必须先有文件系统」。',
+          '→ mkfs.xfs /dev/sdc 整盘不分区然后挂载，是完全合法的做法。']
+    },
+    {
+      t: '看盘三件套',
+      c: [
+        ['lsblk', '以树形看块设备：盘 → 分区 → LVM → 挂载点。最常用的一条'],
+        ['lsblk -f', '带 FSTYPE、UUID、挂载点。★ 空盘的这三列都是空的'],
+        ['blkid', '读设备上的签名。★ 有输出不等于有文件系统，见下面的坑'],
+        ['wipefs /dev/sdb', '列出块设备上的签名（文件系统 + 分区表）。空盘无输出'],
+        ['df -hT', '看已挂载文件系统的用量与类型'],
+        ['findmnt', '以树形看挂载关系；findmnt --verify 检查 fstab 语法'],
+        ['parted /dev/sdb unit mib print', '看分区表与分区列表']
+      ],
+      k: ['★ blkid 的输出分两类字段：TYPE= / UUID= 是<b>文件系统</b>的；PARTUUID= / PARTLABEL= 是<b>分区表</b>的。分过区但没格式化，blkid 也会退出码 0。',
+          '→ 所以判据是「有没有 TYPE=」，不是「有没有输出」。',
+          '★ 分清「动手<b>前</b>核对」和「动手<b>后</b>验收」，两者用的不是同一批命令：<code>lsblk -f</code> 看内核实时状态、<code>parted print free</code> 看分区表里记了什么 —— 这是动手前要过的两道关；<code>blkid</code> / <code>wipefs</code> 验的是「这块盘上已经有什么签名」，属于流程最后一环的事后验证。<span class="no">拿事后命令当事前确认，顺序就反了。</span>']
+    },
+    {
+      t: 'parted 分区',
+      c: [
+        ['parted /dev/sdb unit mib print', '先看有没有分区表。空盘报 Error: unrecognised disk label'],
+        ['parted /dev/sdb mklabel gpt', '建分区表（gpt 或 msdos）。★ 会清掉这块盘上原有的分区表'],
+        ['parted /dev/sdb mkpart primary xfs 1MiB 1025MiB', '建一个 1 GiB 的分区'],
+        ['parted /dev/sdb rm 1', '删除第 1 号分区'],
+        ['partprobe /dev/sdb', '让内核重读分区表（有时 lsblk 看不到新分区）'],
+        ['fdisk -l /dev/sdb', '另一种查看方式']
+      ],
+      k: ['★ 分区表写完，内核还不知道 —— <code>mklabel</code> / <code>mkpart</code> 之后必须 <code>partprobe /dev/sdb</code> 让内核重读。漏掉这一步，下一步 <code>mkfs.xfs /dev/sdb1</code> 会报 <code>cannot open /dev/sdb1: No such file or directory</code>：那时设备节点确实还没被 udev 建出来，<b>「没有」是真的没有</b>，别去怀疑盘坏了。',
+          '★ <code>Error: unrecognised disk label</code> 的意思不是「里面没有分区」，而是「连分区表这个概念本身都还没有」。',
+          '→ 有分区表但一个分区都没建时，parted 不报这个错，它会显示 Partition Table: gpt，分区列表为空。',
+          '★ 分区不从 0 开始，是两个原因叠加：① GPT 表本身占 34 个扇区 = <b>17.4 kB</b>（mklabel gpt 之后 Free Space 正是从 17.4kB 起，可自查）；② 1MiB 起点 = 第 2048 个 512B 扇区，能被 4 KiB 物理扇区整除 —— 这叫对齐，不对齐会触发「读-改-写」惩罚，SSD / RAID / 虚拟盘全都吃这个亏。',
+          '→ 对比 msdos：MBR 只占 1 个扇区，所以 /dev/sda 的 Free Space 从 1024B 开始。',
+          '★ parted 显示的单位是<b>十进制</b>（kB / MB / GB），你输入的是<b>二进制</b>（KiB / MiB / GiB）。所以输入 1MiB → 1025MiB，print 出来是 1049kB → 1075MB，大小显示 1074MB —— 数字没变错，只是换了一把尺子（1024 MiB = 1073.74 MB）。想看 MiB 口径：<code>parted /dev/sdb unit MiB print</code>。',
+          '★ <code>mkpart primary xfs 1MiB 1025MiB</code> 里的 <code>primary</code> 在 gpt 盘上<b>没有类型含义，只会被存成分区名</b>。证据：msdos 盘 print 的列名是 Type，gpt 盘是 Name；blkid 的输出里出现 <code>PARTLABEL="primary"</code>。']
+    },
+    {
+      t: 'mkfs —— 整个存储域里最危险的一条命令',
+      c: [
+        ['mkfs.xfs /dev/sdb1', '格式化为 xfs（RHEL 默认）'],
+        ['mkfs.ext4 /dev/sdb1', '格式化为 ext4'],
+        ['mkfs.vfat /dev/sdb1', '格式化为 vfat（需要 dosfstools 包）'],
+        ['mkfs.xfs -f /dev/sdb1', '强制覆盖已有文件系统'],
+        ['blkid /dev/sdb1', '★ 验收：应该出现 TYPE= 与 UUID='],
+        ['dumpe2fs -h /dev/sdb1 / xfs_info /mnt/data', '看文件系统详细参数']
+      ],
+      k: ['★ mkfs 不可逆：它直接覆盖超级块，没有 undo、没有回收站。敲错设备名的后果是那块盘上的数据永久消失，而且它退出码 0、一声不响。',
+          '★ 不加 <code>-f</code> 时 mkfs 自己会检查签名：目标上已有文件系统（哪怕只是残留签名）它会<b>直接拒绝</b>，并提示 use -f to force overwrite。这是它<b>自带的保护</b>，不是故障 —— 看到这个报错别顺手就加 <code>-f</code>，先确认盘是不是你要动的那块。',
+          '★ 动手前的三盏灯：尺寸对不对（lsblk 的 SIZE）、有没有签名（blkid 的 TYPE=）、有没有在用（MOUNTPOINT 是否为空 / 是否在 fstab 里）。']
+    },
+    {
+      t: '挂载与卸载',
+      c: [
+        ['mkdir -p /mnt/data', '挂载点必须已存在'],
+        ['mount /dev/sdb1 /mnt/data', '临时挂载（重启失效）'],
+        ['mount -o ro /dev/sdb1 /mnt/data', '只读挂载'],
+        ['mount -a', '★ 按 fstab 挂载所有条目 —— 验收 fstab 的关键一步'],
+        ['findmnt /mnt/data', '确认挂在哪、用什么选项'],
+        ['umount /mnt/data', '卸载（★ 忙的话先 fuser -m 或 lsof 找出占用进程）'],
+        ['umount -l /mnt/data', 'lazy 卸载，最后手段']
+      ],
+      k: ['★ mount 的输入是「文件系统」，不是「设备」。对裸盘直接 mount 会报 bad superblock —— 因为内核读不出超级块。',
+          '→ 最有力的反证：mount -t tmpfs tmpfs /mnt 连块设备都没有，照样挂得上。']
+    },
+    {
+      t: '/etc/fstab 的六个字段',
+      c: [
+        ['① 设备', 'UUID=xxxx 或 /dev/sdb1 或 LABEL=xxx。★ 推荐 UUID，设备名会漂'],
+        ['② 挂载点', '/mnt/data —— 目录必须已存在；swap 写 none'],
+        ['③ 文件系统类型', 'xfs / ext4 / vfat / swap'],
+        ['④ 挂载选项', 'defaults；常用还有 ro / nofail / _netdev / noatime'],
+        ['⑤ dump', '考试恒写 0'],
+        ['⑥ fsck 顺序', '非根一般写 0；根写 1'],
+        ['systemctl daemon-reload', '改完 fstab 建议做一次（现代 systemd 会生成挂载单元）'],
+        ['findmnt --verify', '★ 语法层验收，不会真的挂']
+      ],
+      k: ['★ 示例行：UUID=750822f7-... /mnt/data xfs defaults 0 0',
+          '★ 第 5 字段 dump：给早已淘汰的 dump 备份工具用，一律写 0。<br>第 6 字段 fsck 顺序：<b>只有 0 / 1 / 2 三个合法值</b>，1 是<b>根分区专属</b>（最先检查），2 是之后并行检查，0 是不检查。xfs 惯例写 0 0（xfs 不走 fsck，用离线的 xfs_repair）；ext4 的数据分区写 0 2。',
+          '★ 第 1 字段不必非写 UUID：<code>/dev/mapper/&lt;vg&gt;-&lt;lv&gt;</code>（如 rlm-root）同样稳定 —— 卷名写在 LVM 元数据里，不随内核 sd 命名漂移。会漂的只有 <code>/dev/sdX</code>。',
+          '★ fstab 写错的最坏结果不是「挂不上」，而是「整机进 emergency mode」，SSH 都连不上。所以永远不要拿 reboot 当第一道检查。',
+          '→ 稳妥顺序：先 mount -a（应用层）→ findmnt --verify（语法层）→ 最后才重启。',
+          '★ 改 fstab 之前先 <code>cp /etc/fstab /etc/fstab.bak</code>（改动前备份是通用习惯）。用 <code>&gt;&gt;</code> 追加有两个坑：① 末行没有换行符时，新行会被拼到上一行末尾，整行写坏；② 追加是纯文本操作，写错了<b>当场不报错</b>，要等 <code>mount -a</code> 或重启才炸。更稳的是用编辑器在正确位置插一行。']
+    },
+    {
+      t: 'LVM：物理卷 / 卷组 / 逻辑卷',
+      p: ['LVM 把「分区」这一层做成可伸缩的：物理盘切成 PV，PV 汇成 VG（资源池），再从池里切 LV 给上层用。'],
+      c: [
+        ['pvcreate /dev/sdb1', '把分区初始化成物理卷（PV）'],
+        ['pvs / pvdisplay', '查看 PV'],
+        ['vgcreate -s 16M myvg /dev/sdb1', '★ 建卷组，-s 指定物理扩展块（PE）大小'],
+        ['vgs / vgdisplay', '查看 VG 及其剩余空间（VFree）'],
+        ['lvcreate -l 50 -n mylv myvg', '★ 建逻辑卷。-l 是「PE 个数」（16M × 50 = 800MiB）'],
+        ['lvcreate -L 800M -n mylv myvg', '用 -L 直接给容量'],
+        ['lvs / lvdisplay', '查看 LV'],
+        ['lvextend -L 300MiB /dev/myvg/mylv', '★ 把 LV 调整「到」300MiB（不是增加 300）'],
+        ['lvextend -L +300M /dev/myvg/mylv', '带 + 号才是「增加 300」'],
+        ['xfs_growfs /mnt/data', '★ xfs 扩容文件系统（挂载状态下执行，参数是挂载点）'],
+        ['resize2fs /dev/myvg/mylv', 'ext4 扩容文件系统（参数是设备）'],
+        ['lvreduce -L 200M /dev/myvg/mylv', '缩小 LV —— ★ 极危险，必须先缩文件系统']
+      ],
+      k: ['★ 扩容是安全操作，扩大文件系统是必须的第二步：只扩 LV 不扩文件系统，df 看到的容量不变。',
+          '★ xfs 只能扩不能缩；ext4 可以缩但必须先卸载。',
+          '★ -l（小写 L）给 PE 个数，-L（大写）给容量 —— 也容易记反。']
+    },
+    {
+      t: 'swap 交换分区',
+      c: [
+        ['free -h / swapon --show', '先看现有 swap'],
+        ['parted /dev/sdb mkpart primary linux-swap 502MiB 1014MiB', '建一个 swap 分区'],
+        ['mkswap /dev/sdb1', '把分区格式化成 swap（★ 替代 mkfs）'],
+        ['swapon /dev/sdb1', '临时启用'],
+        ['swapon -a', '★ 按 fstab 启用所有 swap 条目'],
+        ['swapoff /dev/sdb1', '停用'],
+        ['swapon --show', '验收：列表里出现新分区'],
+        ['free -h', '验收：Swap 总量增加了 512M']
+      ],
+      k: ['★ fstab 里 swap 那一行的写法：UUID=xxxx none swap defaults 0 0',
+          '★ 题目要求「不要删改原有 swap」—— 只做加法，别动 rlm-swap。']
+    },
+    {
+      t: '这一域的三道练习',
+      ul: [
+        '在 /dev/sdb 上做一个约 1 GiB 的分区 → xfs → 挂 /mnt/data → 开机自动挂载（地基题，本轮在做）',
+        '把逻辑卷 vo 及其文件系统调整到 300 MiB，保证内容不丢（lvextend + xfs_growfs）',
+        '为系统添加一个 512 MiB 的交换分区，开机自动挂载，不动原有 swap',
+        '创建 myvg 卷组（PE 16M）+ mylv 逻辑卷（50 个扩展单元）→ vfat 格式化 → 开机挂到 /mnt/mydata'
+      ],
+      k: ['★ 练习环境的盘名要换算：题库写 /dev/vdb、/dev/vdc（各 10G），本机是 /dev/sdb、/dev/sdc（各 8G）。照抄题面会打错盘。']
+    }
+  ],
+  quiz: [
+    {
+      q: '为什么不能在一块空盘上直接 mount /dev/sdb /mnt/data？',
+      a: [
+        '<div class="lbl">因为 mount 要的是「文件系统」，不是「设备」</div>',
+        '<pre>blkid /dev/sdb      # 无输出，退出码 2\nfile -s /dev/sdb    # /dev/sdb: data  ← 只有原始数据，没有任何结构\n\nmount /dev/sdb /mnt/data\n# mount: wrong fs type, bad option, bad superblock on /dev/sdb,\n#        missing codepage or helper program, or other error.   退出码 32</pre>',
+        '<div class="lbl">反证</div>',
+        '<pre>mount -t tmpfs tmpfs /mnt   # 退出码 0 —— 连块设备都没有，照样挂得上</pre>',
+        '<div class="lbl">读报错</div>',
+        '<p><code>wrong fs type, bad option, bad superblock ... or other error</code> 是内核把三四种原因合并在同一句里，不要照字面猜，要分层排：先用 blkid 看有没有签名，再看 -t 写的类型对不对。</p>'
+      ]
+    },
+    {
+      q: 'fstab 第 1 字段为什么写 UUID= 而不是 /dev/sdb1？如果写设备名，最坏会发生什么？',
+      a: [
+        '<div class="lbl">UUID 的特点</div>',
+        '<p>在 mkfs 那一刻生成，跟着文件系统走，永久不变。而 <code>/dev/sdX</code> 的名字是内核按探测顺序临时分配的。</p>',
+        '<div class="lbl">两种坏结果，都不是「报个错」而已</div>',
+        '<p>① <b>设备根本不存在</b>：那块盘换了名字 → 挂载失败 → 没加 <code>nofail</code> 时 systemd 的 local-fs.target 也跟着失败 → <span class="no">整机掉进 emergency mode，SSH 都连不上</span>，得进控制台把那一行注释掉才能开机。</p>',
+        '<p>② <b>挂错了盘却安静地成功</b>：另一块盘上恰好也有同名分区 → 你以为在往 /mnt/data 写，实际写进了别处，全程没有任何报错。</p>',
+        '<div class="lbl">但要说实话</div>',
+        '<p>考试里写设备名也能得分（官方参考解就写的 /dev/vdb2）。选 UUID 是工程上更稳，不是考试硬要求。</p>'
+      ]
+    },
+    {
+      q: '在 /dev/sdb 上做完分区 + mkfs + 挂载 + fstab 之后，验收要分几层？为什么不能直接 reboot？',
+      a: [
+        '<div class="lbl">三层阶梯</div>',
+        '<div class="tblwrap"><table><tr><th>层</th><th>命令</th><th>证明什么</th><th>风险</th></tr>',
+        '<tr><td>1 应用层</td><td><code>mount /dev/sdb1 /mnt/data</code></td><td>文件系统能用</td><td>重启归零，不证明持久</td></tr>',
+        '<tr><td>2 语法层</td><td><code>mount -a</code> + <code>findmnt --verify</code></td><td>fstab 语法与设备引用都对</td><td>无</td></tr>',
+        '<tr><td>3 持久层</td><td><code>reboot</code> 后再看 <code>findmnt</code></td><td>开机真的自动挂上</td><td><span class="no">fstab 错 → 整机掉进 emergency mode</span></td></tr></table></div>',
+        '<div class="lbl">为什么不能直接 reboot</div>',
+        '<p>fstab 写错会让所有非根挂载失败，系统进入 emergency mode —— 那时候 SSH 都不通，只能到 VMware 控制台里救。所以一定要<b>先用第 2 层把语法和引用验干净</b>，再重启。</p>'
+      ]
+    },
+    {
+      q: '用 parted 建分区表时选 gpt 还是 msdos？',
+      a: [
+        '<div class="lbl">都能用，看场景</div>',
+        '<div class="tblwrap"><table><tr><th></th><th>msdos（MBR）</th><th>gpt</th></tr>',
+        '<tr><td>分区数上限</td><td>4 个主分区（或 3 主 + 1 扩展）</td><td>128 个</td></tr>',
+        '<tr><td>单盘容量</td><td>2 TiB 上限</td><td>极大</td></tr>',
+        '<tr><td>兼容性</td><td>老系统/老引导都认</td><td>现代系统默认</td></tr></table></div>',
+        '<div class="lbl">结论</div>',
+        '<p>这块盘只有 8 GiB、只打算放一两个分区 —— <b>两者都行</b>。选 gpt 更现代、没有分区数顾虑；选 msdos 在考试里也完全能得分（官方参考解用的是 msdos）。<span class="ok">关键是你能说出选择理由，而不是记住某一个。</span></p>',
+        '<div class="lbl">2 TiB 这个数字到底是谁的</div>',
+        '<p>MBR 分区表用 <b>4 个字节</b>存起始 LBA → 最多 2³² 个扇区 × 512 B = <b>2 TiB</b>；GPT 用 <b>8 个字节</b> → 2⁶⁴ 个扇区 ≈ 8 ZiB。<span class="no">所以「2 TiB 上限」是 msdos 的身份证，不是 gpt 的</span> —— 这一条最容易记反。</p>'
+      ]
+    },
+    {
+      q: 'parted 里输入的是 1MiB → 1025MiB，为什么 print 出来显示 1049kB → 1075MB、大小 1074MB？是建错了吗？',
+      a: [
+        '<div class="lbl">没建错，是 parted 换了一把尺子</div>',
+        '<p>parted 默认按<b>十进制</b>显示（1 MB = 1000 kB），而命令行里输入的是<b>二进制</b>单位（1 MiB = 1048576 B）。MiB 中间那个 i 就是 binary 的意思。</p>',
+        '<div class="tblwrap"><table><tr><th>你输入</th><th>实际字节</th><th>parted 显示</th></tr>',
+        '<tr><td>1 MiB</td><td>1 048 576</td><td>1049 kB</td></tr>',
+        '<tr><td>1025 MiB</td><td>1 074 790 400</td><td>1075 MB</td></tr>',
+        '<tr><td>差值 = 1024 MiB</td><td>1 073 741 824</td><td><b>1074 MB</b></td></tr></table></div>',
+        '<div class="lbl">想看 MiB 口径就加 unit</div>',
+        '<pre>parted /dev/sdb unit MiB print</pre>',
+        '<div class="lbl">同一个原因</div>',
+        '<p>让一块标称 1 TB 的硬盘在系统里显示成 931 GB；也让 1024 MiB 的 xfs 分区在 <code>df</code> 里只报 960M（这一层再叠加 xfs 的元数据与日志开销）。分区起点为什么不是 0：gpt 表本身吃掉 34 个扇区 = 17.4 kB，之后 1MiB 起点是为了 4 KiB 对齐。</p>'
+      ]
+    },
+    {
+      q: 'mkpart primary xfs 1MiB 1025MiB 里的 primary 是什么？在 gpt 盘上它还有意义吗？',
+      a: [
+        '<div class="lbl">看 print 的列名就知道答案</div>',
+        '<div class="tblwrap"><table><tr><th>磁盘</th><th>print 的列名</th><th>primary 的含义</th></tr>',
+        '<tr><td>/dev/sda（msdos）</td><td>Number Start End Size <b>Type</b> File system Flags</td><td>分区类型 —— 主分区</td></tr>',
+        '<tr><td>/dev/sdb（gpt）</td><td>Number Start End Size File system <b>Name</b> Flags</td><td>只是一个名字，没有类型含义</td></tr></table></div>',
+        '<div class="lbl">铁证</div>',
+        '<pre>blkid /dev/sdb1\n# TYPE="xfs" PARTLABEL="primary" PARTUUID="..."</pre>',
+        '<p>那个 <code>PARTLABEL="primary"</code> 就是 gpt 存下来的分区名。</p>',
+        '<div class="lbl">结论</div>',
+        '<p>gpt 根本没有「主分区 / 扩展分区 / 逻辑分区」这套概念。<code>primary</code> 在 gpt 盘上不报错，但<span class="no">也没有你以为的那层意思</span>。写它无害，不写更干净。</p>'
+      ]
+    },
+    {
+      q: '「findmnt --verify 通过了」能证明 fstab 写对了吗？为什么验证前必须先 umount？',
+      a: [
+        '<div class="lbl">两个命令验的是两层，缺一不可</div>',
+        '<div class="tblwrap"><table><tr><th></th><th>验什么</th><th>验不到什么</th></tr>',
+        '<tr><td><code>findmnt --verify</code></td><td><b>静态</b>：字段数、语法、挂载点目录是否存在、选项是否被支持。不做实际挂载</td><td>设备名 / UUID 写错它照样报 Success —— 语法合法 ≠ 挂得上</td></tr>',
+        '<tr><td><code>umount</code> + <code>mount -a</code></td><td><b>动态</b>：按 fstab 真挂一遍 —— 这就是开机时 systemd 干的事</td><td>只看结果，不会告诉你语法哪里不规范</td></tr></table></div>',
+        '<div class="lbl">完整顺序</div>',
+        '<pre>systemctl daemon-reload\nfindmnt --verify                  # 静态：语法与引用\numount /mnt/data                  # ★ 必须先卸载\nmount -a                          # 动态：无输出 = 成功\nfindmnt /mnt/data && df -h /mnt/data</pre>',
+        '<div class="lbl">为什么必须先 umount</div>',
+        '<p><code>mount -a</code> 判断「要不要挂这条」看的是<b>挂载点</b>是否已经出现在挂载树里（不是看设备）。所以手工 <code>mount</code> 过之后再 <code>mount -a</code>，它会认为「这个点已经挂着」直接跳过 —— <span class="no">一条 fstab 都不会被读到，等于什么都没验</span>。反过来，如果那个挂载点上挂了别的东西，它同样会跳过。</p>'
+      ]
+    },
+    {
+      q: '「盘接上不是应该自动挂载吗？」—— 自动挂载到底是什么机制？',
+      a: [
+        '<div class="lbl">自动挂载 = fstab 里已经写了规则，不是系统魔法</div>',
+        '<p>开机时 systemd 读 <code>/etc/fstab</code>，为每一条生成一个 <code>.mount</code> 单元 —— <code>/</code>、<code>/boot</code>、swap 都是这么挂上来的。所以「写进 fstab」和「开机自动挂载」是同一件事。</p>',
+        '<div class="lbl">那桌面环境里 U 盘为什么自己就出来了</div>',
+        '<p>那是 <b>udisks2</b>（桌面环境的自动挂载服务）干的，挂到 <code>/run/media/&lt;用户&gt;/&lt;卷标&gt;</code>。它和 fstab 是两套东西。</p>',
+        '<div class="tblwrap"><table><tr><th></th><th>谁干的</th><th>持久吗</th><th>落在哪</th></tr>',
+        '<tr><td>开机挂载</td><td>systemd 读 fstab</td><td><b>持久</b></td><td>你指定的挂载点</td></tr>',
+        '<tr><td>插 U 盘</td><td>udisks2</td><td>拔了就没</td><td>/run/media/...</td></tr></table></div>',
+        '<div class="lbl">结论</div>',
+        '<p>服务器和考试环境没有桌面，<span class="no">没有 udisks2 这层兜底</span>。想让一块盘开机就在，唯一的办法是写进 fstab。</p>'
+      ]
+    }
+  ]
+},
+{
+  id: 'sys', name: '五、运行中系统与服务', status: 'todo',
+  note: '尚未展开。这一域是「贯穿工具」而不是「学完就过」的模块，从系统管理的第一天起就一直在用。',
+  nodes: [
+    {
+      t: '本节将要覆盖的能力',
+      ul: [
+        '进程与服务：ps / top / kill / systemctl 的 start / enable / status / mask',
+        'systemd 单元：service / socket / timer，以及 unit 文件的基本结构',
+        '日志：journalctl 的时间过滤、按单元过滤、持久化配置',
+        '计划任务：cron（crontab -e / -l / -r、/etc/cron.d）、at、systemd timer',
+        '启动与目标：systemctl get-default / set-default、单用户模式与 root 口令重置',
+        '软件包管理深入：dnf 的模块流（module）、组安装、rpm 查询',
+        '时间同步：chrony / timedatectl',
+        '系统调优：tuned 的 profile 切换'
+      ],
+      k: ['→ 进度：未开始。等存储与挂载收尾后展开。']
+    }
+  ],
+  quiz: []
+},
+{
+  id: 'shell', name: '六、Shell 脚本与文本处理', status: 'todo',
+  note: '尚未展开。这一域的价值在于「把重复动作写成一次可验证的执行」，也是 RHCE 阶段的前置能力。',
+  nodes: [
+    {
+      t: '本节将要覆盖的能力',
+      ul: [
+        '文本处理三件套：grep（-r -i -n -E）、sed（替换/删除/指定行）、awk（按列处理）',
+        '查看与截取：cat / less / head / tail -f、cut、sort、uniq、wc、tr',
+        '重定向与管道：> / >> / 2> / 2>&1 / | / tee',
+        '查找：find 的 -name -type -size -mtime -perm -exec、locate',
+        'shell 基础：变量、引号差异、位置参数、$?、条件判断 test / [ ]、if / case / for / while',
+        '脚本规范：shebang、执行权限、set -e、退出码',
+        '打包压缩：tar 的 c/x/z/j/J/f、gzip / bzip2 / xz',
+        '文件传输：scp / rsync'
+      ],
+      k: ['→ 进度：未开始。']
+    }
+  ],
+  quiz: []
+},
+{
+  id: 'container', name: '七、容器与额外考点', status: 'todo',
+  note: '尚未展开。EX200 里容器只有一道题，但它是理解 CKA 的起点。',
+  nodes: [
+    {
+      t: '本节将要覆盖的能力',
+      ul: [
+        'rootless podman：普通用户运行容器，systemctl --user 管理',
+        '容器镜像：拉取、本地仓库、tag、commit、导出导入',
+        '容器与宿主机的卷映射、端口映射',
+        '容器自启动：systemd 用户单元 + loginctl enable-linger',
+        'SELinux 与容器的关系（:z / :Z 挂载标签）',
+        '（RHCE 阶段）Ansible：inventory、playbook、常用模块、vault'
+      ],
+      k: ['→ 进度：未开始。依赖第二、三章的 subuid/subgid 与权限基础。']
+    }
+  ],
+  quiz: []
+},
+{
+  id: 'pitfall', name: '附录、验收会骗人速查', status: 'doing',
+  note: '这一页是这几天最高频的教训汇总。核心只有一句问法：这条命令验的是「配好了」还是「做到了」？',
+  nodes: [
+    {
+      t: '统一问法',
+      p: ['每条验收命令都要先问一遍：<b>它究竟验到了哪一层？</b>只有能证明「事情真的做成了」的那一层才算过。'],
+      k: ['★ 下面 8 个实例都是「命令报成功 / 看起来正常」，但实际没做到。']
+    },
+    {
+      t: '实例 1 · dnf repolist 不联网',
+      c: [
+        ['dnf repolist', '只读配置语法。baseurl 写成 404 它也报成功'],
+        ['dnf repolist -v', '联网，能看出地址对不对'],
+        ['dnf makecache', '★ 真正下载元数据 —— 只有这一层能证明「仓库可用」']
+      ]
+    },
+    {
+      t: '实例 2 · passwd -S 只验字段非空',
+      p: ['里面被塞进明文口令（useradd -p flectrag）时，它照样报 PS。'],
+      k: ['→ 可靠的验收：getent shadow 用户名，看第 2 字段是不是 $6$ 开头的长串。',
+          '★ 括号里的提示语也会变：Alternate authentication scheme in use → Password set, SHA512 crypt.']
+    },
+    {
+      t: '实例 3 · vim 打开了文件 ≠ 能写',
+      p: ['文件对当前用户不可写时，vim 只是把 buffer 标成 readonly，不敲 :wq 它什么都不说。'],
+      k: ['→ 可靠的验收：比对写入前后的 md5，或看退出码。']
+    },
+    {
+      t: '实例 4 · ls -ld 测不出目录权限',
+      p: ['它只做一次 stat，只需要路径上父目录的 x，对目标对象自己的权限一位都不要 —— 永远返回 0。'],
+      k: ['→ 想验能不能进就敲 cd，想验能不能列就敲 ls，想验能不能建就敲 touch。']
+    },
+    {
+      t: '实例 5 · blkid 有输出 ≠ 有文件系统',
+      p: ['刚分完区、还没 mkfs 的分区，blkid 也会退出码 0，输出 PARTLABEL / PARTUUID。'],
+      k: ['→ 判据是「有没有 TYPE= 字段」，不是「有没有输出」。']
+    },
+    {
+      t: '实例 6 · mkfs 成功 ≠ 该做',
+      p: ['手抖打错盘，mkfs 照样退出码 0、零报错，但数据永久消失。'],
+      k: ['→ 动手前看三盏灯：尺寸 / 签名（TYPE=）/ 有没有在用（MOUNTPOINT、fstab）。']
+    },
+    {
+      t: '实例 7 · hexo deploy 说成功但没推上去',
+      p: ['本地提交完成了，远端 main 还停在旧提交 —— 工具打印的成功信息不可信。'],
+      k: ['→ 核对的唯一方法：比本地 HEAD 与远端实际提交。']
+    },
+    {
+      t: '实例 8 · 静态文件里找不到运行时的值',
+      p: ['改完前端代码后，去线上那份静态 HTML 里搜新生成的属性，搜不到就以为「没部署成功」。'],
+      k: ['→ 那个属性是页面加载后由 JS 渲染出来的 —— 静态文件里只有<b>生成它的那段代码</b>，本来就不会有值。',
+          '★ 换场景一样成立：<b>验证的对象要和结论在同一层。</b>想看渲染结果就真跑一遍再读 DOM；想看服务真实状态就问 API / systemctl；想确认远端变了就去问远端。拿「产物」当「行为」的证据，等于什么都没验。']
+    },
+    {
+      t: '同一族的通用教训',
+      ul: [
+        '<b>「我以为的那个对象」≠「系统里实际的那个对象」</b>：glob 漏匹配、拿包版本当 releasever、照抄旧版本文档、只看单一路径就断言「备份没做」。',
+        '<b>改动前先搜索（多路径 + find），不要用单一预期位置下结论。</b>',
+        '<b>用管道过滤输出时注意 stderr 走了哪条流</b> —— 把错误信息过滤掉，等于把证据本身丢掉。',
+        '<b>「我在 A 上成功了」不能用来否定「B 上失败了」</b>：先确认 A 和 B 是不是同一个状态。'
+      ]
+    }
+  ],
+  quiz: [
+    {
+      q: '拿到一条验收命令，判断它可不可信，问自己哪一句话？',
+      a: [
+        '<p><span class="ok">「这条命令验的是『配好了』，还是『做到了』？」</span></p>',
+        '<ul>',
+        '<li>验「配好了」= 读配置、读状态、看语法 —— 很轻，容易假绿</li>',
+        '<li>验「做到了」= 真的产生效果：能下载、能认证、能写入、能挂载、远端真的变了</li>',
+        '</ul>',
+        '<div class="lbl">配三个动作</div>',
+        '<ul>',
+        '<li>让操作<b>产生可见副作用</b>（写入一行、下载一个包、挂载一个目录）</li>',
+        '<li>用<b>退出码</b>而不是肉眼判断</li>',
+        '<li>用<b>不在范围内的身份</b>去测「其他人」这一类（nobody 是个好选择）</li>',
+        '</ul>'
+      ]
+    }
+  ]
+}
+];
+
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const stripTags = s => String(s == null ? '' : s).replace(/<[^>]*>/g, ' ');
+
+// 只用于纯文本（节点标题）：先转义再包高亮，不破坏原有 HTML
+function hlText(text, kw) {
+  const t = esc(text);
+  if (!kw) return t;
+  const safe = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return t.replace(new RegExp('(' + safe + ')', 'ig'), '<span class="hl">$1</span>');
+}
+
+// 节点锚点：由标题稳定派生的 slug。标题不变则链接不漂，插删其它节点也不影响。
+function slug(s){
+  return String(s).trim().toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^0-9a-z\u4e00-\u9fa5_-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 64);
+}
+
+// 节点标识：标题相同的节点会撞出同一个标识，所以先数一遍 —— 撞了的按所属章节加后缀区分。
+let NIDS = {};
+function buildNids() {
+  const cnt = {};
+  MAP.forEach(ch => ch.nodes.forEach(n => {
+    const k = n.id || slug(n.t);
+    cnt[k] = (cnt[k] || 0) + 1;
+  }));
+  const out = {};
+  MAP.forEach(ch => ch.nodes.forEach((n, i) => {
+    const k = n.id || slug(n.t);
+    out[ch.id + '-' + i] = cnt[k] > 1 ? k + '-' + ch.id : k;
+  }));
+  return out;
+}
+
+function renderTree() {
+  const t = document.getElementById('tree');
+  let html = '<h2>目录</h2>';
+  MAP.forEach(ch => {
+    html += '<div class="tnode">';
+    html += '<div class="tchap" data-go="chap-' + ch.id + '">' +
+            '<span class="dot ' + ST[ch.status].dot + '"></span>' + esc(ch.name) + '</div>';
+    html += '<div class="tkids">';
+    ch.nodes.forEach((n, i) => {
+      html += '<span class="tkid" data-go="node-' + ch.id + '-' + i + '">' + esc(n.t) + '</span>';
+    });
+    if (ch.quiz && ch.quiz.length) {
+      html += '<span class="tkid" data-go="quiz-' + ch.id + '">练习题 ' + ch.quiz.length + ' 道</span>';
+    }
+    html += '</div></div>';
+  });
+  t.innerHTML = html;
+}
+
+function renderContent() {
+  const c = document.getElementById('content');
+  NIDS = buildNids();
+  let html = '';
+  MAP.forEach(ch => {
+    html += '<section class="chap" id="chap-' + ch.id + '">';
+    html += '<div class="chap-hd"><span class="chap-num">' + esc(ch.id) + '</span><h3>' + esc(ch.name) +
+            '</h3><span class="tag ' + ST[ch.status].cls + '">' + ST[ch.status].name + '</span></div>';
+    html += '<div class="chap-bd">';
+    if (ch.note) html += '<p class="chap-note">' + ch.note + '</p>';
+
+    ch.nodes.forEach((n, i) => {
+      const nid = NIDS[ch.id + '-' + i];
+      html += '<div class="node" id="node-' + ch.id + '-' + i + '" data-nid="' + esc(nid) + '">';
+      html += '<button class="cp" type="button" data-cp="#' + esc(nid) + '" title="复制这一节的可分享链接">复制链接</button>';
+      html += '<h4>' + esc(n.t) + '</h4>';
+      (n.p || []).forEach(p => { html += '<p>' + p + '</p>'; });
+      if (n.ul) { html += '<ul>'; n.ul.forEach(x => { html += '<li>' + x + '</li>'; }); html += '</ul>'; }
+      if (n.c) {
+        html += '<div class="cmds">';
+        n.c.forEach(([cmd, desc]) => {
+          html += '<div class="cmd"><code>' + esc(cmd) + '</code><span>' + desc + '</span></div>';
+        });
+        html += '</div>';
+      }
+      if (n.k) {
+        html += '<div class="keys">';
+        n.k.forEach(x => {
+          const mem = x.indexOf('→') === 0;
+          html += '<div class="key' + (mem ? ' mem' : '') + '">' + x + '</div>';
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+    });
+
+    if (ch.quiz && ch.quiz.length) {
+      html += '<div id="quiz-' + ch.id + '">';
+      ch.quiz.forEach((q, i) => {
+        html += '<details class="quiz" id="quiz-' + ch.id + '-' + i + '"><summary>' + esc(q.q) + '</summary><div class="qbd">';
+        q.a.forEach(x => {
+          if (x.indexOf('<') === 0) html += x;
+          else html += '<p>' + x + '</p>';
+        });
+        html += '</div></details>';
+      });
+      html += '</div>';
+    }
+    html += '</div></section>';
+  });
+  c.innerHTML = html;
+}
+
+function renderStat() {
+  const cnt = {ok: 0, doing: 0, todo: 0};
+  MAP.forEach(ch => { cnt[ch.status]++; });
+  let qn = 0; MAP.forEach(ch => { qn += (ch.quiz ? ch.quiz.length : 0); });
+  let nn = 0; MAP.forEach(ch => { nn += ch.nodes.length; });
+  document.getElementById('stat').innerHTML =
+    '<span class="pill"><span class="dot d-ok"></span>已完成 <b>' + cnt.ok + '</b></span>' +
+    '<span class="pill"><span class="dot d-doing"></span>进行中 <b>' + cnt.doing + '</b></span>' +
+    '<span class="pill"><span class="dot d-todo"></span>未开始 <b>' + cnt.todo + '</b></span>' +
+    '<span class="pill">知识节点 <b>' + nn + '</b></span>' +
+    '<span class="pill">练习题 <b>' + qn + '</b></span>';
+}
+
+function bindTree() {
+  document.getElementById('tree').addEventListener('click', e => {
+    const el = e.target.closest('[data-go]');
+    if (!el) return;
+    const target = document.getElementById(el.getAttribute('data-go'));
+    if (!target) return;
+    const chap = target.closest('.chap');
+    if (chap) chap.classList.remove('collapsed');
+    window.scrollTo({top: target.getBoundingClientRect().top + window.pageYOffset - 12, behavior: 'smooth'});
+  });
+}
+
+function bindCollapse() {
+  document.querySelectorAll('.chap-hd').forEach(hd => {
+    hd.addEventListener('click', () => { hd.parentElement.classList.toggle('collapsed'); });
+  });
+}
+
+function bindSearch() {
+  const box = document.getElementById('q');
+  const out = document.getElementById('hits');
+
+  box.addEventListener('input', () => {
+    const kw = box.value.trim().toLowerCase();
+    let hitNodes = 0, hitQuiz = 0, titleHits = 0, openChaps = 0, nameHits = 0;
+
+    MAP.forEach(ch => {
+      const sec = document.getElementById('chap-' + ch.id);
+      if (!sec) return;
+
+      // 第 1 层：章节名 + 章节说明
+      const chapHay = (stripTags(ch.name) + ' ' + stripTags(ch.note || '')).toLowerCase();
+      const chapHit = !!kw && chapHay.indexOf(kw) !== -1;
+
+      let nodeShown = 0;
+
+      // 第 2 层：知识点节点（标题 / 正文 / 命令表 / 结论）
+      ch.nodes.forEach((n, i) => {
+        const el = document.getElementById('node-' + ch.id + '-' + i);
+        if (!el) return;
+        const h4 = el.querySelector('h4');
+        const title = h4 ? h4.textContent : stripTags(n.t);
+        const hay = (title + ' ' + stripTags((n.p || []).join(' ')) + ' ' +
+                     stripTags((n.ul || []).join(' ')) + ' ' +
+                     stripTags((n.c || []).map(x => x.join(' ')).join(' ')) + ' ' +
+                     stripTags((n.k || []).join(' '))).toLowerCase();
+        const ownHit = !!kw && hay.indexOf(kw) !== -1;
+        const titleHit = !!kw && title.toLowerCase().indexOf(kw) !== -1;
+        const hit = !kw || chapHit || ownHit;
+        el.classList.toggle('hidden', !hit);
+        el.classList.toggle('titlehit', titleHit);
+        if (h4) h4.innerHTML = kw ? hlText(title, kw) : esc(title);
+        if (hit) nodeShown++;
+        if (ownHit) hitNodes++;
+        if (titleHit) titleHits++;
+      });
+
+      // 第 3 层：练习题（题干 + 答案）
+      let quizShown = 0;
+      const qwrap = document.getElementById('quiz-' + ch.id);
+      if (qwrap) {
+        qwrap.querySelectorAll('details.quiz').forEach((d, i) => {
+          const q = (ch.quiz || [])[i];
+          if (!q) return;
+          const qTxt = stripTags(q.q).toLowerCase();
+          const aTxt = stripTags((q.a || []).join(' ')).toLowerCase();
+          const qHit = !!kw && (qTxt.indexOf(kw) !== -1 || aTxt.indexOf(kw) !== -1);
+          const hit = !kw || chapHit || nodeShown > 0 || qHit;
+          d.classList.toggle('hidden', !hit);
+          // 只在「命中答案、题干里没有」时自动展开，其余保持折叠
+          d.open = !!kw && qTxt.indexOf(kw) === -1 && aTxt.indexOf(kw) !== -1;
+          if (hit) quizShown++;
+          if (qHit) hitQuiz++;
+        });
+      }
+
+      if (kw) {
+        const any = chapHit || nodeShown > 0 || quizShown > 0;
+        if (any) { openChaps++; if (chapHit) nameHits++; }
+        sec.classList.toggle('hidden', !any);
+      } else {
+        sec.classList.remove('hidden');
+      }
+    });
+
+    if (!kw) { out.textContent = ''; out.classList.remove('none'); return; }
+    if (openChaps === 0) {
+      out.textContent = '无匹配';
+      out.classList.add('none');
+      return;
+    }
+    out.classList.remove('none');
+    const segs = [];
+    if (hitNodes) segs.push('命中 <b>' + hitNodes + '</b> 个知识点');
+    if (hitQuiz) segs.push('<b>' + hitQuiz + '</b> 道题');
+    if (nameHits) segs.push('整章展开 <b>' + nameHits + '</b> 章');
+    if (titleHits) segs.push('标题命中 <b>' + titleHits + '</b>');
+    out.innerHTML = segs.length ? segs.join(' · ') : '已过滤';
+  });
+}
+
+// ---------- 深链：接受 #chap-xxx / #quiz-xxx-0 / #节点slug，三种都认 ----------
+function resolveTarget(key) {
+  if (!key) return null;
+  try { const el = document.getElementById(key); if (el) return el; } catch (err) {}
+  try {
+    const safe = key.replace(/["\\]/g, '\\$&');
+    return document.querySelector('[data-nid="' + safe + '"]');
+  } catch (err) { return null; }
+}
+
+function goTo(el, mark) {
+  const chap = el.closest ? el.closest('.chap') : null;
+  if (chap) chap.classList.remove('collapsed');
+  if (el.tagName === 'DETAILS') el.open = true;
+  window.scrollTo({top: el.getBoundingClientRect().top + window.pageYOffset - 16, behavior: 'smooth'});
+  if (mark) {
+    el.classList.add('flash');
+    setTimeout(() => { el.classList.remove('flash'); }, 1900);
+  }
+  return true;
+}
+
+function handleHash() {
+  let key = '';
+  try { key = decodeURIComponent(location.hash.replace(/^#/, '')); }
+  catch (err) { key = location.hash.replace(/^#/, ''); }
+  if (!key) return;
+
+  const el = resolveTarget(key);
+  if (el) { goTo(el, true); return; }
+
+  // 兜底：slug 没对上时，把整串当关键词丢进搜索框，落到第一个命中
+  const box = document.getElementById('q');
+  if (!box) return;
+  box.value = key;
+  box.dispatchEvent(new Event('input'));
+  const hit = document.querySelector('#content .node.titlehit:not(.hidden)') ||
+              document.querySelector('#content .node:not(.hidden)');
+  if (hit) goTo(hit, true);
+  else {
+    const out = document.getElementById('hits');
+    out.classList.add('none');
+    out.textContent = '这个链接在页内没有对应章节';
+  }
+}
+
+function bindDeepLink() {
+  window.addEventListener('hashchange', handleHash);
+  handleHash();
+}
+
+function bindCopy() {
+  document.getElementById('content').addEventListener('click', e => {
+    const b = e.target.closest('.cp');
+    if (!b) return;
+    e.stopPropagation();
+    const hash = b.getAttribute('data-cp');
+    const url = location.origin + location.pathname + hash;
+    const done = () => {
+      if (b.classList.contains('done')) return;
+      b.classList.add('done');
+      const old = b.textContent;
+      b.textContent = '已复制';
+      setTimeout(() => { b.textContent = old; b.classList.remove('done'); }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, () => { location.hash = hash; done(); });
+    } else {
+      location.hash = hash;
+      done();
+    }
+  });
+}
+
+function bindButtons() {
+  document.getElementById('expandAll').addEventListener('click', e => {
+    const all = document.querySelectorAll('details.quiz');
+    let anyClosed = false;
+    all.forEach(d => { if (!d.open) anyClosed = true; });
+    all.forEach(d => { d.open = anyClosed; });
+    e.target.textContent = anyClosed ? '收起全部答案' : '展开全部答案';
+  });
+
+  const btn = document.getElementById('toggleTheme');
+  const apply = mode => {
+    document.documentElement.setAttribute('data-theme', mode);
+    btn.textContent = mode === 'dark' ? '浅色主题' : '深色主题';
+  };
+  let saved = null;
+  try { saved = localStorage.getItem('rhcsa-map-theme'); } catch (err) {}
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  apply(saved || (prefersDark ? 'dark' : 'light'));
+  btn.addEventListener('click', () => {
+    const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    apply(next);
+    try { localStorage.setItem('rhcsa-map-theme', next); } catch (err) {}
+  });
+}
+
+renderTree();
+renderContent();
+renderStat();
+bindTree();
+bindCollapse();
+bindSearch();
+bindCopy();
+bindButtons();
+bindDeepLink();
+</script>
+</body>
+</html>

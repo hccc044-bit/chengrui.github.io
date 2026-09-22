@@ -1,0 +1,173 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Kiro远程连接插件使用 | Rui Cheng's Blog</title><meta name="author" content="Rui Cheng"><meta name="copyright" content="Rui Cheng"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="在使用 Kiro 进行远程 SSH 时，发现官方扩展中的微软 SSH 插件不支持 Remote 功能。推荐使用以下第三方插件替代： 插件下载🔗 open-remote-ssh v0.0.49 安装步骤 下载 .vsix 文件   打开 Kiro，点击左侧 扩展图标   点击右上角 ⋯ → 从 VSIX 安装   选择下载的文件，完成安装即可使用   安装后即可正常通过 SSH 远程连接服务器。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kiro远程连接插件使用">
+<meta property="og:url" content="https://crui.is-a.dev/2026/01/05/Kiro%E8%BF%9C%E7%A8%8B%E8%BF%9E%E6%8E%A5%E6%8F%92%E4%BB%B6%E4%BD%BF%E7%94%A8/index.html">
+<meta property="og:site_name" content="Rui Cheng&#39;s Blog">
+<meta property="og:description" content="在使用 Kiro 进行远程 SSH 时，发现官方扩展中的微软 SSH 插件不支持 Remote 功能。推荐使用以下第三方插件替代： 插件下载🔗 open-remote-ssh v0.0.49 安装步骤 下载 .vsix 文件   打开 Kiro，点击左侧 扩展图标   点击右上角 ⋯ → 从 VSIX 安装   选择下载的文件，完成安装即可使用   安装后即可正常通过 SSH 远程连接服务器。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://crui.is-a.dev/img/avatar.svg">
+<meta property="article:published_time" content="2026-01-05T09:04:11.000Z">
+<meta property="article:modified_time" content="2026-01-07T01:47:08.924Z">
+<meta property="article:author" content="Rui Cheng">
+<meta property="article:tag" content="Linux,HPC,Kubernetes,Hexo,developer tools">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://crui.is-a.dev/img/avatar.svg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Kiro远程连接插件使用",
+  "url": "https://crui.is-a.dev/2026/01/05/Kiro%E8%BF%9C%E7%A8%8B%E8%BF%9E%E6%8E%A5%E6%8F%92%E4%BB%B6%E4%BD%BF%E7%94%A8/",
+  "image": "https://crui.is-a.dev/img/avatar.svg",
+  "datePublished": "2026-01-05T09:04:11.000Z",
+  "dateModified": "2026-01-07T01:47:08.924Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Rui Cheng",
+      "url": "https://crui.is-a.dev"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.svg"><link rel="canonical" href="https://crui.is-a.dev/2026/01/05/Kiro%E8%BF%9C%E7%A8%8B%E8%BF%9E%E6%8E%A5%E6%8F%92%E4%BB%B6%E4%BD%BF%E7%94%A8/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.5.3"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.12.0/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: true,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Kiro远程连接插件使用',
+  isHighlightShrink: true,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/css/custom.css"><link rel="icon" type="image/png" sizes="32x32" href="/img/favicon.png"><meta name="generator" content="Hexo 8.1.1"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.svg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">3</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">7</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">2</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/study-log/"><i class="fa-fw fas fa-book"></i><span> 学习日志</span></a></div><div class="menus_item"><a class="site-page" href="/maps/rhcsa.html"><i class="fa-fw fas fa-sitemap"></i><span> 学习地图</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Rui Cheng's Blog</span></a><a class="nav-page-title" href="/"><span class="site-name">Kiro远程连接插件使用</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  Back to Home</span></span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/study-log/"><i class="fa-fw fas fa-book"></i><span> 学习日志</span></a></div><div class="menus_item"><a class="site-page" href="/maps/rhcsa.html"><i class="fa-fw fas fa-sitemap"></i><span> 学习地图</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Kiro远程连接插件使用</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2026-01-05T09:04:11.000Z" title="Created 2026-01-05 17:04:11">2026-01-05</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2026-01-07T01:47:08.924Z" title="Updated 2026-01-07 09:47:08">2026-01-07</time></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>在使用 <strong>Kiro</strong> 进行远程 SSH 时，发现官方扩展中的微软 SSH 插件不支持 Remote 功能。推荐使用以下第三方插件替代：</p>
+<h3 id="插件下载"><a href="#插件下载" class="headerlink" title="插件下载"></a>插件下载</h3><p>🔗 <a target="_blank" rel="noopener" href="https://openvsx.eclipsecontent.org/jeanp413/open-remote-ssh/0.0.49/jeanp413.open-remote-ssh-0.0.49.vsix">open-remote-ssh v0.0.49</a></p>
+<h3 id="安装步骤"><a href="#安装步骤" class="headerlink" title="安装步骤"></a>安装步骤</h3><ol>
+<li>下载 <code>.vsix</code> 文件  </li>
+<li>打开 Kiro，点击左侧 <strong>扩展图标</strong>  </li>
+<li>点击右上角 <strong>⋯</strong> → <strong>从 VSIX 安装</strong>  </li>
+<li>选择下载的文件，完成安装即可使用<br><img src="/images/kiro-plugin-1.png" alt="kiro插件设置步骤"></li>
+</ol>
+<blockquote>
+<p>安装后即可正常通过 SSH 远程连接服务器。</p>
+</blockquote>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://crui.is-a.dev">Rui Cheng</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://crui.is-a.dev/2026/01/05/Kiro%E8%BF%9C%E7%A8%8B%E8%BF%9E%E6%8E%A5%E6%8F%92%E4%BB%B6%E4%BD%BF%E7%94%A8/">https://crui.is-a.dev/2026/01/05/Kiro%E8%BF%9C%E7%A8%8B%E8%BF%9E%E6%8E%A5%E6%8F%92%E4%BB%B6%E4%BD%BF%E7%94%A8/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-share"><div class="social-share" data-image="/img/avatar.svg" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/study-log/2026-09/" title="学习日志 · 2026 年 9 月"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info"><div class="info-1"><div class="info-item-1">Previous</div><div class="info-item-2">学习日志 · 2026 年 9 月</div></div><div class="info-2"><div class="info-item-1">这个月从零把 Rocky Linux 9 实验机搭起来，走完环境底座 → 用户与组 → 权限与 ACL，并开进存储与挂载。 每天一条，新内容在最上面。每条末尾的「能力索引」指向 RHCSA 学习地图 上对应的知识点。   2026-09-18 星期五今天分两段：白天在实验机上把存储域第一题从头走到尾（12 步全绿，含 fstab 与验收），晚上重做了博客本身的结构。改博客的起因是我想「从当天的记录直接跳到知识图」，旧结构做不到；做完之后，博客从「一篇无限增长的日志 + 一个站外 HTML」变成了索引页 + 按月日志 + 知识图。 今天做了什么 ① 存储第一题：/dev/sdb 全链路打通 先交方案、被逐条挑毛病、改完才动手。最后 12 步全绿，每一步的原始输出都核对过：    步骤 结果    parted /dev/sdb print free unrecognised disk label（空盘，符合预期）   mklabel gpt Partition Table: gpt，Free Space 从 17.4 kB 起   mkpart primary xfs 1MiB 1...</div></div></div></a></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.svg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Rui Cheng</div><div class="author-info-description">Notes on Linux, HPC and the tools I use.</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">3</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">7</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">2</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/hccc044-bit"><i class="fab fa-github"></i><span>Follow Me</span></a></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">Welcome! This blog collects my hands-on notes on Linux, HPC, Kubernetes and developer tools.</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8F%92%E4%BB%B6%E4%B8%8B%E8%BD%BD"><span class="toc-number">1.</span> <span class="toc-text">插件下载</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%89%E8%A3%85%E6%AD%A5%E9%AA%A4"><span class="toc-number">2.</span> <span class="toc-text">安装步骤</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/09/10/build-your-own-website/" title="从零搭建自己的技术博客：Hexo + GitHub Pages + 免费短域名实战">从零搭建自己的技术博客：Hexo + GitHub Pages + 免费短域名实战</a><time datetime="2026-09-10T08:30:00.000Z" title="Created 2026-09-10 16:30:00">2026-09-10</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/study-log/2026-09/" title="学习日志 · 2026 年 9 月">学习日志 · 2026 年 9 月</a><time datetime="2026-08-31T16:00:00.000Z" title="Created 2026-09-01 00:00:00">2026-09-01</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/01/05/Kiro%E8%BF%9C%E7%A8%8B%E8%BF%9E%E6%8E%A5%E6%8F%92%E4%BB%B6%E4%BD%BF%E7%94%A8/" title="Kiro远程连接插件使用">Kiro远程连接插件使用</a><time datetime="2026-01-05T09:04:11.000Z" title="Created 2026-01-05 17:04:11">2026-01-05</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Rui Cheng</span><span class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.1</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.3</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.3"></script><script src="/js/main.js?v=5.5.3"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
