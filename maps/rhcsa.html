@@ -804,11 +804,26 @@ const MAP = [
         ['lvextend -L +300M /dev/myvg/mylv', '带 + 号才是「增加 300」'],
         ['xfs_growfs /mnt/data', '★ xfs 扩容文件系统（挂载状态下执行，参数是挂载点）'],
         ['resize2fs /dev/myvg/mylv', 'ext4 扩容文件系统（参数是设备）'],
-        ['lvreduce -L 200M /dev/myvg/mylv', '缩小 LV —— ★ 极危险，必须先缩文件系统']
+        ['lvreduce -L 200M /dev/myvg/mylv', '缩小 LV —— ★ 极危险，必须先缩文件系统'],
+        ['pvremove /dev/sdc1', '撤销 PV，退回普通块设备（可逆）'],
+        ['vgremove / lvremove', '拆除 VG / LV（顺序与创建时相反）'],
+        ['pvdisplay /dev/sdc1', '★ 单个 PV 的详情；<b>not usable</b> 一栏就是被元数据吃掉的那几 MiB'],
+        ['vgdisplay rlm', '★ 看 <b>PE Size</b> 与 <b>Total PE</b> —— LVM 的分配单位在这里'],
+        ['parted -s /dev/sdc set 1 lvm on', '给分区打上 LVM 类型标记（给人和工具看的标签，不影响功能）'],
+        ['pvs /dev/sdc1', '过滤用法：只看指定设备（★ 位置参数只能给设备名）']
       ],
       k: ['★ 扩容是安全操作，扩大文件系统是必须的第二步：只扩 LV 不扩文件系统，df 看到的容量不变。',
           '★ xfs 只能扩不能缩；ext4 可以缩但必须先卸载。',
-          '★ -l（小写 L）给 PE 个数，-L（大写）给容量 —— 也容易记反。']
+          '★ -l（小写 L）给 PE 个数，-L（大写）给容量 —— 也容易记反。',
+          '★ <b>PE（物理扩展块）是 LVM 分配空间的最小单位</b> —— LV 的大小必须是 PE 的整数倍。<code>vgcreate -s 16M</code> 定的就是这个格子多大。账本是自洽的：<b>VG Size = PE Size × Total PE</b>（实测 rlm：4 MiB × 1791 = 7164 MiB ≈ <code>&lt;7.00 GiB</code>，与 vgs 的 VSize 对得上）。',
+          '→ 心法：<b>PV / VG / LV 三层做的全是「记账」，实物扇区一点没动。</b>pvcreate = 登记设备；vgcreate = 把空间切成等大格子记下来；lvcreate = 从账上划走 n 格。',
+          '★ <code>pvs</code> / <code>vgs</code> / <code>lvs</code> 里的 <code>&lt;</code> 是<b>显示取整</b>标记，不是「空间被吃了」：真实值略小于显示值就加 <code>&lt;</code>。实测 sda2 真实 7167 MiB → <code>&lt;7.00g</code>；sdc1 真实 4096 MiB → <code>4.00g</code> 不带 <code>&lt;</code>。',
+          '→ 真正被「吃掉」的是 <b>PV 的标签与元数据区</b>：它计入 PV、<b>不计入 VG</b>。分区表占的空间则在分区之外（gpt 表 17.4 kB 在分区起点之前），所以<b>分区自身的 Size 可以精确等于你输入的 MiB 值</b>。',
+          '★ <b>整盘直接 pvcreate 合法，但先分区再 pvcreate 更好</b>：① 分区能标 <code>lvm</code> 类型，人和工具一眼看出用途；② 同一块盘可以只切一部分给 LVM（另半块留给 swap 等）；③ 想反悔时直接 <code>pvremove</code> 就能回头，整盘做了 PV 则要先 <code>pvremove</code> + <code>wipefs</code>。例外：专用数据盘整盘做也很常见。<b>注意分区不是 LVM 的一层，只是设备层的准备动作</b> —— LVM 只要求「给一个块设备」，整盘和分区都是。',
+          '→ PV 与 VG 是两层：<code>pvs</code> 的 <b>VG 列为空</b> ⇒ 这个 PV 还没被任何卷组认领；<b>Attr 的 a</b> = allocatable（可分配），没入伙时显示 <code>---</code>。一个 PV 可以独立存在，一个 VG 可以吃掉多个 PV。',
+          '→ <code>lvs</code> 的 Attr <code>-wi-ao----</code>：<code>-</code> 普通线性卷 ｜ <code>w</code> writable ｜ <code>i</code> inheritable ｜ <code>a</code> active ｜ <code>o</code> open（正在被使用 = 已挂载）。',
+          '→ 命令族命名规律：<code>pvs/vgs/lvs</code> = 一行一个对象的<b>汇总</b>；<code>pvdisplay/vgdisplay/lvdisplay</code> = 单个对象的<b>详情</b>；<code>*create / *remove / *extend / *scan</code> 各成一组。<b><code>pv</code> 不是 LVM 命令</b>（它是毫不相干的 pipe viewer，敲了只会 command not found）。',
+          '★ <code>pvs &lt;设备&gt;</code> 是合法的过滤用法，但位置参数给了非设备名会报 <code>Cannot use xxx: device not found</code> —— 那说的是<b>参数解析失败</b>，不是设备坏了。读报错先看它抱怨的是哪一步。']
     },
     {
       t: 'swap 交换分区',
@@ -941,6 +956,108 @@ const MAP = [
         '<div class="lbl">结论</div>',
         '<p>服务器和考试环境没有桌面，<span class="no">没有 udisks2 这层兜底</span>。想让一块盘开机就在，唯一的办法是写进 fstab。</p>'
       ]
+    },
+    {
+      q: 'LVM 的五层是怎么套起来的？既然分区也能直接用，为什么还要在中间插一层 LVM？',
+      a: [
+        '<div class="lbl">五层栈（每层一条命令，层级不可跳）</div>',
+        '<div class="tblwrap"><table><tr><th>层</th><th>是什么</th><th>诞生命令</th><th>怎么查</th></tr>',
+        '<tr><td>0 物理设备</td><td>整盘 <code>/dev/sdc</code> 或分区 <code>/dev/sdc1</code></td><td>parted（可选）</td><td><code>lsblk</code></td></tr>',
+        '<tr><td>1 PV 物理卷</td><td>「已经登记进 LVM 的设备」</td><td><code>pvcreate</code></td><td><code>pvs</code></td></tr>',
+        '<tr><td>2 VG 卷组</td><td>建在 PV 之上的空间池，按 PE 切成等大块记账</td><td><code>vgcreate -s &lt;PE&gt;</code></td><td><code>vgs</code> / <code>vgdisplay</code></td></tr>',
+        '<tr><td>3 LV 逻辑卷</td><td>从池里划走 n 个 PE，得到设备名 <code>/dev/&lt;vg&gt;/&lt;lv&gt;</code></td><td><code>lvcreate</code></td><td><code>lvs</code> / <code>lvdisplay</code></td></tr>',
+        '<tr><td>4 文件系统与挂载</td><td>和裸分区那套完全一样</td><td><code>mkfs</code> + fstab</td><td><code>blkid</code> / <code>findmnt</code></td></tr></table></div>',
+        '<div class="lbl">LVM 只替换了第 ② 层</div>',
+        '<p>它把「分区」这一层做成可伸缩的，上下的文件系统与 fstab 一点不变。多出来的能力有三样：</p>',
+        '<ul>',
+        '<li><b>可在线伸缩</b>：扩容不用卸载、不用重建；裸分区大小在创建那一刻就固定了，要改得卸挂载 + 备份 + 重建</li>',
+        '<li><b>跨盘汇聚</b>：一个 VG 可以吃掉多个 PV，空间不够时 <code>vgextend</code> 再加一块盘进来</li>',
+        '<li><b>快照</b>：能在 LVM 层按需冻结一份状态（和 VMware 快照不是一回事）</li>',
+        '</ul>',
+        '<div class="lbl">心法</div>',
+        '<p>PV / VG / LV 三层做的<b>全是记账，实物扇区一点没动</b>。<code>pvcreate</code> = 登记设备；<code>vgcreate</code> = 把空间切成等大格子记下来；<code>lvcreate</code> = 从账上划走 n 格。<span class="ok">这句话通了，PE 就不抽象了。</span></p>'
+      ]
+    },
+    {
+      q: 'lvextend -L 300MiB /dev/test/vo 跑完，df -h /vo 会显示什么？为什么？',
+      a: [
+        '<div class="lbl">结论：容量没变，还是原来那么大</div>',
+        '<p>因为 <code>lvextend</code> 只改 <b>LVM 层的账本</b>，文件系统层根本不知道。此时处于「LV 300MiB / 文件系统仍是 200MiB」的<b>错位状态</b> —— 中间那 100 MiB 白白闲置，而 <code>df</code> 一眼看不出来。</p>',
+        '<div class="lbl">必须补第二条命令</div>',
+        '<div class="tblwrap"><table><tr><th>文件系统</th><th>扩容命令</th><th>参数给谁</th><th>要不要卸载</th></tr>',
+        '<tr><td>xfs</td><td><code>xfs_growfs /vo</code></td><td><b>挂载点</b>（给设备路径它也认）</td><td>不用，可对已挂载文件系统在线执行</td></tr>',
+        '<tr><td>ext2/3/4</td><td><code>resize2fs /dev/test/vo</code></td><td><b>设备</b></td><td>在线可扩；缩必须先卸载</td></tr></table></div>',
+        '<div class="lbl">这也解释了参考解里为什么要插一条 blkid</div>',
+        '<pre>lvscan\nlvextend -L 300MiB /dev/test/vo\nblkid /dev/test/vo        # ★ 先确认文件系统类型，才知道该用哪个 grow 命令\nxfs_growfs /dev/test/vo</pre>',
+        '<div class="lbl">记住形状</div>',
+        '<p>扩容<b>永远是两个动作</b>：先动账（LV），再动文件系统。<span class="no">只做第一步，命令返回成功、df 不变，最容易被误判成「命令没生效」。</span></p>'
+      ]
+    },
+    {
+      q: '题目说「mylv 大小为 50 个扩展单元，扩展块为 16MiB」—— 这个 LV 实际多大？为什么题目不直接写 800MiB？',
+      a: [
+        '<div class="lbl">算一下</div>',
+        '<pre>16 MiB × 50 = 800 MiB\n\nvgcreate -s 16M myvg /dev/vdb3   # -s 定 PE 大小 = 16 MiB\nlvcreate -l 50 -n mylv myvg       # -l 给 PE 个数 = 50</pre>',
+        '<div class="lbl">为什么绕一圈说</div>',
+        '<p>因为 <b>PE 才是 LVM 真正分配空间的单位</b>，LV 的大小只能是 PE 的整数倍 —— 这是 LVM 的记账方式，不是「刚好凑成 800MiB」。考的就是这个语义：能不能从「几个格子 × 格子多大」自己换算成容量。</p>',
+        '<div class="lbl">-l 与 -L 的分工</div>',
+        '<div class="tblwrap"><table><tr><th>写法</th><th>给的是</th><th>是不是 PE 的整数倍</th></tr>',
+        '<tr><td><code>-l 50</code>（小写 L）</td><td><b>PE 个数</b></td><td>必然是</td></tr>',
+        '<tr><td><code>-L 800M</code>（大写 L）</td><td>绝对容量，LVM 向上取整到 PE</td><td>取整之后必然是</td></tr></table></div>',
+        '<div class="lbl">默认 PE 多大</div>',
+        '<p><code>vgcreate</code> 不写 <code>-s</code> 时默认 <b>4 MiB</b>。实测本机 rlm 卷组就是 4 MiB，VG Size &lt;7.00 GiB ⇒ Total PE = 1791。</p>',
+        '<div class="lbl">顺带的坑</div>',
+        '<p>要建 800 MiB 的 LV，分区得留得比 800 MiB 大 —— 参考解建的是 &gt;800MiB 的分区，因为 PV 自己要吃掉几 MiB 元数据（见「<code>&lt;</code> 与元数据」那一问）。</p>'
+      ]
+    },
+    {
+      q: 'pvs 输出里 VG 那一列是空的、Attr 显示 ---，这说明什么？PV 和 VG 到底是什么关系？',
+      a: [
+        '<div class="lbl">先看实测</div>',
+        '<pre>pvcreate /dev/sdc1\npvs\n# /dev/sdc1  lvm2  ---  4.00g  4.00g     ← VG 列为空、Attr 为 ---\n\nvgcreate test /dev/sdc1\npvs\n# /dev/sdc1  lvm2  a--  4.00g  4.00g     ← VG 列变成 test、Attr 变成 a--</pre>',
+        '<div class="lbl">两列的读法</div>',
+        '<ul>',
+        '<li><b>VG 列为空</b> ⇒ 这个 PV <b>还没有被任何卷组认领</b>（建好了，但没入伙，空间一时用不上）</li>',
+        '<li><b>Attr 里的 a</b> = allocatable（可分配）；没入 VG 时显示 <code>---</code></li>',
+        '</ul>',
+        '<div class="lbl">PV 与 VG 是两层，不是一回事</div>',
+        '<p>PV = 「已经登记进 LVM 的设备」；VG = 「建在这些 PV 之上的账」。<b>一个 PV 可以独立存在，一个 VG 可以吃掉多个 PV</b> —— 这正是 <code>vgextend</code> 能「加一块盘就扩容」的原因。<span class="no">把 pvcreate 当成「创建了卷组」，后面所有容量推算都会错。</span></p>',
+        '<div class="lbl">lvs 的 Attr 也照这个思路读</div>',
+        '<pre>lvs\n# root  rlm  -wi-ao----   &lt;6.20g\n#            ↑↑ ↑↑└ o = open（正在被使用 = 已挂载）</pre>',
+        '<p><code>-</code> 普通线性卷 ｜ <code>w</code> writable ｜ <code>i</code> inheritable ｜ <code>a</code> active ｜ <code>o</code> open。</p>'
+      ]
+    },
+    {
+      q: 'pvs 显示 <7.00g，那个 < 是什么意思？一块盘做了 PV，空间被吃掉了什么？',
+      a: [
+        '<div class="lbl">&lt; 是显示取整，不是「少了」</div>',
+        '<p>LVM 只保留两位小数，真实值<b>略小于</b>显示值时就加 <code>&lt;</code>。同一台机器上的两个实测：</p>',
+        '<div class="tblwrap"><table><tr><th>PV</th><th>真实大小</th><th>显示</th><th>为什么</th></tr>',
+        '<tr><td><code>/dev/sda2</code></td><td>7167 MiB = 6.9990 GiB</td><td><code>&lt;7.00g</code></td><td>比 7.00 小一点点 ⇒ 带 &lt;</td></tr>',
+        '<tr><td><code>/dev/sdc1</code></td><td>4096 MiB = 4.0000 GiB</td><td><code>4.00g</code></td><td>正好相等 ⇒ 不带 &lt;</td></tr></table></div>',
+        '<div class="lbl">那真正被吃掉的是什么</div>',
+        '<p>是 <b>PV 的标签与元数据区</b> —— 它计入 PV、<b>不计入 VG</b>。<code>pvdisplay</code> 的 <code>not usable</code> 一栏能直接看到这段。所以账本要这样对：</p>',
+        '<pre>PV 7167 MiB ── 约 3 MiB 元数据 ──▶ VG 7164 MiB = 4 MiB × 1791 个 PE</pre>',
+        '<div class="lbl">别记错对象</div>',
+        '<p>分区表占的空间在<b>分区之外</b>（gpt 表 17.4 kB 落在分区起点之前），所以分区自身的 Size <b>可以精确等于你输入的 MiB 值</b> —— 输入 4096 MiB 就是 <code>4.00g</code>。<span class="ok">看到 <code>&lt;</code> 不要条件反射地去找「丢了什么」，先问这个符号记的是什么。</span></p>'
+      ]
+    },
+    {
+      q: 'pvcreate 之前要不要先建分区？整盘直接 pvcreate 可以吗？',
+      a: [
+        '<div class="lbl">两种都能用，先分区更好</div>',
+        '<ul>',
+        '<li><b>可识别</b>：分区能标上 <code>lvm</code> 类型（<code>parted -s /dev/sdc set 1 lvm on</code>），人和工具一眼看出这块是给 LVM 用的；考场上题目给的就是分区形式（参考解用 <code>/dev/vdb3</code>）</li>',
+        '<li><b>可共存</b>：同一块盘能<b>只切一部分</b>给 LVM，剩下留给别的用途 —— swap 分区就是这样和 LVM 待在同一块盘上的</li>',
+        '<li><b>可反悔</b>：先分区的话，随时 <code>pvremove</code> 就能回头；整盘做了 PV，想再分区得先 <code>pvremove</code> + <code>wipefs</code></li>',
+        '</ul>',
+        '<div class="lbl">例外</div>',
+        '<p>盘如果本来就是<b>专用数据盘</b>，整盘直接 <code>pvcreate</code> 完全可以，生产里很常见。<span class="ok">判据不是「哪个对」，而是「这块盘以后还会不会改用途」。</span></p>',
+        '<div class="lbl">一个容易搞混的点</div>',
+        '<p>分区<b>不是 LVM 的一层</b>，只是设备层的<b>准备动作</b>。LVM 只要求「给我一个块设备」—— 整盘和分区都是块设备。所以 <code>lsblk</code> 里 PV 挂在谁下面，完全取决于你给的是谁。</p>',
+        '<div class="lbl">撤销也一样简单</div>',
+        '<pre>pvremove /dev/sdc1     # PV 退回普通块设备，盘上的分区还在\npvs                    # 设备从列表里消失</pre>'
+      ]
     }
   ]
 },
@@ -1065,7 +1182,9 @@ const MAP = [
         '<b>「我以为的那个对象」≠「系统里实际的那个对象」</b>：glob 漏匹配、拿包版本当 releasever、照抄旧版本文档、只看单一路径就断言「备份没做」。',
         '<b>改动前先搜索（多路径 + find），不要用单一预期位置下结论。</b>',
         '<b>用管道过滤输出时注意 stderr 走了哪条流</b> —— 把错误信息过滤掉，等于把证据本身丢掉。',
-        '<b>「我在 A 上成功了」不能用来否定「B 上失败了」</b>：先确认 A 和 B 是不是同一个状态。'
+        '<b>「我在 A 上成功了」不能用来否定「B 上失败了」</b>：先确认 A 和 B 是不是同一个状态。',
+        '<b>显示格式不等于事实</b>：<code>pvs</code> 里的 <code>&lt;7.00g</code> 只是「两位小数放不下」的取整标记，不是「空间被吃了」；同理分区自身的 Size 可以精确等于你输入的 MiB 值 —— 分区表占的位置在分区之外。看到符号先问「它记录的是什么」，别先替它编一个解释。',
+        '<b>报错抱怨的是哪一步，得先看清</b>：<code>pvs /dev/sdc1 pvdisplay</code> 报 <code>Cannot use pvdisplay: device not found</code> —— 那是<b>参数解析失败</b>（位置参数只收设备名），不是设备坏了。设备真有问题时，报的会是另一句话。'
       ]
     }
   ],
