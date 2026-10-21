@@ -823,7 +823,10 @@ const MAP = [
           '→ PV 与 VG 是两层：<code>pvs</code> 的 <b>VG 列为空</b> ⇒ 这个 PV 还没被任何卷组认领；<b>Attr 的 a</b> = allocatable（可分配），没入伙时显示 <code>---</code>。一个 PV 可以独立存在，一个 VG 可以吃掉多个 PV。',
           '→ <code>lvs</code> 的 Attr <code>-wi-ao----</code>：<code>-</code> 普通线性卷 ｜ <code>w</code> writable ｜ <code>i</code> inheritable ｜ <code>a</code> active ｜ <code>o</code> open（正在被使用 = 已挂载）。',
           '→ 命令族命名规律：<code>pvs/vgs/lvs</code> = 一行一个对象的<b>汇总</b>；<code>pvdisplay/vgdisplay/lvdisplay</code> = 单个对象的<b>详情</b>；<code>*create / *remove / *extend / *scan</code> 各成一组。<b><code>pv</code> 不是 LVM 命令</b>（它是毫不相干的 pipe viewer，敲了只会 command not found）。',
-          '★ <code>pvs &lt;设备&gt;</code> 是合法的过滤用法，但位置参数给了非设备名会报 <code>Cannot use xxx: device not found</code> —— 那说的是<b>参数解析失败</b>，不是设备坏了。读报错先看它抱怨的是哪一步。']
+          '★ <code>pvs &lt;设备&gt;</code> 是合法的过滤用法，但位置参数给了非设备名会报 <code>Cannot use xxx: device not found</code> —— 那说的是<b>参数解析失败</b>，不是设备坏了。读报错先看它抱怨的是哪一步。',
+          '★ <code>-L 4G</code> 是<b>设成</b> 4G（绝对值），<code>-l +100%FREE</code> 才是<b>把卷组剩下的全给它</b>。<code>%FREE</code> 只能配小写的 <code>-l</code>，配 <code>-L</code> 会报错。判据：这一步之后还要不要再分给别人 —— 要留就写 <code>-L</code>，扫干净就写 <code>-l +100%FREE</code>。',
+          '★ 要证明「扩容不丢数据」，扩之前先在文件系统里放个文件并记下校验值（<code>dd</code> 造 + <code>sha256sum</code>），扩完 <code>sha256sum -c</code> 对一遍。只看 <code>df</code> 变大，<b>证明不了内容还在</b> —— 那是两件事。',
+          '→ <code>/dev/&lt;vg&gt;/&lt;lv&gt;</code> 与 <code>/dev/mapper/&lt;vg&gt;-&lt;lv&gt;</code> 是<b>同一台设备的两条路径</b>（后者是 device mapper 的真实节点，前者是 udev 建的符号链接）。<code>ls -l /dev/mapper</code> 能看见指向关系，<code>lsblk -o NAME,MAJ:MIN</code> 能看见它们共用同一个主次设备号。']
     },
     {
       t: 'swap 交换分区',
@@ -1057,6 +1060,64 @@ const MAP = [
         '<p>分区<b>不是 LVM 的一层</b>，只是设备层的<b>准备动作</b>。LVM 只要求「给我一个块设备」—— 整盘和分区都是块设备。所以 <code>lsblk</code> 里 PV 挂在谁下面，完全取决于你给的是谁。</p>',
         '<div class="lbl">撤销也一样简单</div>',
         '<pre>pvremove /dev/sdc1     # PV 退回普通块设备，盘上的分区还在\npvs                    # 设备从列表里消失</pre>'
+      ]
+    },
+    {
+      q: 'mkfs.xfs /dev/test/vo 打出三行警告（Filesystem should be larger than 300MB / Log size should be at least 64MB / deprecated），这个文件系统到底建成没有？',
+      a: [
+        '<div class="lbl">建成了，退出码 0 —— 是警告，不是失败</div>',
+        '<pre>mkfs.xfs /dev/test/vo\n# warning: Filesystem should be larger than 300MB.\n# warning: Log size should be at least 64MB.\n# ... deprecated ...\necho $?            # 0\nblkid /dev/test/vo # TYPE="xfs" UUID="57837660-..."   ← 签名已经写进去了</pre>',
+        '<div class="lbl">三行各在说什么</div>',
+        '<div class="tblwrap"><table><tr><th>那句话</th><th>说的是</th><th>要不要管</th></tr>',
+        '<tr><td>larger than 300MB</td><td>xfs 对「小文件系统」的经验推荐值</td><td>不管。200 MiB 建得成、也挂得上、也能扩</td></tr>',
+        '<tr><td>Log size at least 64MB</td><td>内部日志默认按容量比例算，盘小 log 就跟着小</td><td>同上，只是空间利用率差一点</td></tr>',
+        '<tr><td>deprecated</td><td>某个选项/用法已弃用，与成败无关</td><td>不管，别顺手改参数</td></tr></table></div>',
+        '<div class="lbl">判据只有两个</div>',
+        '<p>① <b>退出码</b>（<code>echo $?</code>）；② <b><code>blkid</code> 有没有 <code>TYPE=</code></b>。<span class="no">屏幕上字多不代表出错，字少也不代表成功</span> —— 这是「验收会骗人」反过来的一面：<b>警告会骗你以为失败了</b>。</p>',
+        '<div class="lbl">和考试的关系</div>',
+        '<p>题面要 300 MiB，先建 200 MiB 再扩到 300 完全合法 —— 那三行警告出现时别停手，也别为了消掉警告把容量写大。<span class="ok">300MB 是 mkfs 的建议，不是能被扣分的规定。</span></p>'
+      ]
+    },
+    {
+      q: 'LV 是 200 MiB，df -h /vo 却报 195M；扩到 300 MiB 后报 295M。少的 5 MiB 去哪了？xfs_growfs 输出的 data blocks changed from 51200 to 76800 又该怎么读？',
+      a: [
+        '<div class="lbl">结论：被文件系统自己占了，不是丢了</div>',
+        '<p><code>lvs</code> 报的是 <b>LVM 层的账</b>，<code>df</code> 报的是 <b>文件系统层能给你用的</b>。xfs 建好就要先扣掉两样东西：</p>',
+        '<ul>',
+        '<li><b>内部日志（log）</b>：默认约 1368 blocks × 4 KiB ≈ <b>5.3 MiB</b></li>',
+        '<li><b>各分配组（AG）的元数据</b>：inode 树、空闲空间表等</li>',
+        '</ul>',
+        '<div class="lbl">把两个数算一遍</div>',
+        '<div class="tblwrap"><table><tr><th></th><th>LV 层（lvs）</th><th>文件系统层（df）</th></tr>',
+        '<tr><td>扩之前</td><td>200 MiB = 51200 blocks</td><td><b>195M</b></td></tr>',
+        '<tr><td>扩之后</td><td>300 MiB = 76800 blocks</td><td><b>295M</b></td></tr>',
+        '<tr><td>差</td><td colspan="2">两边都少约 5 MiB ⇒ <b>差值恒定</b>，说明是固定开销，不是本次扩容吃掉的</td></tr></table></div>',
+        '<div class="lbl">data blocks 那行怎么读</div>',
+        '<pre>xfs_growfs /vo\n# data blocks changed from 51200 to 76800\n\n51200 × 4 KiB = 200 MiB\n76800 × 4 KiB = 300 MiB   ← 乘出来正好等于新容量</pre>',
+        '<p>它说的是「文件系统现在认到多少 <b>4 KiB 块</b>」。乘出来等于 LV 的新容量 ⇒ <b>整块都吃下了</b>，不是只扩了一部分。<span class="ok">这行是扩容成功的硬证据，比 df 的取整数字可靠。</span></p>',
+        '<div class="lbl">判据</div>',
+        '<p>LV 层看 <code>lvs</code> 的 LSize，文件系统层看 <code>df</code>，<b>两个数本来就不该相等</b>。差 5 MiB 上下是常态；差几十 MiB 才需要去查是不是有别的占用（快照、保留块、删了没释放的文件）。</p>'
+      ]
+    },
+    {
+      q: 'ls -l /dev 里 sda、dm-0、tty0、null、disk/by-uuid 混在一起，它们是一类东西吗？/dev/test/vo 和 /dev/mapper/test-vo 又是两块设备吗？',
+      a: [
+        '<div class="lbl">五类，别混着看</div>',
+        '<div class="tblwrap"><table><tr><th>类</th><th>例子</th><th>是什么</th></tr>',
+        '<tr><td>真实存储</td><td><code>sda</code> <code>sda2</code></td><td>内核探测到的盘与分区，名字会漂</td></tr>',
+        '<tr><td>设备映射</td><td><code>dm-0</code>、<code>mapper/</code> 下那堆</td><td>device mapper 造出来的虚拟块设备 —— LVM、加密、多路径都在这一层</td></tr>',
+        '<tr><td>终端</td><td><code>tty0</code> <code>pts/0</code></td><td>字符设备，与存储无关</td></tr>',
+        '<tr><td>伪设备</td><td><code>null</code> <code>zero</code> <code>random</code></td><td>没有硬件，纯由内核实现</td></tr>',
+        '<tr><td>索引目录</td><td><code>disk/by-uuid</code> <code>by-path</code></td><td>全是<b>符号链接</b>，按不同维度指向同一批设备</td></tr></table></div>',
+        '<div class="lbl">/dev/test/vo 与 /dev/mapper/test-vo 是同一台设备</div>',
+        '<pre>ls -l /dev/mapper\n# test-vo -> ../dm-0\n\nlsblk -o NAME,MAJ:MIN\n# test-vo  253:0        ← 两条路径共用同一个主次设备号\n# └─vo ...\n\nls -l /dev/test/vo     # 也是指向 dm-0 的链接</pre>',
+        '<div class="lbl">为什么会有两条路</div>',
+        '<p>内核只认 <b>主设备号 + 次设备号</b>（主 = 哪个驱动，次 = 第几个）。<code>dm-0</code> 是真实节点；<code>/dev/mapper/&lt;vg&gt;-&lt;lv&gt;</code> 是 device mapper 的规范名；<code>/dev/&lt;vg&gt;/&lt;lv&gt;</code> 是 LVM 另外建的短路径。<span class="ok">名字只是入口，判断「是不是同一台设备」看主次设备号，不看名字。</span></p>',
+        '<div class="lbl">实用推论</div>',
+        '<ul>',
+        '<li>fstab 写 <code>/dev/mapper/test-vo</code> 与写 <code>/dev/test/vo</code> 等价，前者更常见（<code>findmnt</code> 的 SOURCE 就显示它）</li>',
+        '<li><code>/dev/disk/by-uuid</code> 下的名字长得像 UUID，但它是<b>链接</b>，删不掉也改不了 —— 它指向的是设备节点</li>',
+        '</ul>'
       ]
     }
   ]
