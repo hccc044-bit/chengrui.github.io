@@ -1119,6 +1119,55 @@ const MAP = [
         '<li><code>/dev/disk/by-uuid</code> 下的名字长得像 UUID，但它是<b>链接</b>，删不掉也改不了 —— 它指向的是设备节点</li>',
         '</ul>'
       ]
+    },
+    {
+      q: 'parted /dev/sdc mkpart primary 4097MiB 100% 报错「You requested a partition from 4296MB to 8590MB ... The closest location we can manage is ... 16777182」。起点看着也不对，是哪里错了？',
+      a: [
+        '<div class="lbl">先看结论：错的只有结尾，起点是「换了单位」</div>',
+        '<p>报错里的 4296MB 就是你要的 4097 MiB —— parted 的报错按<b>十进制</b>显示（4097 MiB = 4296 MB）。同理 8590MB = 8192 MiB。所以起点没错，<span class="no">不要被数字差异带偏去改起点</span>，那会把分区挪出空位。</p>',
+        '<div class="lbl">真正撞上的是 GPT 末尾的保留区</div>',
+        '<p><code>100%</code> 让 parted 取「磁盘最后一个扇区」16777215，但 GPT 在盘尾留了 <b>33 个扇区（≈17 KiB）</b>放<b>备份分区表 + 备份 GPT 头</b>，分区不能占。可用上界只有 <b>16777182</b>。</p>',
+        '<div class="tblwrap"><table><tr><th></th><th>占了哪里</th><th>能不能给分区用</th></tr>',
+        '<tr><td>GPT 主表 + 主头</td><td>盘首 34 个扇区（17.4 kB）</td><td>不能</td></tr>',
+        '<tr><td>GPT 备份表 + 备份头</td><td>盘尾 33 个扇区（≈17 KiB）</td><td>不能</td></tr>',
+        '<tr><td>msdos（MBR）</td><td>只在盘首 1 个扇区</td><td>盘尾无保留</td></tr></table></div>',
+        '<div class="lbl">稳定写法：结尾给具体值</div>',
+        '<pre>parted /dev/sdc mkpart primary 4097MiB 8191MiB\nparted /dev/sdc set 2 lvm on</pre>',
+        '<div class="lbl">心法</div>',
+        '<p>在分区的世界里，<b>「到磁盘末尾」从来不是「到最后一个字节」</b> —— 头尾都要给分区表留地盘。看到 <code>100%</code> / <code>-1</code> 就想到这条。<span class="ok">差 17 KiB 对容量无影响，但不写具体值时脚本会直接失败。</span></p>',
+        '<div class="lbl">顺带会看到的对齐警告</div>',
+        '<p>起点落在非 2048 整数倍的扇区上时，parted 会警告 <code>The resulting partition is not properly aligned</code> —— 这是<b>警告不是错误</b>，选 Ignore 继续即可，但要知道代价是 I/O 可能退化成读-改-写。</p>'
+      ]
+    },
+    {
+      q: 'parted -s 是不是就等价于交互模式但「不提问」？上面那个 GPT 结尾冲突，两种模式结果一样吗？',
+      a: [
+        '<div class="lbl">不等价：少的正是自动修复</div>',
+        '<div class="tblwrap"><table><tr><th></th><th>交互模式</th><th>-s（脚本模式）</th></tr>',
+        '<tr><td>遇到尾部冲突</td><td>问 <code>Fix/Ignore/Cancel?</code></td><td><b>直接 error 退出</b></td></tr>',
+        '<tr><td>选 Fix 的结果</td><td>自动收敛到 16777182，分区照样建成</td><td>没有这个机会</td></tr>',
+        '<tr><td>适合场景</td><td>动手探索、不确定边界</td><td>参数已经算准的重复执行</td></tr></table></div>',
+        '<div class="lbl">所以判据不是「有没有 -s」</div>',
+        '<p><code>-s</code> 省掉的不只是提问，还有<b>容错与自动修正</b>。<span class="no">同一条命令，交互模式能建成，脚本模式报错</span> —— 这不是脚本模式更严格，是它放弃了猜。</p>',
+        '<div class="lbl">实用结论</div>',
+        '<p>写进脚本前，先把边界值自己算出来（<code>parted unit s print free</code> 看可用扇区上界），别指望 parted 帮你收敛。</p>'
+      ]
+    },
+    {
+      q: '给根分区扩容（lvextend + xfs_growfs）之后，fstab 要不要跟着改？什么时候才需要改？',
+      a: [
+        '<div class="lbl">结论：扩容不用改 fstab</div>',
+        '<p>fstab 记的是「<b>谁</b>挂到<b>哪</b>、用什么选项」—— 它不记大小。扩容改的是尺寸，不是身份。</p>',
+        '<div class="lbl">两个身份都没变</div>',
+        '<ul>',
+        '<li><b>设备标识</b>：<code>/dev/mapper/rlm-root</code> 写在 LVM 元数据里，LV 名不变它就不变（写 <code>/dev/sdX</code> 才会漂）</li>',
+        '<li><b>UUID</b>：UUID 在 <code>mkfs</code> 那一刻生成。扩容<b>不重建文件系统</b>，所以 UUID 不变 —— <code>blkid</code> 前后对一下就能自证</li>',
+        '</ul>',
+        '<div class="lbl">什么时候才真要改</div>',
+        '<p>只有这几种：换了设备 / 重建了文件系统（UUID 变了）/ 换挂载点 / 改挂载选项（如加 <code>noatime</code>）。<span class="ok">判据一句话：<b>身份变了才改 fstab，尺寸变了不用。</b></span></p>',
+        '<div class="lbl">但扩容后必须做的是这两步</div>',
+        '<pre>lvextend -l +100%free /dev/rlm/root\nxfs_growfs /                     # ★ 忘了这步，df 不变</pre>'
+      ]
     }
   ]
 },

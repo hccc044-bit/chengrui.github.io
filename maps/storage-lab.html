@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>存储实操手册 · 分区 / LVM / 挂载 全流程</title>
+<style>
+:root{
+  --bg:#ffffff; --panel:#f6f7f9; --panel2:#eceff2; --bd:#e1e4e8;
+  --tx:#1f2328; --tx2:#57606a; --tx3:#8b949e;
+  --code:#f2f4f7; --accent:#2f6f4f; --warn:#b42318; --warnbg:#fdeceb;
+  --ok:#0f6e56; --okbg:#e7f6f0; --note:#185fa5; --notebg:#e8f2fb;
+  --l1:#BA7517; --l2:#378ADD; --l3:#7F77DD; --l4:#1D9E75; --l5:#639922; --l6:#D85A30;
+}
+html[data-theme="dark"]{
+  --bg:#14171a; --panel:#1b1f23; --panel2:#22272b; --bd:#30363d;
+  --tx:#e6edf3; --tx2:#9aa4ae; --tx3:#6e7681;
+  --code:#1b1f23; --accent:#5bbd8e; --warn:#f85149; --warnbg:#2d1618;
+  --ok:#5dcaa5; --okbg:#122b24; --note:#85b7eb; --notebg:#12202e;
+  --l1:#EF9F27; --l2:#85B7EB; --l3:#AFA9EC; --l4:#5DCAA5; --l5:#97C459; --l6:#F0997B;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--tx);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+header{padding:26px 24px 18px;border-bottom:1px solid var(--bd)}
+.hd{max-width:1000px;margin:0 auto}
+h1{margin:0;font-size:22px;font-weight:600;letter-spacing:-.2px}
+.sub{margin:6px 0 0;color:var(--tx2);font-size:13.5px}
+.hdbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+.spacer{flex:1 1 auto}
+button{font-family:inherit;font-size:13px;padding:7px 12px;border:1px solid var(--bd);border-radius:8px;
+  background:var(--panel);color:var(--tx2);cursor:pointer}
+button:hover{border-color:var(--tx3);color:var(--tx)}
+.nav a{font-size:13px;margin-right:14px;color:var(--tx2)}
+.prog{font-size:13px;color:var(--tx2)}
+.prog b{color:var(--accent);font-weight:600}
+main{max-width:1000px;margin:0 auto;padding:22px 24px 8px}
+section{margin-bottom:34px}
+h2{font-size:16px;font-weight:600;margin:0 0 4px;display:flex;align-items:center;gap:9px}
+h2::before{content:"";width:3px;height:15px;border-radius:2px;background:var(--accent);flex:0 0 auto}
+h2 .n{font-size:12px;color:var(--tx3);font-weight:400}
+p.lead{margin:8px 0 14px;color:var(--tx2);font-size:13.5px}
+
+.toc{border:1px solid var(--bd);border-radius:10px;background:var(--panel);padding:12px 16px;font-size:13.5px}
+.toc ol{margin:6px 0 0;padding-left:20px}
+.toc li{margin:3px 0}
+.toc li a{color:var(--tx)}
+.toc .tn{color:var(--tx3);font-size:12px;margin-left:6px}
+
+.stp{border:1px solid var(--bd);border-radius:10px;margin:10px 0;background:var(--bg);overflow:hidden}
+.sth{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:9px 12px;background:var(--panel);
+  border-bottom:1px solid var(--bd);font-size:13.5px}
+.sth input[type=checkbox]{width:15px;height:15px;accent-color:var(--accent);margin:0 2px 0 0;cursor:pointer}
+.sth label{display:flex;align-items:center;gap:7px;cursor:pointer;font-weight:500}
+.sth .sid{font-size:11.5px;font-weight:700;color:var(--bg);background:var(--tx3);
+  padding:1px 6px;border-radius:5px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.sth .tag{margin-left:auto;font-size:12px;color:var(--tx3)}
+.stp.done{opacity:.62}
+.stp.done .sid{background:var(--accent)}
+.stb{padding:12px 14px 14px}
+pre{margin:0 0 10px;padding:10px 12px;background:var(--code);border:1px solid var(--bd);
+  border-radius:8px;font-size:12.8px;line-height:1.65;overflow-x:auto;white-space:pre}
+pre .c{color:var(--tx3)}
+.ok,.warn,.note{margin:8px 0;padding:8px 12px 8px 30px;border-radius:8px;font-size:13.2px;position:relative;line-height:1.62}
+.ok{background:var(--okbg);color:var(--ok)}
+.ok::before{content:"✓";position:absolute;left:11px;top:8px;font-weight:700}
+.warn{background:var(--warnbg);color:var(--warn)}
+.warn::before{content:"!";position:absolute;left:11px;top:8px;font-weight:700}
+.note{background:var(--notebg);color:var(--note)}
+.note::before{content:"i";position:absolute;left:11px;top:8px;font-weight:700;font-style:italic}
+.ok b,.warn b,.note b{font-weight:600}
+.why{font-size:13.2px;color:var(--tx2);margin:8px 0}
+.why b{color:var(--tx);font-weight:500}
+
+table{border-collapse:collapse;width:100%;font-size:13px;margin:10px 0}
+.tblwrap{overflow-x:auto}
+th,td{border:1px solid var(--bd);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:600;color:var(--tx2);font-size:12.5px;white-space:nowrap}
+td code{font-size:12.4px;background:var(--code);padding:1px 5px;border-radius:4px}
+.chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12.5px;
+  padding:10px 12px;border:1px solid var(--bd);border-radius:9px;background:var(--panel);margin:10px 0}
+.chain .n{padding:3px 9px;border-radius:7px;border:1px solid var(--bd);background:var(--bg);white-space:nowrap}
+.chain .n.pv{border-color:var(--l2)} .chain .n.vg{border-color:var(--l3)}
+.chain .n.lv{border-color:var(--l4)} .chain .n.fs{border-color:var(--l5)}
+.chain .n.mp{border-color:var(--l6)} .chain .n.pt{border-color:var(--l1)}
+.chain .ar{color:var(--tx3)}
+details{border:1px solid var(--bd);border-radius:9px;padding:9px 13px;margin:8px 0;background:var(--panel);font-size:13.3px}
+details summary{cursor:pointer;color:var(--tx);font-weight:500}
+details[open] summary{margin-bottom:7px}
+details p{margin:5px 0;color:var(--tx2)}
+footer{max-width:1000px;margin:0 auto;padding:6px 24px 44px;color:var(--tx3);font-size:12.5px}
+@media print{
+  header,.hdbar,.toc{display:none}
+  .stp{break-inside:avoid;border-color:#ccc}
+  body{font-size:11pt}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="hd">
+    <h1>存储实操手册 · 分区 / LVM / 挂载 全流程</h1>
+    <p class="sub">把前面做过的三条线串成可重复的一条：裸分区直挂、LVM 新建再挂、LVM 扩容（含根分区）。每一步都写了「成功长什么样」，勾选框会记住进度。</p>
+    <div class="hdbar">
+      <div class="nav">
+        <a href="/maps/lvm.html">从磁盘到 LVM 关系图</a>
+        <a href="/maps/rhcsa.html">RHCSA 学习地图</a>
+        <a href="/study-log/">学习日志</a>
+      </div>
+      <div class="spacer"></div>
+      <span class="prog">进度 <b id="prog">0/0</b></span>
+      <button id="tbtn" type="button">切换深色</button>
+      <button id="reset" type="button">清空勾选</button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<section>
+  <h2>0 · 环境基线与三条路线的区别 <span class="n">先搞清楚要重复的是哪一条</span></h2>
+  <p class="lead">实验机 <code>manage</code>（Rocky 9，192.168.30.22），三块盘：<code>sda</code> 装系统、<code>sdb</code> 8GiB 空盘、<code>sdc</code> 8GiB 空盘。所有容量以 MiB 为基准（8GiB 盘 = 8192MiB）。</p>
+
+  <div class="tblwrap">
+  <table>
+    <tr><th>路线</th><th>设备长什么样</th><th>能改大小吗</th><th>fstab 里写什么</th><th>用在哪</th></tr>
+    <tr><td><b>A 裸分区直挂</b></td><td><code>/dev/sdb1</code></td><td>不能（要重新分区，等于丢数据）</td><td><code>UUID=...</code> 最稳</td><td>固定大小、简单场景</td></tr>
+    <tr><td><b>B LVM 新建</b></td><td><code>/dev/mapper/test-vo</code></td><td>能，在线扩</td><td><code>/dev/mapper/test-vo</code> 或 UUID</td><td>要能调整大小的场景</td></tr>
+    <tr><td><b>C LVM 扩根</b></td><td><code>/dev/mapper/rlm-root</code></td><td>能，在线扩</td><td><b>不用改</b></td><td><code>/</code> 满了</td></tr>
+  </table>
+  </div>
+
+  <div class="chain">
+    <span class="n pt">磁盘 sdc</span><span class="ar">→</span>
+    <span class="n">分区 sdc1</span><span class="ar">→</span>
+    <span class="n pv">PV</span><span class="ar">→</span>
+    <span class="n vg">VG test</span><span class="ar">→</span>
+    <span class="n lv">LV vo</span><span class="ar">→</span>
+    <span class="n fs">XFS</span><span class="ar">→</span>
+    <span class="n mp">/vo + fstab</span>
+  </div>
+  <p class="why"><b>一句话记法：</b>分区是给内核划地段，LVM 是在地段上记账（PV 记容量、VG 记格子、LV 借格子），文件系统是往格子里画书架，挂载是把书架接到目录树上。<b>越靠左边越难改，越靠右边越容易改。</b></p>
+</section>
+
+<section>
+  <h2>1 · 重置到起点 <span class="n">不重置，第二次做必然撞「已存在」</span></h2>
+  <p class="lead">有两条路。做过实验 C（扩根）之后，<b>只能走 A</b>，因为 XFS 不支持缩小，扩出去的根回不来。</p>
+
+  <div class="stp" data-id="R1">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="R1"><span class="sid">A</span> 快照回滚（推荐）</label><span class="tag">关机操作</span></div>
+    <div class="stb">
+      <pre><span class="c"># 虚拟机关机后，在 VMware 里恢复到「两块盘已加、尚未分区」的快照</span>
+<span class="c"># 我们打过：baseline / baseline-2disks / storage-baseline</span></pre>
+      <div class="ok"><b>成功长什么样</b>：开机后 <code>lsblk</code> 里 sdb、sdc <b>没有任何分区</b>；<code>vgs</code> 只有 <code>rlm</code> 一个卷组；<code>df -h</code> 里没有 <code>/vo</code> 和 <code>/mnt/data</code>；<code>df -h /</code> 回到 6.2G。</div>
+      <p class="why"><b>为什么推荐</b>：根分区扩容在文件系统层是不可逆的，手动拆只会在 <code>rlm</code> 里留下一堆碎片空间，永远回不到「干净 7G 卷组」。快照是唯一的「撤销」。</p>
+    </div>
+  </div>
+
+  <div class="stp" data-id="R2">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="R2"><span class="sid">B</span> 手动拆（只适用于没扩过根）</label><span class="tag">顺序不能乱</span></div>
+    <div class="stb">
+      <pre><span class="c"># ① 先删 fstab 里的两行（/vo 和 /mnt/data），否则下次开机会卡在 emergency mode</span>
+vim /etc/fstab
+
+<span class="c"># ② 卸挂载</span>
+umount /vo
+umount /mnt/data
+
+<span class="c"># ③ 由内向外拆：LV → VG → PV（和建的时候完全相反）</span>
+lvremove -y /dev/test/vo
+vgremove test
+pvremove /dev/sdc1
+
+<span class="c"># ④ 抹掉残留签名，再删分区</span>
+wipefs -a /dev/sdc1 /dev/sdb1
+parted /dev/sdc rm 1
+parted /dev/sdb rm 1
+
+<span class="c"># ⑤ 让内核重读</span>
+partprobe
+lsblk -f</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>lsblk -f</code> 里 sdb、sdc 下面<b>没有任何子项</b>，FSTYPE 列为空；<code>pvs</code>、<code>vgs</code> 里看不到 test；<code>parted /dev/sdc print</code> 显示无分区。</div>
+      <div class="warn"><b>顺序为什么不能反</b>：LV 里有文件系统，VG 里有 LV，PV 属于 VG。删外层前内层还在用，就会报 <code>device is busy</code> 或 <code>Logical volume ... in use</code>。<b>建的时候由外向内，拆的时候由内向外。</b></div>
+      <div class="note"><b>忘了删 fstab 的后果</b>：下次开机 systemd 找不到 <code>/vo</code> 的设备，会掉进 emergency mode，要输 root 密码再用 <code>mount -o remount,rw /</code> 修。这就是为什么改 fstab 一定要紧跟一次 <code>mount -a</code> 验证。</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>2 · 实验 A：裸分区 → mkfs → 持久挂载 <span class="n">sdb 8GiB → sdb1 1GiB → /mnt/data</span></h2>
+  <p class="lead">目标：建一个 1GiB 的 XFS 分区，开机自动挂到 <code>/mnt/data</code>。这条线<b>不碰 LVM</b>，是最短路径。</p>
+
+  <div class="stp" data-id="A1">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="A1"><span class="sid">A1</span> 看现状，别急着动手</label><span class="tag">lsblk</span></div>
+    <div class="stb">
+      <pre>lsblk -f /dev/sdb
+parted /dev/sdb print</pre>
+      <div class="ok"><b>成功长什么样</b>：sdb 下面没有 <code>sdb1</code>，FSTYPE 列为空；parted 要么显示 <code>unrecognised disk label</code>（还没分区表），要么显示 gpt 但没有分区行。<b>先确认是空的，再往下走。</b></div>
+      <div class="warn"><b>为什么必须先看</b>：<code>mklabel</code> 会<b>直接覆盖并清空</b>整块盘的分区表，不问你。这是这条线上唯一一个「一条命令毁全盘」的动作。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="A2">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="A2"><span class="sid">A2</span> 建分区表 + 第一个分区</label><span class="tag">parted</span></div>
+    <div class="stb">
+      <pre>parted /dev/sdb mklabel gpt
+parted /dev/sdb mkpart primary xfs 1MiB 1025MiB
+parted /dev/sdb unit mib print free</pre>
+      <div class="ok"><b>成功长什么样</b>：最后一条显示 <code>1  1.00MiB  1025MiB  1024MiB  ...  primary</code>。<b>起点是 1MiB 而不是 0</b>。</div>
+      <p class="why"><b>为什么从 1MiB 起</b>：GPT 磁盘开头 0–1MiB 放主分区表和头部，让出来既安全又天然满足 1MiB 对齐（对 SSD、4Kn 盘都友好）。<br><b>为什么结束写 1025 而大小是 1024</b>：Start/End 是「坐标」，Size 是差值。1→1025 就是 1024MiB，和你写 <code>1024MiB</code> 的直觉差 1，因为 offset 不是 0。<br><b>gpt 还是 msdos</b>：超过 2TiB 必须 gpt；RHEL 9 一律建议 gpt。msdos 的 2T 上限说的是整盘容量，不是单个分区。</p>
+    </div>
+  </div>
+
+  <div class="stp" data-id="A3">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="A3"><span class="sid">A3</span> 让内核看见新分区</label><span class="tag">partprobe</span></div>
+    <div class="stb">
+      <pre>partprobe /dev/sdb
+lsblk /dev/sdb</pre>
+      <div class="ok"><b>成功长什么样</b>：lsblk 里出现 <code>sdb1</code>，大小 1G。partprobe 本身无输出。</div>
+      <p class="why"><b>为什么要这一步</b>：parted 改的是磁盘上的分区表，内核里的分区视图是另一份。不同步就会出现 <code>/dev/sdb1: No such file or directory</code>。新版 udev 大多会自动同步，但考试环境不保证，<b>养成习惯比赌它自动强</b>。</p>
+    </div>
+  </div>
+
+  <div class="stp" data-id="A4">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="A4"><span class="sid">A4</span> 造文件系统</label><span class="tag">mkfs.xfs</span></div>
+    <div class="stb">
+      <pre>mkfs.xfs /dev/sdb1</pre>
+      <div class="ok"><b>成功长什么样</b>：输出末尾 <code>data = ... blocks=262144</code>（262144 × 4K = 1024MiB），<b>没有 error 行</b>。</div>
+      <div class="warn"><b>三种常见拦路话</b>：<br>· <code>appears to contain an existing filesystem</code> → 上面真有东西，确认要覆盖再加 <code>-f</code>。<br>· <code>Filesystem should be larger than 300MB</code> → 只是<b>推荐值警告</b>，回车继续即可，不是失败。<br>· <code>is apparently in use by the system</code> → 分区已被挂载，先 <code>umount</code>。</div>
+      <p class="why"><b>mkfs 只认设备，不认挂载点</b>。写 <code>mkfs.xfs /mnt/data</code> 会作用到根文件系统上（因为它也是设备上的目录 → 实际会报错但很危险）。<b>永远写 <code>/dev/...</code>。</b></p>
+    </div>
+  </div>
+
+  <div class="stp" data-id="A5">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="A5"><span class="sid">A5</span> 取 UUID</label><span class="tag">blkid</span></div>
+    <div class="stb">
+      <pre>blkid /dev/sdb1</pre>
+      <div class="ok"><b>成功长什么样</b>：一行 <code>/dev/sdb1: UUID="xxxx-..." BLOCK_SIZE="512" TYPE="xfs"</code>。<b>必须看到 TYPE="xfs"</b>。</div>
+      <div class="warn"><b>blkid 有输出 ≠ 有文件系统</b>：分区表、swap、LVM PV 也都有签名，它能打出东西。判断文件系统只看 <code>TYPE=</code> 那一项，别看到输出就以为 A4 成了。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="A6">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="A6"><span class="sid">A6</span> 写 fstab 并复查</label><span class="tag">持久化的唯一位置</span></div>
+    <div class="stb">
+      <pre>mkdir -p /mnt/data
+vi /etc/fstab
+<span class="c"># 在末尾追加一行（UUID 换成 A5 的真实值）：</span>
+<span class="c"># UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx  /mnt/data  xfs  defaults  0 0</span>
+
+cat /etc/fstab</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>cat</code> 打出来的一行里，UUID 与 A5 完全一致、挂载点没拼错、字段之间有空格（tab 也行）。<b>写完一定回读一遍</b>。</div>
+      <div class="why"><b>六个字段，一个一个对</b></div>
+      <div class="tblwrap">
+      <table>
+        <tr><th>#</th><th>字段</th><th>这里写</th><th>含义</th></tr>
+        <tr><td>1</td><td>设备</td><td><code>UUID=...</code></td><td>也可以是 <code>/dev/sdb1</code> 或 <code>/dev/mapper/test-vo</code>。<b>UUID 不会因为换槽位、加盘而变</b>，所以最稳</td></tr>
+        <tr><td>2</td><td>挂载点</td><td><code>/mnt/data</code></td><td>目录必须<b>先存在</b>，否则 mount 报 <code>mount point does not exist</code></td></tr>
+        <tr><td>3</td><td>类型</td><td><code>xfs</code></td><td>写错会报 <code>wrong fs type</code>（也可能是根本没 mkfs）</td></tr>
+        <tr><td>4</td><td>选项</td><td><code>defaults</code></td><td>= rw,suid,dev,exec,auto,nouser,async</td></tr>
+        <tr><td>5</td><td>dump</td><td><code>0</code></td><td>早就不用了，恒 0</td></tr>
+        <tr><td>6</td><td>fsck 顺序</td><td><code>0</code></td><td>XFS 不参与 fsck，恒 0；ext4 的根分区才写 1、其它写 2</td></tr>
+      </table>
+      </div>
+      <div class="note"><b>写 UUID 还是写设备名？</b>数据盘用 UUID 最稳（换盘序、加硬盘都不受影响）；LVM 逻辑卷写 <code>/dev/mapper/vg-lv</code> 也行，因为 LVM 元数据保证名字稳定。<b>绝对不要写 <code>/dev/dm-2</code> 这种</b>，编号每次开机都可能变。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="A7">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="A7"><span class="sid">A7</span> 挂上去</label><span class="tag">mount -a</span></div>
+    <div class="stb">
+      <pre>systemctl daemon-reload
+mount -a</pre>
+      <div class="ok"><b>成功长什么样</b>：两条命令都<b>什么都不打印</b>。mount 的哲学是沉默即成功，<b>有输出就是有错</b>。</div>
+      <p class="why"><b>为什么用 <code>mount -a</code> 而不是 <code>mount /mnt/data</code></b>：<code>mount -a</code> 按 fstab 全量走一遍，能一次性验出所有条目的问题；<code>mount /mnt/data</code> 也会读 fstab，但只验一条。<b>改完 fstab 一定要 <code>mount -a</code></b>，否则错误要等到重启才爆，而重启时爆就是 emergency mode。</p>
+    </div>
+  </div>
+
+  <div class="stp" data-id="A8">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="A8"><span class="sid">A8</span> 四步验收</label><span class="tag">缺一步都不算过</span></div>
+    <div class="stb">
+      <pre>findmnt /mnt/data
+df -hT /mnt/data
+mount | grep data
+touch /mnt/data/probe && ls -l /mnt/data/probe</pre>
+      <div class="ok"><b>成功长什么样</b>：<br>· <code>findmnt</code> 一行，SOURCE 显示 <code>UUID=...</code>（它显示的是 fstab 里写的原文），FSTYPE <code>xfs</code>，OPTIONS 里有 <code>rw</code>。<br>· <code>df -hT</code> 的 Size 约 <code>1014M</code>（比 1024M 小，正常，见下方）。<br>· <code>mount</code> 里能看到 <code>/dev/sdb1 on /mnt/data type xfs</code>。<br>· 能建出文件 → 真能写。</div>
+      <div class="why"><b>为什么 df 是 1014M 而不是 1024M</b>：XFS 自己留了内部日志、超级块、inode 元数据。分区 1024MiB 是「地段」，文件系统能用的比它小一点点。<b>记住方向：df ≤ 分区大小，永远如此。</b></div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="A9">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="A9"><span class="sid">A9</span> 重启验证</label><span class="tag">唯一真正的持久化证据</span></div>
+    <div class="stb">
+      <pre>systemctl reboot
+<span class="c"># 回来后</span>
+df -hT /mnt/data</pre>
+      <div class="ok"><b>成功长什么样</b>：重启后没有任何手工操作，<code>/mnt/data</code> 自己就挂好了，Size 还是 1014M。</div>
+      <div class="warn"><b>不重启就等于没验</b>。<code>mount -a</code> 成功只证明「现在能挂」，证明「开机自动挂」的只有重启。<b>考试里这条不能省</b>——评分是在你重启之后做的。</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>3 · 实验 B：LVM 新建再挂载 <span class="n">sdc1 4GiB → PV → VG test → LV vo → /vo</span></h2>
+  <p class="lead">目标：在 <code>sdc</code> 上建一套 LVM，逻辑卷先 200MiB，挂到 <code>/vo</code>，然后在线扩到 300MiB。这条线比 A 多三个概念，但每一步都只是「记账」。</p>
+
+  <div class="chain">
+    <span class="n pt">/dev/sdc1</span><span class="ar">→ pvcreate →</span>
+    <span class="n pv">PV</span><span class="ar">→ vgcreate →</span>
+    <span class="n vg">VG test</span><span class="ar">→ lvcreate →</span>
+    <span class="n lv">LV vo</span><span class="ar">→ mkfs →</span>
+    <span class="n fs">XFS</span><span class="ar">→ fstab →</span>
+    <span class="n mp">/vo</span>
+  </div>
+
+  <div class="stp" data-id="B1">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="B1"><span class="sid">B1</span> 分区 + 打 lvm 标记</label><span class="tag">parted</span></div>
+    <div class="stb">
+      <pre>parted /dev/sdc mklabel gpt
+parted /dev/sdc mkpart primary 1MiB 4097MiB
+parted /dev/sdc set 1 lvm on
+parted /dev/sdc unit mib print free
+partprobe /dev/sdc</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>1  1.00MiB  4097MiB  4096MiB  primary  lvm</code>，Flags 列有 <b>lvm</b>；<code>lsblk</code> 出现 sdc1。</div>
+      <p class="why"><b>lvm 标记到底干什么用</b>：它只是分区表里的一个类型字节，让 fdisk/parted/blkid 知道「这块别乱动，是 LVM 的地盘」。<b>pvcreate 本身并不检查它</b>——你可以不打标记照样建 PV。但规范做法要打，考试也要求，而且能防止别的工具误认。</p>
+    </div>
+  </div>
+
+  <div class="stp" data-id="B2">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="B2"><span class="sid">B2</span> 建 PV（把分区登记成物理卷）</label><span class="tag">pvcreate</span></div>
+    <div class="stb">
+      <pre>pvcreate /dev/sdc1
+pvs
+pvdisplay /dev/sdc1</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>Physical volume "/dev/sdc1" successfully created.</code>；<code>pvs</code> 里一行，PSize <code>4.00g</code>、PFree <code>4.00g</code>、VG 列为空（还没入组）。</div>
+      <p class="why"><b>PV 是什么</b>：在你分区的最前面写一小段 LVM 元数据（PV label），声明「这块地从这里到那里，共多少字节，归 LVM 管」。<b>它不搬数据、不格式化</b>，纯粹是登记。</p>
+    </div>
+  </div>
+
+  <div class="stp" data-id="B3">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="B3"><span class="sid">B3</span> 建 VG（把 PV 切成 PE 格子）</label><span class="tag">vgcreate</span></div>
+    <div class="stb">
+      <pre>vgcreate test /dev/sdc1
+vgs
+vgdisplay test</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>Volume group "test" successfully created</code>；<code>vgs</code> 里 <code>test 1 0 0 wz--n- &lt;4.00g &lt;4.00g</code>；<code>vgdisplay</code> 里 <b>PE Size 4.00 MiB</b>、<b>Total PE 1023</b>、<b>Free PE 1023</b>。</div>
+      <div class="why"><b>为什么 4096MiB 的 PV 只有 1023 个 PE 而不是 1024</b>：PV 头部元数据先占了不到 1MiB，剩下的才切成 4MiB 的格子，除不尽的那点零头丢掉。<b>所以 <code>1023 × 4MiB = 4092MiB</code>，比 4.00g 略小，vgs 显示成 <code>&lt;4.00g</code>。</b></div>
+      <p class="why"><b>那个 <code>&lt;</code> 是什么意思</b>：显示值经过四舍五入后<b>比真实值略大</b>，用 <code>&lt;</code> 提醒你「实际比这个数小一点」。反过来如果看到没有 <code>&lt;</code>，就是四舍五入后偏小。<b>看到 <code>&lt;</code> 不用慌，它不是「小于」的意思，是「约等于但别超」。</b></p>
+    </div>
+  </div>
+
+  <div class="stp" data-id="B4">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="B4"><span class="sid">B4</span> 建 LV（从格子里借出 200MiB）</label><span class="tag">lvcreate</span></div>
+    <div class="stb">
+      <pre>lvcreate -n vo -L 200MiB test
+lvs
+lvdisplay /dev/test/vo</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>Logical volume "vo" created.</code>；<code>lvs</code> 里 <code>vo test -wi-a----- 200.00m</code>；LV Path 是 <code>/dev/test/vo</code>，<b>同时也存在 <code>/dev/mapper/test-vo</code></b>（同一个东西两个名字）。</div>
+      <div class="why"><b><code>-L</code> 和 <code>-l</code> 不是一回事</b>（最容易搞混的一对）：<br>· <code>-L 200MiB</code> 单位是<b>容量</b>，也可以是 <code>-L 1G</code>、<code>-L +100MiB</code>（带 + 是增量）。<br>· <code>-l 50</code> 单位是<b>格子数（PE）</b>，50 × 4MiB = 200MiB。<code>-l 50%FREE</code>、<code>-l +100%FREE</code> 也是这个参数。<br><b>LV 大小必定是 PE 的整数倍</b>，写 <code>-L 201MiB</code> 它会给 204MiB（向上取到整格）。</div>
+      <p class="why"><b><code>Attr</code> 那串 <code>-wi-a-----</code> 拆开看</b>：<code>-</code> 普通卷 ｜ <code>w</code> 可写 ｜ <code>i</code> 分配策略继承 ｜ <code>a</code> 已激活 ｜ 后面空位依次是「固定次设备号 / 打开状态 / 目标类型」。挂载之后第 6 位会变成 <code>o</code>（open），就成了你之前看到的 <code>-wi-ao----</code>。</p>
+    </div>
+  </div>
+
+  <div class="stp" data-id="B5">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="B5"><span class="sid">B5</span> 造文件系统</label><span class="tag">mkfs.xfs</span></div>
+    <div class="stb">
+      <pre>mkfs.xfs /dev/test/vo</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>meta-data=/dev/test/vo</code> 开头，<code>data = ... blocks=51200</code>（51200 × 4K = 200MiB），无 error。</div>
+      <div class="warn"><b>200MiB 会触发 <code>Filesystem should be larger than 300MB</code> 警告</b>——这只是推荐值提示（小于 300MB 的 XFS 性能不好），<b>不是失败</b>，回车继续，文件系统照建。你之前看到的 300MiB 就是从这里来的。<b>但真要考 300MiB 的题，就必须写 300 而不是 200。</b></div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="B6">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="B6"><span class="sid">B6</span> 写 fstab 并挂载</label><span class="tag">持久化</span></div>
+    <div class="stb">
+      <pre>mkdir -p /vo
+vi /etc/fstab
+<span class="c"># 追加：</span>
+<span class="c"># /dev/mapper/test-vo  /vo  xfs  defaults  0 0</span>
+
+cat /etc/fstab
+systemctl daemon-reload
+mount -a</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>mount -a</code> 无输出；<code>findmnt /vo</code> 显示 SOURCE <code>/dev/mapper/test-vo</code>、FSTYPE xfs；<code>df -h /vo</code> Size 约 <code>195M</code>（200MiB 减掉 XFS 元数据）。</div>
+      <div class="note"><b>为什么这里可以写 <code>/dev/mapper/test-vo</code> 而不写 UUID</b>：LVM 的名字由元数据背书，只要 LV 还在，这个名字就不变，而且可读性更好。<b>但 LV 被删了重建，UUID 会变、名字却不变</b>——所以写 mapper 的代价是「数据重建后可能挂错东西」。两种写法考试都接受，写 UUID 更保险。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="B7">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="B7"><span class="sid">B7</span> 在线扩容：第一步改账本</label><span class="tag">lvextend</span></div>
+    <div class="stb">
+      <pre>lvextend -L 300MiB /dev/test/vo
+lvs
+df -h /vo</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>Size of logical volume test/vo changed from 200.00 MiB (50 extents) to 300.00 MiB (75 extents).</code> + <code>successfully resized</code>。<b>但此时 <code>df -h /vo</code> 仍然是 195M —— 这是正确的，不是失败。</b></div>
+      <div class="warn"><b>最容易自我怀疑的一步</b>：<code>lvextend</code> 只改 LV 的账本（说这个卷现在有 75 个格子），<b>文件系统还不知道自己可以变大了</b>。所以 df 不动是必然的。这一步过了、df 没变，说明你理解对了。</div>
+      <p class="why"><b><code>-L 300MiB</code> 和 <code>-L +100MiB</code> 的区别</b>：前者是「最终大小」，后者是「再加多少」。<b>题干说「增加到 300MiB」用 <code>-L 300MiB</code>，说「增加 100MiB」用 <code>-L +100MiB</code>。</b>看错一个符号就是错题。</p>
+    </div>
+  </div>
+
+  <div class="stp" data-id="B8">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="B8"><span class="sid">B8</span> 在线扩容：第二步撑大文件系统</label><span class="tag">xfs_growfs</span></div>
+    <div class="stb">
+      <pre>xfs_growfs /vo
+df -h /vo</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>data blocks changed from 51200 to 76800</code>（76800 × 4K = 300MiB）；<code>df -h /vo</code> Size 变成 <code>295M</code>。</div>
+      <div class="why"><b>为什么必须两步</b>：LVM 和文件系统是两层独立记账。LVM 扩容 = 房间变大了；xfs_growfs = 告诉文件系统「你可以去用新空间了」。<b>XFS 只能扩不能缩</b>（ext4 可以缩，用 <code>resize2fs</code>，而且要卸载后缩）。</div>
+      <div class="note"><b>一步法：<code>lvextend -r -L 300MiB /dev/test/vo</code></b>。<code>-r</code> = 自动调用对应的文件系统扩容工具（XFS 或 ext4 都认）。<b>但考试和排错都要求你懂两步</b>，因为 <code>-r</code> 需要文件系统已挂载且工具在位，手工两步永远能用。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="B9">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="B9"><span class="sid">B9</span> 验收 + 重启</label><span class="tag">最后一道</span></div>
+    <div class="stb">
+      <pre>findmnt /vo
+df -hT /vo
+lvs
+systemctl reboot
+<span class="c"># 回来后</span>
+df -hT /vo ; vgs ; lvs</pre>
+      <div class="ok"><b>成功长什么样</b>：重启后 <code>/vo</code> 自动挂载、295M；<code>lvs</code> 里 vo 仍是 300.00m；test 卷组 VFree 从 3.80g 变成 3.70g 左右。</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>4 · 实验 C：给根分区扩容 <span class="n">sdc2 → vgextend rlm → lvextend root → xfs_growfs /</span></h2>
+  <p class="lead">目标：把 <code>sdc</code> 剩下一半空间做成新 PV，加进系统卷组 <code>rlm</code>，把 <code>/</code> 从 6.2G 扩到约 10.2G。<b>这是唯一一条不可逆的操作，动手前必须打快照。</b></p>
+
+  <div class="stp" data-id="C0">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="C0"><span class="sid">C0</span> 先打快照</label><span class="tag">不可跳过</span></div>
+    <div class="stb">
+      <pre><span class="c"># 关机 → VMware 里建快照，命名如 before-root-grow → 开机</span></pre>
+      <div class="ok"><b>成功长什么样</b>：快照列表里能看到它，且能正常开机。</div>
+      <div class="warn"><b>为什么这条比前面所有步骤都重要</b>：XFS 不能缩小，<code>lvextend /</code> 之后的根分区<b>没有手工回退方案</b>。方案本身风险低（只是借新盘的空间），但「不可逆」三个字值得一个快照。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="C1">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="C1"><span class="sid">C1</span> 建 sdc2：为什么必须写 8191MiB</label><span class="tag">parted</span></div>
+    <div class="stb">
+      <pre>parted /dev/sdc unit mib print free
+parted /dev/sdc mkpart primary 4097MiB 8191MiB
+parted /dev/sdc set 2 lvm on
+parted /dev/sdc unit mib print free</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>2  4097MiB  8191MiB  4094MiB  primary  lvm</code>，尾部只剩 <code>0.98MiB</code> Free（那是 GPT 留的，正常）。</div>
+      <div class="warn"><b>三种写法的结局</b>：<br>· <code>... 4097MiB 100%</code> → <code>Error: ... sectors 8390656..16777215 / closest ...16777182</code>（<b>占不住磁盘最后一个扇区</b>）<br>· <code>... 4097MiB 8192MiB</code> → <code>Error: The location 8192mib is outside of the device</code><br>· <code>... 4097MiB 8191MiB</code> → 成功，但可能弹 <code>not properly aligned</code>，回 <code>Ignore</code></div>
+      <p class="why"><b>根因一句话</b>：GPT 在磁盘<b>末尾 33 个扇区（约 17KiB）</b>放备份分区表 + 备份头，分区不能占。「到磁盘末尾」在分区世界里从来不是「到最后一个字节」。<br><b><code>-s</code> 模式的坑</b>：交互模式下 parted 会问 <code>Fix/Ignore/Cancel?</code>，选 Fix 它会自动把结尾收敛到 16777182；加了 <code>-s</code> 没人回答，它直接报错退出。<b><code>-s</code> ≠ 交互模式点 Fix。</b><br><b>对齐警告怎么办</b>：512B/512B 的盘上偏 1 个扇区没有任何实际代价，选 <code>Ignore</code> 继续。<b>但建好之后别回去重做</b>——PV 已经压在上面了。</p>
+    </div>
+  </div>
+
+  <div class="stp" data-id="C2">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="C2"><span class="sid">C2</span> 并进系统卷组</label><span class="tag">pvcreate + vgextend</span></div>
+    <div class="stb">
+      <pre>partprobe /dev/sdc
+pvcreate /dev/sdc2
+vgextend rlm /dev/sdc2
+vgs rlm</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>Volume group "rlm" successfully extended</code>；<code>vgs rlm</code> 的 VSize 变成 <code>10.99g</code>、VFree <code>&lt;4.00g</code>、<b>#PV 变成 2</b>。</div>
+      <div class="why"><b>为什么 sdc2 是 4094MiB，VFree 却显示 <code>&lt;4.00g</code></b>：4094 除 4MiB 是 1023.5 格，只取 1023 格 = 4092MiB = 3.996GiB，所以四舍五入显示 <code>&lt;4.00g</code>。<b>零头不足一格就被丢掉了，这是 PE 机制的正常损耗。</b></div>
+      <div class="note"><b>VFree 就是「还能借出去的格子总量」</b>。看到它不是 0，就说明还能扩 LV；<code>vgdisplay</code> 里会用 <code>Free PE / Size</code> 单独列出来。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="C3">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="C3"><span class="sid">C3</span> 把空闲全给 root</label><span class="tag">lvextend</span></div>
+    <div class="stb">
+      <pre>lvextend -l +100%FREE /dev/rlm/root
+lvs</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>changed from &lt;6.20 GiB (1586 extents) to 10.19 GiB (2609 extents)</code> + <code>successfully resized</code>。<b>此时 df 还是 6.2G。</b></div>
+      <p class="why"><b><code>-l +100%FREE</code> 里的三个记号</b>：<code>-l</code> 用 GE 计数 ｜ <code>+</code> 增量（不是最终值）｜ <code>100%FREE</code> 取卷组全部剩余格子（<code>100%VG</code> 则是整个卷组的大小，会把已有的也再算一遍，别混）。</p>
+      <div class="warn"><b>swap 千万别碰</b>：<code>rlm</code> 里还有 <code>swap 820m</code>。用 <code>+100%FREE</code> 只动空闲格子，swap 完全不受影响。<b>如果写错成 <code>-l +100%VG</code> 会超配，命令会报错拒绝，但别去试。</b></div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="C4">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="C4"><span class="sid">C4</span> 撑大根文件系统</label><span class="tag">xfs_growfs</span></div>
+    <div class="stb">
+      <pre>xfs_growfs /
+df -h /</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>data blocks changed from 1624064 to 2671616</code>；<code>df -h /</code> 的 Size 从 <code>6.2G</code> 变成 <code>11G</code>。</div>
+      <div class="why"><b>为什么参数是 <code>/</code> 而不是 <code>/dev/mapper/rlm-root</code></b>：<code>xfs_growfs</code> 要求在<b>已挂载</b>的文件系统上操作，它接受挂载点（也能吃设备路径，但挂载点更稳、不歧义）。根分区不能卸载，所以<b>XFS 的在线扩容正是为这种场景设计的</b>。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="C5">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="C5"><span class="sid">C5</span> 验收 + 为什么不用改 fstab</label><span class="tag">收尾</span></div>
+    <div class="stb">
+      <pre>df -h /
+findmnt /
+lvs
+vgs rlm</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>df</code> 显示 <code>/dev/mapper/rlm-root  11G ... /</code>；<code>lvs</code> 里 root <code>10.19g</code>、swap 仍 <code>820.00m</code>；<code>vgs rlm</code> 的 VFree 变成 <code>0</code>。</div>
+      <div class="why"><b>fstab 一个字都不用改的原因</b>：root 那条写的是 <code>/dev/mapper/rlm-root</code>，LV 名字由 LVM 元数据保证稳定；文件系统也没重建，UUID 不变。<b>所以「给已有 LV 扩容」是唯一不需要动 fstab 的增容方式</b>——这也是它和「加一块新盘」最大的区别（新盘必须写 fstab，否则重启就丢挂载）。</div>
+      <div class="note"><b>三个数字对不上，全是正常的</b>：sdc2 <code>4094MiB</code> → VFree <code>&lt;4.00g</code>（PE 取整丢零头）→ root <code>10.19g</code>（账本精确值）→ df <code>11G</code>（向上取整到整 G，还扣了 XFS 的 64MiB 日志和元数据）。<b>方向记牢：df ≤ lvs，永远如此。反过来才是出事了。</b></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>5 · 附录一：四层命令对照表 <span class="n">建 / 看 / 拆，一层一套</span></h2>
+  <div class="tblwrap">
+  <table>
+    <tr><th>层</th><th>建</th><th>看</th><th>拆（由内向外）</th><th>失败时先查</th></tr>
+    <tr><td><b>分区</b></td><td><code>parted mkpart</code></td><td><code>parted print free</code> <code>lsblk</code></td><td><code>parted rm N</code></td><td>是否被挂载 / 是否 PV</td></tr>
+    <tr><td><b>PV</b></td><td><code>pvcreate</code></td><td><code>pvs</code> <code>pvdisplay</code></td><td><code>pvremove</code></td><td>是否已入 VG（要先 vgreduce）</td></tr>
+    <tr><td><b>VG</b></td><td><code>vgcreate</code> <code>vgextend</code></td><td><code>vgs</code> <code>vgdisplay</code></td><td><code>vgremove</code></td><td>里面是否还有 LV</td></tr>
+    <tr><td><b>LV</b></td><td><code>lvcreate</code> <code>lvextend</code></td><td><code>lvs</code> <code>lvdisplay</code></td><td><code>lvremove</code></td><td>是否挂载 / 是否 swap 在用</td></tr>
+    <tr><td><b>文件系统</b></td><td><code>mkfs.xfs</code></td><td><code>blkid</code> <code>lsblk -f</code> <code>xfs_info</code></td><td><code>wipefs -a</code></td><td>TYPE 列有没有值</td></tr>
+    <tr><td><b>挂载</b></td><td><code>fstab</code> + <code>mount -a</code></td><td><code>findmnt</code> <code>df -hT</code></td><td><code>umount</code> + 删 fstab 行</td><td><code>mount -a</code> 的输出</td></tr>
+  </table>
+  </div>
+  <p class="why"><b>一条贯穿全表的规则</b>：<b>建是由外向内</b>（磁盘→分区→PV→VG→LV→FS→挂载），<b>拆是由内向外</b>（卸挂载→删 FS→删 LV→删 VG→删 PV→删分区）。方向反了必然报 <code>in use</code>。</p>
+</section>
+
+<section>
+  <h2>6 · 附录二：报错速查 <span class="n">看到这行字该想到什么</span></h2>
+  <div class="tblwrap">
+  <table>
+    <tr><th>报错 / 现象</th><th>真实原因</th><th>怎么处理</th></tr>
+    <tr><td><code>The location 8192mib is outside of the device</code></td><td>GPT 尾部 33 扇区被备份表占着</td><td>结尾写 8191MiB</td></tr>
+    <tr><td><code>... is not properly aligned for best performance</code></td><td>分区起点没落在 1MiB 边界</td><td>512B 盘上选 Ignore；4Kn 盘上应重做</td></tr>
+    <tr><td><code>No such file or directory</code>（刚建完分区）</td><td>内核还没重读分区表</td><td><code>partprobe /dev/sdX</code></td></tr>
+    <tr><td><code>appears to contain an existing filesystem</code></td><td>上面已有 FS 签名</td><td>确认可覆盖后 <code>mkfs.xfs -f</code></td></tr>
+    <tr><td><code>wrong fs type, bad option, bad superblock</code></td><td>fstab 第 3 字段写错，或根本没 mkfs</td><td><code>blkid</code> 看真实 TYPE</td></tr>
+    <tr><td><code>can't find UUID=...</code></td><td>UUID 抄错 / 分区被重建过</td><td>重新 <code>blkid</code> 取值</td></tr>
+    <tr><td><code>mount point does not exist</code></td><td>挂载点目录没建</td><td><code>mkdir -p</code></td></tr>
+    <tr><td><code>target is busy</code> / <code>in use</code></td><td>还有进程在用 / 还挂着</td><td><code>umount</code>，必要时 <code>lsof +D</code></td></tr>
+    <tr><td><code>Logical volume ... in use</code>（lvremove 时）</td><td>还挂载着</td><td>先 umount</td></tr>
+    <tr><td><code>New size ... exceeds ... free space</code></td><td>VG 里格子不够</td><td><code>vgs</code> 看 VFree，先 <code>vgextend</code></td></tr>
+    <tr><td><code>xfs_growfs: not a mounted XFS filesystem</code></td><td>传了未挂载的设备或传错对象</td><td>传<b>挂载点</b>，并确认已 mount</td></tr>
+    <tr><td><code>Filesystem should be larger than 300MB</code></td><td>推荐值警告</td><td>不是错误，继续</td></tr>
+    <tr><td>开机掉 emergency mode</td><td>fstab 里有挂不上的条目</td><td>输入 root 密码 → <code>mount -o remount,rw /</code> → 修 fstab</td></tr>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>7 · 附录三：十条自测 <span class="n">先自己答，再展开</span></h2>
+
+  <details><summary>1. 分区表选 msdos 还是 gpt，判据是什么？</summary>
+    <p>看整盘容量：超过 2TiB 必须 gpt（msdos 的 32 位 LBA 撑不住）；不超过也建议 gpt，因为 GPT 有备份表、分区数不受 4 个主分区限制。<b>注意 2T 说的是整盘，不是单个分区。</b></p></details>
+
+  <details><summary>2. 为什么 parted 里「到 100%」会失败，而 gdisk/fdisk 却常常能建到最后？</summary>
+    <p>因为 GPT 末尾固定保留 33 个扇区放备份分区表。parted 严格校验并拒绝越界；fdisk/gdisk 默认会自动把结尾往前收，所以看起来「能建」。<b>本质是同一件事，只是谁替你收了这个边界。</b></p></details>
+
+  <details><summary>3. 4096MiB 的分区做成 PV，为什么只有 1023 个 PE？</summary>
+    <p>PV 头部元数据先占掉一部分，剩下才按 4MiB 切格子，不足一格被丢弃。1023 × 4MiB = 4092MiB，所以 <code>vgs</code> 显示 <code>&lt;4.00g</code>。</p></details>
+
+  <details><summary>4. <code>lvextend</code> 之后 df 没变，算成功还是失败？</summary>
+    <p>成功。lvextend 只改 LVM 账本，文件系统还没接到「可以变大」的通知，必须再 <code>xfs_growfs &lt;挂载点&gt;</code>。df 变化才是最终验收。</p></details>
+
+  <details><summary>5. <code>-L 300MiB</code> 和 <code>-L +100MiB</code> 差在哪？</summary>
+    <p>前者是最终大小，后者是增量。题干说「增加到」用前者，「增加」用后者。<code>-l</code> 系列同理，但单位是 PE 格子数。</p></details>
+
+  <details><summary>6. 扩完 LV 要不要改 fstab？新加一块盘要不要？</summary>
+    <p>扩已有 LV 不用（设备名、UUID 都没变）。新加盘必须写，否则重启不挂载。<b>区别就是「同一个设备变大了」和「多了一个设备」。</b></p></details>
+
+  <details><summary>7. fstab 写完，为什么必须 <code>mount -a</code> 而不是等重启？</summary>
+    <p>因为 fstab 有错时，开机过程会一直卡在挂载这一步，最终掉进 emergency mode，那时改文件很麻烦。<code>mount -a</code> 让错误现在、就在你能改文件的时候爆出来。</p></details>
+
+  <details><summary>8. <code>mount -a</code> 没有任何输出，说明什么？</summary>
+    <p>说明全部挂载成功。mount 系命令沉默即成功，<b>看到输出反而是有问题</b>。这条和 <code>mkfs</code>、<code>parted</code> 的成功行为一致：没消息就是好消息。</p></details>
+
+  <details><summary>9. XFS 能缩小吗？ext4 呢？</summary>
+    <p>XFS 不能缩，只能扩。<code>ext4</code> 可以缩，但要先卸载再 <code>resize2fs</code>，而且不能小于数据实际占用。<b>所以「给根分区扩」是安全操作，「给根分区缩」基本等于重装。</b></p></details>
+
+  <details><summary>10. 怎么一眼判断「分区建了但文件系统没建」？</summary>
+    <p><code>lsblk -f</code>：能看到分区行，但 FSTYPE 列为空。<code>blkid</code> 也可能什么都没有。<b>lsblk 只看得到块设备结构，看不到文件系统 —— 这一列空着就是没 mkfs。</b></p></details>
+</section>
+
+</main>
+
+<footer>
+  <p>实验机实测整理。设备名与容量取自 <code>manage</code> 上的真实操作。配套图：<a href="/maps/lvm.html">从磁盘到 LVM 关系图</a> ｜ <a href="/maps/rhcsa.html">RHCSA 学习地图</a></p>
+</footer>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  var KEY = 'storage-lab-theme';
+  var CKEY = 'storage-lab-checks';
+  var btn = document.getElementById('tbtn');
+  function paintBtn(){ btn.textContent = root.dataset.theme === 'dark' ? '切换浅色' : '切换深色'; }
+  try{
+    var s = localStorage.getItem(KEY);
+    if(s){ root.dataset.theme = s; }
+    else if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){ root.dataset.theme = 'dark'; }
+  }catch(e){}
+  paintBtn();
+  btn.addEventListener('click', function(){
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem(KEY, root.dataset.theme); }catch(e){}
+    paintBtn();
+  });
+
+  var boxes = [].slice.call(document.querySelectorAll('.ck'));
+  var prog = document.getElementById('prog');
+  function paintProg(){
+    var n = boxes.filter(function(b){ return b.checked; }).length;
+    prog.textContent = n + '/' + boxes.length;
+  }
+  function save(){
+    var st = {};
+    boxes.forEach(function(b){ if(b.checked){ st[b.dataset.k] = 1; } });
+    try{ localStorage.setItem(CKEY, JSON.stringify(st)); }catch(e){}
+  }
+  var saved = {};
+  try{ saved = JSON.parse(localStorage.getItem(CKEY) || '{}') || {}; }catch(e){ saved = {}; }
+  boxes.forEach(function(b){
+    if(saved[b.dataset.k]){ b.checked = true; }
+    b.addEventListener('change', function(){
+      b.closest('.stp').classList.toggle('done', b.checked);
+      paintProg(); save();
+    });
+    b.closest('.stp').classList.toggle('done', b.checked);
+  });
+  paintProg();
+
+  document.getElementById('reset').addEventListener('click', function(){
+    boxes.forEach(function(b){ b.checked = false; b.closest('.stp').classList.remove('done'); });
+    paintProg();
+    try{ localStorage.removeItem(CKEY); }catch(e){}
+  });
+})();
+</script>
+</body>
+</html>
