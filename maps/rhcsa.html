@@ -1168,6 +1168,24 @@ const MAP = [
         '<div class="lbl">但扩容后必须做的是这两步</div>',
         '<pre>lvextend -l +100%free /dev/rlm/root\nxfs_growfs /                     # ★ 忘了这步，df 不变</pre>'
       ]
+    },
+    {
+      q: 'vgextend 把一块新盘加进卷组之后，lvs 和 df 为什么一点没变？从「多了一块盘」到「df 变大」，中间要走几层？',
+      a: [
+        '<div class="lbl">VG 是池子，不是水杯</div>',
+        '<p><code>vgextend</code> 只做一件事：把一个 PV 认领进卷组，<b>池子变大</b>。池子里还没人取水，所以 LV 不会自己变大，文件系统更不会。</p>',
+        '<div class="lbl">四层，一层都不能跳</div>',
+        '<pre>块设备    /dev/sdc2             ← pvcreate 之后才进 LVM\n   ↓\nPV → VG   rlm 的 VSize 变大      ← vgextend 只到这一层\n   ↓\nLV        root 没变              ← lvextend 从 VFree 里取\n   ↓\nFS        df 没变                ← xfs_growfs 让文件系统认新尺寸</pre>',
+        '<div class="lbl">按「缺哪一层」决定下一步</div>',
+        '<ul>',
+        '<li>设备层没有 → <code>pvcreate</code>，然后 <code>vgextend</code></li>',
+        '<li>VG 有 VFree、LV 不够 → 只 <code>lvextend</code></li>',
+        '<li>LV 已经够、df 小 → 只 <code>xfs_growfs</code></li>',
+        '</ul>',
+        '<div class="lbl">最常见的错：跳层</div>',
+        '<pre>lvextend -L +4G /dev/rlm/root\n# Insufficient free space: 1024 extents needed, but only 0 available</pre>',
+        '<p>这句抱怨的是 <b>VG 的 VFree 不够</b>，不是 LV 有问题。先 <code>vgs</code> 看 VFree —— 扩 <code>lvextend</code> 之前永远该先看一眼它。<span class="ok">判据：报错里的 extents 是「要多少 / 有多少」，两者都属 VG 层。</span></p>'
+      ]
     }
   ]
 },
