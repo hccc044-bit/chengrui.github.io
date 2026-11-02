@@ -1186,11 +1186,135 @@ const MAP = [
         '<pre>lvextend -L +4G /dev/rlm/root\n# Insufficient free space: 1024 extents needed, but only 0 available</pre>',
         '<p>这句抱怨的是 <b>VG 的 VFree 不够</b>，不是 LV 有问题。先 <code>vgs</code> 看 VFree —— 扩 <code>lvextend</code> 之前永远该先看一眼它。<span class="ok">判据：报错里的 extents 是「要多少 / 有多少」，两者都属 VG 层。</span></p>'
       ]
+    },
+    {
+      q: 'swap 也是「一块空间被用起来」，为什么它没有 mkfs、也不 mount？fstab 里 swap 那一行哪两个字段是空的，为什么？',
+      a: [
+        '<div class="lbl">结论：swap 不是文件系统</div>',
+        '<p>swap 是内核 mm 子系统的<b>匿名页存放区</b> —— 没有目录、没有 inode、没有文件名，进不去也看不了。<code>mkfs</code> 造的是「目录树 + 元数据」，swap 根本没有这一层，所以只有 <code>mkswap</code>（写签名）；同理没有挂载点，所以只有「启用」没有「挂载」。</p>',
+        '<div class="lbl">两条工具链，一个字都不能串</div>',
+        '<div class="tblwrap"><table><tr><th></th><th>普通文件系统</th><th>swap</th></tr>',
+        '<tr><td>造</td><td><code>mkfs.xfs</code></td><td><code>mkswap</code></td></tr>',
+        '<tr><td>接上</td><td><code>mount</code></td><td><code>swapon</code></td></tr>',
+        '<tr><td>按 fstab 全接</td><td><code>mount -a</code></td><td><code>swapon -a</code></td></tr>',
+        '<tr><td>验收</td><td><code>df -hT</code></td><td><code>free -h</code> / <code>swapon --show</code></td></tr></table></div>',
+        '<div class="lbl">★ mount -a 不会带上 swap</div>',
+        '<p>不是配置写错了，是<b>结构性不适用</b>：<code>mount</code> 必须有一个挂载点，而 swap 行的第 2 字段就是 <code>none</code>。再往下一层，内核里这是两个不同的系统调用：<code>mount(2)</code> 和 <code>swapon(2)</code>。<span class="no">swap 改完 fstab 跑 <code>mount -a</code>，屏幕上什么都不会发生。</span></p>',
+        '<div class="lbl">fstab 六字段里特殊的那两个</div>',
+        '<pre>UUID=xxxx-xxxx  none  swap  defaults  0  0\n#  ①            ②     ③     ④       ⑤ ⑥\n# ② none：swap 没有挂载点\n# ⑥ 0   ：swap 不做 fsck，★ 写 2 会让开机检查一个不是文件系统的东西</pre>',
+        '<div class="lbl">由此得到一条通用判据</div>',
+        '<p>改完配置问自己「该跑哪条 -a」：修的是<b>挂载</b>用 <code>mount -a</code>，修的是 <b>swap</b> 用 <code>swapon -a</code>。<span class="ok">两者不能互换，也没有一条命令能同时顶替另一条。</span></p>'
+      ]
+    },
+    {
+      q: 'mkswap 做完了，parted 的 Flags 里也把分区标成 swap 了 —— 内核到底认哪一个？swapon --show 里显示的 /dev/dm-1 能写进 fstab 吗？',
+      a: [
+        '<div class="lbl">两套互不校验的身份</div>',
+        '<ul>',
+        '<li><b>① 分区表里的类型标记</b>：<code>parted mkpart ... linux-swap</code> 或 <code>set 1 swap on</code> 写的。它只是<b>一个标签</b>，告诉人和分区工具「这块原来是打算做 swap 的」。开机没人读它。</li>',
+        '<li><b>② 分区开头约 4 KiB 的签名</b>：<code>mkswap</code> 写的，<code>blkid</code> 能读出 <code>TYPE="swap"</code>。<b>内核 swapon 只认这个。</b></li>',
+        '</ul>',
+        '<pre>swapon: /dev/sdb2: read swap header failed\n# 典型的「① 有、② 没有」：分区标成了 swap，但忘了 mkswap</pre>',
+        '<p>所以「Flags 里是 swap」不能当验收 —— 它证明的是<b>标签</b>，不是<b>可用</b>。</p>',
+        '<div class="lbl">★ /dev/dm-1 不能写进 fstab</div>',
+        '<p><code>swapon --show</code> 里系统盘那块常显示成 <code>/dev/dm-1</code>，那是内核给的<b>临时编号</b>，重启后完全可能变成 dm-2（谁先被激活谁拿号）。fstab 里写它，下次开机就找不到。要写 <code>UUID=</code> 或 <code>/dev/mapper/vg-lv</code>。</p>',
+        '<div class="lbl">free -h 没变时的排查顺序</div>',
+        '<pre>swapon --show                    # ① 内核侧：到底有没有被启用\nblkid /dev/sdb2                  # ② 设备侧：签名在不在\njournalctl -b | grep -i swap     # ③ 开机时它说什么</pre>',
+        '<p><span class="no">★ 永远不要查 df</span>：df 只列「已挂载的文件系统」，swap 天生不在里面，查它只会得到「没变化」这个假结论。<span class="ok">判据：三条同时成立才算成功 —— <code>swapon --show</code> 多一行、<code>free -h</code> 的 Swap 变大、<code>df</code> 完全不变。</span></p>'
+      ]
+    },
+    {
+      q: '只往 fstab 写了 swap 行、没跑 swapon -a，直接重启 —— 新 swap 会生效吗？那「预演一遍」到底在防什么？',
+      a: [
+        '<div class="lbl">会生效，但不是因为 swapon</div>',
+        '<p>开机读 fstab 的根本不是 <code>swapon</code> 命令，而是 <b>systemd-fstab-generator</b>：它把每一行翻译成一个 <code>.swap</code> / <code>.mount</code> unit，再交给 systemd 去激活。手敲的 <code>swapon -a</code> 和开机走的是<b>同一份配置、不同执行者</b>。</p>',
+        '<div class="lbl">真正的差别在「失败的样子」</div>',
+        '<div class="tblwrap"><table><tr><th></th><th>手敲 swapon -a</th><th>开机自动</th></tr>',
+        '<tr><td>失败时</td><td>当场报错，人还在</td><td>静默丢一项，或把机器拖进 emergency</td></tr>',
+        '<tr><td>能不能立刻改</td><td>能</td><td>只能进救援模式改 fstab</td></tr></table></div>',
+        '<p>所以预演的价值不是「让它生效」，而是<b>把失败提前到有人看着的时候</b>。</p>',
+        '<div class="lbl">预演看这三行</div>',
+        '<pre>swapon -a          # 无输出就是成功（有错它会喊）\nswapon --show      # 多出你新加的那一行\nfree -h            # Swap 总量变大</pre>',
+        '<p><span class="ok">判据：<code>swapon -a</code> 静默 + <code>swapon --show</code> 多一行 + <code>free -h</code> 变大，三项都对，重启后仍应在。若重启后只剩原来那块，先看 <code>journalctl -b | grep -i swap</code>。</span></p>'
+      ]
     }
   ]
 },
 {
-  id: 'sys', name: '五、运行中系统与服务', status: 'todo',
+  id: 'pkg', name: '五、软件包与仓库', status: 'doing',
+  note: '一句话概括这一域：仓库 = 一堆包 + 一份索引。dnf 只认索引（repodata/repomd.xml），从不扫目录里的 rpm —— 这一域所有的坑都是从这句话长出来的。',
+  nodes: [
+    {
+      t: '仓库的三层：文件 → 定义 → 启用集',
+      p: ['「我有几个仓库」这个问题，三个命令给三个不同答案 —— 因为它们数的不是同一层。'],
+      c: [
+        ['/etc/yum.repos.d/*.repo', '仓库定义文件。★ 只有 .repo 后缀会被读，.bak 天然不参与'],
+        ['dnf repolist', '启用集：本次真正会去查的仓库'],
+        ['dnf repolist --all', '定义集：包含 enabled=0 的，看得见但不启用'],
+        ['dnf repoinfo <id>', '单个仓库展开：baseurl 实际值、Repo-expire、Repo-status、来自哪个文件'],
+        ['dnf config-manager --set-enabled / --set-disabled <id>', '★ 改写 .repo 文件里的 enabled，持久'],
+        ['dnf --enablerepo=<id> / --disablerepo=<id>', '★ 只影响这一条命令，文件一个字不动']
+      ],
+      k: ['→ 实测：7 个 .repo 文件 → 48 个仓库定义 → 5 个启用。三个数字互不相等，别拿一个去推另一个。',
+          '★ 仓库跟着<b>文件</b>走，不跟名字走：把 rocky.repo 改个名，baseos 和 appstream 一起消失（extras 还在，因为它住在 rocky-extras.repo）。',
+          '★ dnf 不校验未知键：enabled 手滑写成 enable 不报错，因为 enabled 默认就是 1，蒙对了。反过来写 enable=0 想关仓库会静默无效。',
+          '→ Repo-expire 21600s 就是 metadata_expire=6h（6×3600）。它是「有效期长度」，不是「还剩多久」；epel 写 14d = 1209600s。']
+    },
+    {
+      t: '本地 file:// 仓库的最小闭环',
+      p: ['本地仓库是「没有网络也能装包」的最小模型，也是理解远程仓库最好的实验 —— 差别只在 baseurl 是 file:// 还是 https://。'],
+      c: [
+        ['dnf install -y createrepo_c', '提供 createrepo_c 命令'],
+        ['dnf download --destdir=/opt/localrepo tree htop', '只下载，不安装'],
+        ['createrepo_c /opt/localrepo', '生成 repodata/：repomd.xml + primary/filelists/other 各一份 xml.gz 与 sqlite.bz2'],
+        ['dnf makecache', '刷新元数据；file:// 仓库不可用时这里就会报错'],
+        ['dnf --disablerepo="*" --enablerepo=local list available', '只列出「尚未安装」的包']
+      ],
+      k: ['★ 只把 rpm 丢进目录、不跑 createrepo_c：dnf 一定找不到 —— 它只去 <baseurl>/repodata/repomd.xml 取索引，从不扫目录。',
+          '★ 单个 rpm 是另一条路：dnf install ./x.rpm，不经过仓库。',
+          '★ --disablerepo="*" 下装带依赖的包会报 nothing provides：依赖求解只在「当前启用的仓库集合」里做，不是本地仓库坏了。']
+    }
+  ],
+  quiz: [
+    {
+      q: 'dnf install 一个包时，屏幕上先出现 4.3 kB、再出现 44 MB 两行下载 —— 这两层分别是什么？为什么非要分两次？',
+      a: [
+        '<div class="lbl">第一层：先去问「目录变了吗」</div>',
+        '<p>4.3 kB 是 <code>repomd.xml</code> —— 仓库的<b>索引目录</b>。它小到几乎无感，所以 dnf 每次都先去问一句：你这本目录还是原来那本吗。</p>',
+        '<div class="lbl">第二层：确认变了才取货</div>',
+        '<p>只有 <code>repomd.xml</code> 说「变过了 / 本地没有」，才会去拉 primary、filelists、other 这些真正的包列表（44 MB）。没变就跳过 —— 这正是 <code>makecache</code> 之后日常操作几乎不花时间的原因。</p>',
+        '<pre>dnf clean all     # 连「目录」一起删\ndnf makecache     # 重新走一遍两层</pre>',
+        '<p><span class="ok">判据：clean all 之后再 install，两行大小都会出现；不清缓存直接 install，通常只有第一行几 kB。</span></p>'
+      ]
+    },
+    {
+      q: '在 .repo 里把 enabled=1 手滑写成 enable=1，dnf 照跑不误。那反过来写 enable=0 想关掉仓库，会发生什么？怎么验才不会被骗？',
+      a: [
+        '<div class="lbl">不报错，是因为蒙对了</div>',
+        '<p>dnf 读 ini 时<b>不校验未知键</b> —— <code>enable</code> 它根本不认识，直接忽略；而 <code>enabled</code> 的默认值本来就是 1。所以「写错」和「不写」结果一样，看起来像是成功了。</p>',
+        '<div class="lbl">★ 反方向才致命</div>',
+        '<p>用 <code>enable=0</code> 想关仓库时，键同样被忽略、<code>enabled</code> 仍是默认 1 → 仓库照开，没有任何提示。等到「明明关了却还在用旧包」才发现。</p>',
+        '<div class="lbl">怎么验</div>',
+        '<pre>dnf repoinfo <id>                       # 看 Repo-status：enabled / disabled\ngrep -n "enabled" /etc/yum.repos.d/xxx.repo   # 看你实际写了什么</pre>',
+        '<p>两个都要看：文件里写的是<b>意图</b>，<code>Repo-status</code> 是 dnf <b>实际读成的结果</b>。两者不一致，就说明键写错了。<span class="ok">判据：验配置不能只看自己写了什么，要看工具读成了什么。</span></p>'
+      ]
+    },
+    {
+      q: '为什么 --disablerepo="*" --enablerepo=local 装一个带依赖的包会报 nothing provides？要查「这个文件是谁提供的」，正确写法是什么？',
+      a: [
+        '<div class="lbl">依赖求解是一个封闭问题</div>',
+        '<p>dnf 只在「本次启用的仓库集合」里找依赖。把 <code>*</code> 全关、只留 local，等于告诉它「世界上只有这个目录」—— <code>htop</code> 依赖的 <code>libhwloc.so.15</code> 在 appstream 里，被一起关掉了，于是必然报 <code>nothing provides</code>，哪怕它就在旁边躺着。</p>',
+        '<p>所以这条命令的用途是<b>证明某个包来自本地仓库</b>，不是「装包」。</p>',
+        '<div class="lbl">反查文件归属的正确写法</div>',
+        '<pre>dnf provides "*/libhwloc.so.15"    # ★ 加通配，按文件路径匹配\ndnf provides /usr/bin/htop</pre>',
+        '<p>不加通配时，dnf 会先把参数当包名 / 能力名匹配一遍，容易给出意外的结果；写成 <code>*/xxx</code> 等于明确告诉它「这是一个路径」。</p>',
+        '<p><span class="ok">判据：provides 的输出里看 <code>Matched from</code> 和 <code>Repo</code> 两列 —— 前者说「以什么身份匹配上」，后者说「来自哪个仓库」。</span></p>'
+      ]
+    }
+  ]
+},
+{
+  id: 'sys', name: '六、运行中系统与服务', status: 'todo',
   note: '尚未展开。这一域是「贯穿工具」而不是「学完就过」的模块，从系统管理的第一天起就一直在用。',
   nodes: [
     {
@@ -1201,7 +1325,7 @@ const MAP = [
         '日志：journalctl 的时间过滤、按单元过滤、持久化配置',
         '计划任务：cron（crontab -e / -l / -r、/etc/cron.d）、at、systemd timer',
         '启动与目标：systemctl get-default / set-default、单用户模式与 root 口令重置',
-        '软件包管理深入：dnf 的模块流（module）、组安装、rpm 查询',
+        '软件包管理深入：组安装、module 流、rpm 查询（仓库基础见第五章）',
         '时间同步：chrony / timedatectl',
         '系统调优：tuned 的 profile 切换'
       ],
@@ -1211,7 +1335,7 @@ const MAP = [
   quiz: []
 },
 {
-  id: 'shell', name: '六、Shell 脚本与文本处理', status: 'todo',
+  id: 'shell', name: '七、Shell 脚本与文本处理', status: 'todo',
   note: '尚未展开。这一域的价值在于「把重复动作写成一次可验证的执行」，也是 RHCE 阶段的前置能力。',
   nodes: [
     {
@@ -1232,7 +1356,7 @@ const MAP = [
   quiz: []
 },
 {
-  id: 'container', name: '七、容器与额外考点', status: 'todo',
+  id: 'container', name: '八、容器与额外考点', status: 'todo',
   note: '尚未展开。EX200 里容器只有一道题，但它是理解 CKA 的起点。',
   nodes: [
     {
