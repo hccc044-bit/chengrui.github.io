@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>软件包实操手册 · 仓库 / 安装 / 查询 全流程</title>
+<style>
+:root{
+  --bg:#ffffff; --panel:#f6f7f9; --panel2:#eceff2; --bd:#e1e4e8;
+  --tx:#1f2328; --tx2:#57606a; --tx3:#8b949e;
+  --code:#f2f4f7; --accent:#2f6f4f; --warn:#b42318; --warnbg:#fdeceb;
+  --ok:#0f6e56; --okbg:#e7f6f0; --note:#185fa5; --notebg:#e8f2fb;
+  --l1:#BA7517; --l2:#378ADD; --l3:#7F77DD; --l4:#1D9E75; --l5:#639922; --l6:#D85A30;
+}
+html[data-theme="dark"]{
+  --bg:#14171a; --panel:#1b1f23; --panel2:#22272b; --bd:#30363d;
+  --tx:#e6edf3; --tx2:#9aa4ae; --tx3:#6e7681;
+  --code:#1b1f23; --accent:#5bbd8e; --warn:#f85149; --warnbg:#2d1618;
+  --ok:#5dcaa5; --okbg:#122b24; --note:#85b7eb; --notebg:#12202e;
+  --l1:#EF9F27; --l2:#85B7EB; --l3:#AFA9EC; --l4:#5DCAA5; --l5:#97C459; --l6:#F0997B;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--tx);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+header{padding:26px 24px 18px;border-bottom:1px solid var(--bd)}
+.hd{max-width:1000px;margin:0 auto}
+h1{margin:0;font-size:22px;font-weight:600;letter-spacing:-.2px}
+.sub{margin:6px 0 0;color:var(--tx2);font-size:13.5px}
+.hdbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+.spacer{flex:1 1 auto}
+button{font-family:inherit;font-size:13px;padding:7px 12px;border:1px solid var(--bd);border-radius:8px;
+  background:var(--panel);color:var(--tx2);cursor:pointer}
+button:hover{border-color:var(--tx3);color:var(--tx)}
+.nav a{font-size:13px;margin-right:14px;color:var(--tx2)}
+.prog{font-size:13px;color:var(--tx2)}
+.prog b{color:var(--accent);font-weight:600}
+main{max-width:1000px;margin:0 auto;padding:22px 24px 8px}
+section{margin-bottom:34px}
+h2{font-size:16px;font-weight:600;margin:0 0 4px;display:flex;align-items:center;gap:9px}
+h2::before{content:"";width:3px;height:15px;border-radius:2px;background:var(--accent);flex:0 0 auto}
+h2 .n{font-size:12px;color:var(--tx3);font-weight:400}
+p.lead{margin:8px 0 14px;color:var(--tx2);font-size:13.5px}
+
+.stp{border:1px solid var(--bd);border-radius:10px;margin:10px 0;background:var(--bg);overflow:hidden}
+.sth{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:9px 12px;background:var(--panel);
+  border-bottom:1px solid var(--bd);font-size:13.5px}
+.sth input[type=checkbox]{width:15px;height:15px;accent-color:var(--accent);margin:0 2px 0 0;cursor:pointer}
+.sth label{display:flex;align-items:center;gap:7px;cursor:pointer;font-weight:500}
+.sth .sid{font-size:11.5px;font-weight:700;color:var(--bg);background:var(--tx3);
+  padding:1px 6px;border-radius:5px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.sth .tag{margin-left:auto;font-size:12px;color:var(--tx3)}
+.stp.done{opacity:.62}
+.stp.done .sid{background:var(--accent)}
+.stb{padding:12px 14px 14px}
+pre{margin:0 0 10px;padding:10px 12px;background:var(--code);border:1px solid var(--bd);
+  border-radius:8px;font-size:12.8px;line-height:1.65;overflow-x:auto;white-space:pre}
+pre .c{color:var(--tx3)}
+.ok,.warn,.note{margin:8px 0;padding:8px 12px 8px 30px;border-radius:8px;font-size:13.2px;position:relative;line-height:1.62}
+.ok{background:var(--okbg);color:var(--ok)}
+.ok::before{content:"✓";position:absolute;left:11px;top:8px;font-weight:700}
+.warn{background:var(--warnbg);color:var(--warn)}
+.warn::before{content:"!";position:absolute;left:11px;top:8px;font-weight:700}
+.note{background:var(--notebg);color:var(--note)}
+.note::before{content:"i";position:absolute;left:11px;top:8px;font-weight:700;font-style:italic}
+.ok b,.warn b,.note b{font-weight:600}
+.why{font-size:13.2px;color:var(--tx2);margin:8px 0}
+.why b{color:var(--tx);font-weight:500}
+
+table{border-collapse:collapse;width:100%;font-size:13px;margin:10px 0}
+.tblwrap{overflow-x:auto}
+th,td{border:1px solid var(--bd);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:600;color:var(--tx2);font-size:12.5px;white-space:nowrap}
+td code{font-size:12.4px;background:var(--code);padding:1px 5px;border-radius:4px}
+.chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12.5px;
+  padding:10px 12px;border:1px solid var(--bd);border-radius:9px;background:var(--panel);margin:10px 0}
+.chain .n{padding:3px 9px;border-radius:7px;border:1px solid var(--bd);background:var(--bg);white-space:nowrap}
+.chain .n.a{border-color:var(--l1)} .chain .n.b{border-color:var(--l2)}
+.chain .n.c{border-color:var(--l3)} .chain .n.d{border-color:var(--l4)}
+.chain .n.e{border-color:var(--l5)} .chain .ar{color:var(--tx3)}
+details{border:1px solid var(--bd);border-radius:9px;padding:9px 13px;margin:8px 0;background:var(--panel);font-size:13.3px}
+details summary{cursor:pointer;color:var(--tx);font-weight:500}
+details[open] summary{margin-bottom:7px}
+details p{margin:5px 0;color:var(--tx2)}
+footer{max-width:1000px;margin:0 auto;padding:6px 24px 44px;color:var(--tx3);font-size:12.5px}
+@media print{
+  header,.hdbar{display:none}
+  .stp{break-inside:avoid;border-color:#ccc}
+  body{font-size:11pt}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="hd">
+    <h1>软件包实操手册 · 仓库 / 安装 / 查询 全流程</h1>
+    <p class="sub">从「仓库到底是什么」到「配一个本地仓库并装包」，再到查询、卸载、回滚、组与模块。每一步都写了「成功长什么样」，勾选框会记住进度。<b>本手册随进度生长</b>：标〔待做〕的小节是还没在本机走过一遍的部分，走过之后会就地修正。</p>
+    <div class="hdbar">
+      <div class="nav">
+        <a href="/maps/storage-lab.html">存储实操手册</a>
+        <a href="/maps/rhcsa.html">RHCSA 学习地图</a>
+        <a href="/study-log/">学习日志</a>
+      </div>
+      <div class="spacer"></div>
+      <span class="prog">进度 <b id="prog">0/0</b></span>
+      <button id="tbtn" type="button">切换深色</button>
+      <button id="reset" type="button">清空勾选</button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<section>
+  <h2>0 · 先建立正确的模型 <span class="n">dnf 在做什么，仓库的本质是什么</span></h2>
+  <p class="lead">大多数人对包管理的理解停在「下载 + 安装」。那样记命令，配仓库时必然靠试。先把下面这条链记住，后面每一步都能自己解释。</p>
+
+  <div class="chain">
+    <span class="n a">① 读 .repo</span><span class="ar">→</span>
+    <span class="n b">② 取 repodata</span><span class="ar">→</span>
+    <span class="n c">③ 解依赖</span><span class="ar">→</span>
+    <span class="n d">④ 下载 rpm</span><span class="ar">→</span>
+    <span class="n e">⑤ 校验签名 + 事务</span>
+  </div>
+
+  <div class="tblwrap">
+  <table>
+    <tr><th>步骤</th><th>它实际在做什么</th><th>失败时你会看到</th><th>对应的验证手段</th></tr>
+    <tr><td>①</td><td>读 <code>/etc/yum.repos.d/*.repo</code> + <code>/etc/dnf/dnf.conf</code></td><td>仓库根本没出现</td><td><code>dnf repolist --all</code></td></tr>
+    <tr><td>②</td><td>按 <code>baseurl</code> 取 <code>repodata/repomd.xml</code></td><td><code>Cannot download repomd.xml</code></td><td><code>dnf makecache</code></td></tr>
+    <tr><td>③</td><td>在元数据里算出「还要装哪些包」</td><td><code>nothing provides ...</code></td><td><code>dnf provides */命令</code></td></tr>
+    <tr><td>④</td><td>下载 .rpm 到 <code>/var/cache/dnf/</code></td><td><code>Curl error</code> / 超时</td><td>看 <code>/var/log/dnf.log</code></td></tr>
+    <tr><td>⑤</td><td>GPG 校验、执行 rpm 事务</td><td><code>GPG key ... NOT OK</code></td><td><code>rpm -qa | grep 包名</code></td></tr>
+  </table>
+  </div>
+
+  <div class="warn"><b>本域最重要的一句话：仓库的核心不是 rpm 文件，是 repodata。</b><br>把 100 个 rpm 拷进 <code>/opt/myrepo/</code>，再写一个 <code>baseurl=file:///opt/myrepo</code> 的 .repo，dnf <b>一个包都看不见</b>——因为那个目录里没有 <code>repodata/</code>。这就是 <code>createrepo_c</code> 存在的唯一理由：把 rpm 扫一遍，生成索引。</div>
+
+  <div class="note"><b>两个变量，看懂 .repo 的前提</b><br><code>$releasever</code>：系统大版本号（Rocky 9 → <code>9</code>），来自 <code>system-release(releasever)</code> 这个 provides。<br><code>$basearch</code>：CPU 架构（<code>x86_64</code>）。<br>写成 <code>.../rockylinux/$releasever/BaseOS/$basearch/os/</code> 就是为了「换机器不用改文件」。</div>
+</section>
+
+<section>
+  <h2>1 · 看清现状 <span class="n">先只读，一个字节都不要改</span></h2>
+
+  <div class="stp" data-id="P1">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P1"><span class="sid">P1</span> 仓库配置在哪、有几个</label><span class="tag">ls + repolist</span></div>
+    <div class="stb">
+      <pre>ls -l /etc/yum.repos.d/
+dnf repolist
+dnf repolist --all</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>repolist</code> 列出启用的仓库（id / name / status 三列）；<code>--all</code> 多出 <code>disabled</code> 的行。</div>
+      <div class="note"><b>文件数 ≠ 仓库数</b>：一个 <code>.repo</code> 文件里可以有多个 <code>[section]</code>，每个方括号就是一个仓库。<code>dnf repoinfo &lt;id&gt;</code> 会告诉你它来自哪个文件第几行。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="P2">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P2"><span class="sid">P2</span> 拆开一个仓库看真实地址</label><span class="tag">repoinfo / cat</span></div>
+    <div class="stb">
+      <pre>dnf repoinfo baseos
+cat /etc/yum.repos.d/*.repo</pre>
+      <div class="ok"><b>成功长什么样</b>：看到 <code>Repo-baseurl</code>（变量已展开成真实 URL）、<code>Repo-filename</code>、<code>Repo-expire</code>。</div>
+      <div class="warn"><b><code>dnf repolist</code> 是会骗人的命令</b>（你的老账本第 1 条）：它读的是 <code>/var/cache/dnf/</code> 里的<b>本地缓存</b>，不联网。网络断了、baseurl 已经 404，它照样给你列出两行漂亮的仓库。<b>它只证明「配置读通了」，不证明「仓库可用」。</b></div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="P3">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P3"><span class="sid">P3</span> 让 dnf 真的去取一次</label><span class="tag">clean + makecache</span></div>
+    <div class="stb">
+      <pre>dnf clean all
+dnf makecache</pre>
+      <div class="ok"><b>成功长什么样</b>：结尾是 <code>Metadata cache created.</code>，每个启用的仓库一行，<b>没有 error / Curl error</b>。</div>
+      <div class="why"><b>为什么这条才算数</b>：<code>clean all</code> 把本地缓存清空，<code>makecache</code> 被迫真的去 baseurl 拉一次 repodata。这是唯一能证明「仓库活着」的最小动作。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="P4">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P4"><span class="sid">P4</span> 临时启用 / 禁用仓库（不动配置文件）</label><span class="tag">--enablerepo / --disablerepo</span></div>
+    <div class="stb">
+      <pre>dnf --disablerepo='*' --enablerepo=appstream list available | head
+dnf --disablerepo=appstream repolist</pre>
+      <div class="ok"><b>成功长什么样</b>：第一条只从 appstream 列包；第二条里 appstream 消失。</div>
+      <div class="why"><b>为什么要会这个</b>：考试里经常要「只从这个仓库装」，改配置文件既慢又有风险。<b>命令行参数的优先级高于 <code>.repo</code> 里的 <code>enabled=</code></b>，且只在这一次生效。</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>2 · 配一个本地仓库（file://）<span class="n">本域最常考的一题，也是唯一需要「造」的动作</span></h2>
+  <p class="lead">目标：把一个装满 rpm 的目录变成一个 dnf 能识别的仓库，并只从这个仓库装一个包。<b>顺序不能颠倒</b>：先有 rpm → 再生成 repodata → 最后才写 .repo。</p>
+
+  <div class="stp" data-id="P5">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P5"><span class="sid">P5</span> 准备目录与 rpm</label><span class="tag">两条来源任选</span></div>
+    <div class="stb">
+      <pre><span class="c"># 路线 A：手上有 ISO / 安装光盘</span>
+mount /dev/sr0 /mnt
+ls /mnt/BaseOS/Packages | head
+
+<span class="c"># 路线 B：没有 ISO，从现有远程仓库下载几个包</span>
+mkdir -p /opt/localrepo
+dnf download --destdir=/opt/localrepo tree htop lsof</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>/opt/localrepo/</code> 里出现若干 <code>.rpm</code>（路线 B）；或 <code>/mnt/BaseOS/Packages/</code> 下有上百个 rpm（路线 A）。</div>
+      <div class="note"><b>为什么要拷贝出来</b>：<code>createrepo_c</code> 要往目录里<b>写</b> <code>repodata/</code>，光盘是只读的。所以要么把整个 Packages 拷到可写目录，要么把 ISO 挂载后 <code>cp -r</code> 出来。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="P6">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P6"><span class="sid">P6</span> 生成 repodata</label><span class="tag">createrepo_c</span></div>
+    <div class="stb">
+      <pre>dnf install -y createrepo_c
+createrepo_c /opt/localrepo
+ls /opt/localrepo/repodata/</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>createrepo_c</code> 打印 <code>Working environment ... Saving Primary metadata ...</code> 之类；<code>repodata/</code> 里有 <b><code>repomd.xml</code></b>、<code>primary.xml.gz</code>、<code>filelists.xml.gz</code>。</div>
+      <div class="warn"><b>没有 <code>repomd.xml</code> 就等于没做</b>：dnf 只认这个文件。看到 <code>repodata/</code> 目录存在但里面是空的，说明 <code>createrepo_c</code> 中途失败了，重跑一次看报错。</div>
+      <div class="why"><b>什么时候要重跑</b>：往目录里加了新 rpm，必须再执行一次 <code>createrepo_c --update /opt/localrepo</code>，否则新包在索引里不存在。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="P7">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P7"><span class="sid">P7</span> 写 .repo</label><span class="tag">五个字段</span></div>
+    <div class="stb">
+      <pre>vi /etc/yum.repos.d/local.repo
+<span class="c">[local]
+name=Local Repo
+baseurl=file:///opt/localrepo
+enabled=1
+gpgcheck=0</span>
+
+cat /etc/yum.repos.d/local.repo</pre>
+      <div class="ok"><b>成功长什么样</b>：五个字段齐全；<code>baseurl</code> 是 <b><code>file://</code> + 三个斜杠</b>（前两个是协议，第三个是根目录）。</div>
+      <div class="warn"><b><code>file://</code> 后面必须三个斜杠</b>：<code>file:///opt/localrepo</code> 对，<code>file://opt/localrepo</code> 会被当成主机名 <code>opt</code>。<br><b><code>gpgcheck=0</code> 的取舍</b>：自建仓库通常没有签名，关掉是最快的路；但生产上应导入 GPG key 并保持 <code>gpgcheck=1</code>。考试按题干要求写，没要求就 0。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="P8">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P8"><span class="sid">P8</span> 验证仓库真的能用</label><span class="tag">唯一算数的验收</span></div>
+    <div class="stb">
+      <pre>dnf clean all
+dnf --disablerepo='*' --enablerepo=local repolist
+dnf --disablerepo='*' --enablerepo=local list available</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>repolist</code> 里只剩 <code>local</code> 一个仓库，status 是包数量而不是 0；<code>list available</code> 能列出你放进去的包名。</div>
+      <div class="warn"><b>只看 <code>repolist</code> 会骗你</b>：仓库能列出来，但 status 是 <code>0</code>，就说明 repodata 是空的或者包没进去。<b>必须看到包名才算过。</b></div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="P9">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P9"><span class="sid">P9</span> 只从本地仓库装一个包</label><span class="tag">--disablerepo='*'</span></div>
+    <div class="stb">
+      <pre>dnf --disablerepo='*' --enablerepo=local install -y tree
+rpm -qa | grep tree</pre>
+      <div class="ok"><b>成功长什么样</b>：输出里 <code>Installing: tree-...</code>，且 <code>Repository: local</code>；<code>rpm -qa</code> 能查到。</div>
+      <p class="why"><b>为什么要 <code>--disablerepo='*'</code></b>：不加的话，dnf 会优先从网络仓库拿——那样你根本证明不了本地仓库起作用了。<b>把其它仓库都关掉，剩下的结果才归因明确。</b></p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>3 · 加一个远程仓库 <span class="n">EPEL 是最常见的例子</span></h2>
+
+  <div class="stp" data-id="P10">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P10"><span class="sid">P10</span> 用 config-manager 加仓库</label><span class="tag">RHEL 9 语法</span></div>
+    <div class="stb">
+      <pre>dnf install -y dnf-plugins-core
+dnf config-manager --add-repo https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+dnf config-manager --set-enabled epel
+dnf makecache</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>/etc/yum.repos.d/</code> 下多出 <code>epel.repo</code>；<code>dnf repolist</code> 里出现 epel，status 是几万个包。</div>
+      <div class="warn"><b>RHEL 9 的语法变了</b>：老的 <code>dnf config-manager --enablerepo=x</code> 已废弃，现在是 <code>--set-enabled</code> / <code>--set-disabled</code>。照着老教程敲会报 <code>unknown option</code>。</div>
+      <div class="note"><b>GPG key 单独导入</b>：<code>rpm --import https://.../RPM-GPG-KEY-EPEL-9</code>。不导入而 <code>gpgcheck=1</code>，装包时会报 <code>GPG key retrieval failed</code>。</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>4 · 装 / 卸 / 回滚 <span class="n">把「装错了怎么办」也一起练</span></h2>
+
+  <div class="stp" data-id="P11">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P11"><span class="sid">P11</span> 装、卸、重装</label><span class="tag">install / remove / reinstall</span></div>
+    <div class="stb">
+      <pre>dnf install -y htop
+rpm -qa | grep htop
+dnf remove -y htop
+rpm -qa | grep htop          <span class="c"># 应该没有输出</span>
+dnf reinstall -y tree</pre>
+      <div class="ok"><b>成功长什么样</b>：install 结尾 <code>Complete!</code>；remove 后 <code>rpm -qa</code> 查不到；reinstall 会先 <code>Reinstalling</code> 再 <code>Cleanup</code>。</div>
+      <div class="warn"><b><code>remove</code> 会连依赖一起删</b>：卸载被别的包依赖的包时，dnf 提示要删一大串。<b>看清楚列表再按 y</b>，必要时用 <code>dnf remove --noautoremove</code>。<br><b>卸载前问自己</b>：这个包是系统自带的吗？删掉 base 组里的东西可能破坏环境。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="P12">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P12"><span class="sid">P12</span> 用 history 回滚</label><span class="tag">考试也常问「怎么撤销」</span></div>
+    <div class="stb">
+      <pre>dnf history
+dnf history info last
+dnf history undo last</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>history</code> 每行一个事务 ID；<code>undo last</code> 输出里把刚才装的东西再删回去，最后多出一条新的 history 记录（撤销本身也是一个事务）。</div>
+      <div class="why"><b>为什么 undo 不是「删除那条记录」</b>：dnf 不做时光倒流，它是<b>再执行一次反向操作</b>。所以如果这期间文件被手动改过，undo 只负责包层面，不负责你的数据。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="P13">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P13"><span class="sid">P13</span> 锁定版本（不让它被升级）</label><span class="tag">versionlock</span></div>
+    <div class="stb">
+      <pre>dnf install -y 'dnf-command(versionlock)'
+dnf versionlock add tree
+dnf versionlock list
+dnf versionlock delete tree</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>list</code> 里出现 <code>tree-0:1.8.0-...</code> 这样的行，带 <code>0:</code> 前缀和 epoch。</div>
+      <div class="note"><b><code>'dnf-command(versionlock)'</code> 是一种虚拟 provides</b>——用「我需要的能力」而不是包名去装，这在不知道插件包叫什么时特别有用。同类的还有 <code>dnf-command(config-manager)</code>。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="P14">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P14"><span class="sid">P14</span> 反查：这个命令属于哪个包</label><span class="tag">provides</span></div>
+    <div class="stb">
+      <pre>dnf provides */semanage
+dnf provides /usr/bin/htop
+dnf provides '*/nc'</pre>
+      <div class="ok"><b>成功长什么样</b>：输出 <code>policycoreutils-python-utils-... : 提供 semanage</code> 这类结果，带 <code>Repo</code> 和 <code>Matched from</code>。</div>
+      <p class="why"><b>这是本域最该练熟的一条</b>：考试说「安装提供 <code>semanage</code> 命令的包」时，你不需要背包名；真实运维里遇到 <code>command not found</code>，第一反应也应该是它，而不是去搜网页。</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>5 · 组与模块 <span class="n">RHEL 9 特有的一层</span></h2>
+
+  <div class="stp" data-id="P15">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P15"><span class="sid">P15</span> 软件包组</label><span class="tag">group</span></div>
+    <div class="stb">
+      <pre>dnf group list
+dnf group info "Development Tools"
+dnf group install -y "Development Tools"</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>group list</code> 分「已安装组 / 可用组」两段；<code>group info</code> 列出 Mandatory / Optional 包清单。</div>
+      <div class="warn"><b>组名带空格必须加引号</b>，且大小写要与 <code>group list</code> 输出的完全一致。写错会报 <code>No group marked for installation</code>。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="P16">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P16"><span class="sid">P16</span> 模块流（module stream）</label><span class="tag">同一软件的多个版本并存</span></div>
+    <div class="stb">
+      <pre>dnf module list nodejs
+dnf module enable nodejs:18
+dnf module install -y nodejs:18
+dnf module list --installed
+dnf module reset nodejs</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>module list</code> 里每个流有 <code>[d]</code>（默认）/ <code>[e]</code>（已启用）/ <code>[i]</code>（已安装）标记；enable 之后状态变成 <code>[e]</code>。</div>
+      <div class="warn"><b>同一个模块同时只能启用一个流</b>。想换流必须先 <code>dnf module reset nodejs</code>，否则报 <code>Cannot enable ... conflicting requests</code>。<br><b>模块和普通包不要混装</b>：模块管理的包用 <code>dnf install</code> 装，后续升级会被模块流限制。</div>
+      <div class="note"><b>版本差异</b>：RHEL 9 / Rocky 9 仍有 module；RHEL 10 已经移除这套机制。考 EX200（RHEL 9）要会。</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>6 · 直接处理 rpm 文件 <span class="n">离线场景，以及「dnf 和 rpm 到底差在哪」</span></h2>
+
+  <div class="stp" data-id="P17">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P17"><span class="sid">P17</span> dnf 装本地包 vs rpm 装本地包</label><span class="tag">关键区别</span></div>
+    <div class="stb">
+      <pre>dnf install -y ./tree-1.8.0-6.el9.x86_64.rpm
+rpm -ivh ./tree-1.8.0-6.el9.x86_64.rpm
+rpm -Uvh ./tree-1.8.0-7.el9.x86_64.rpm</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>dnf install ./x.rpm</code> 会自动去仓库补齐依赖并打印依赖解析结果；<code>rpm -ivh</code> 只打印 <code>Preparing... / Installing...</code>，缺依赖时直接 <code>Failed dependencies</code> 退出。</div>
+      <div class="warn"><b>这是两者的本质区别</b>：<code>dnf</code> = 仓库 + 依赖求解；<code>rpm</code> = 单个文件的事务执行器，<b>不联网、不解依赖</b>。<br><b>实践结论</b>：能用 <code>dnf install ./x.rpm</code> 就别用 <code>rpm -ivh</code>；只有确定依赖齐全（或做离线批量）时才用 rpm。</div>
+      <div class="note"><b><code>-i</code> vs <code>-U</code></b>：<code>-i</code> 是安装（已存在会冲突），<code>-U</code> 是升级或安装（已存在则升级）。<code>-F</code> 只升级已装的。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="P18">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P18"><span class="sid">P18</span> rpm 查询四连</label><span class="tag">-qf / -ql / -qc / -qi</span></div>
+    <div class="stb">
+      <pre>rpm -qa | grep httpd
+rpm -qf /usr/sbin/httpd
+rpm -ql httpd | head -20
+rpm -qc httpd
+rpm -qi httpd</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>-qf</code> 反查文件归属；<code>-ql</code> 列出包内全部文件；<code>-qc</code> 只列配置文件；<code>-qi</code> 打印版本、安装时间、签名。</div>
+      <div class="why"><b>什么时候用哪条</b>：<br>· 改坏了某个配置，想知道它属于哪个包 → <code>-qf</code><br>· 想知道这个包会不会覆盖我的文件 → <code>-ql</code><br>· 想只备份该备份的 → <code>-qc</code></div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="P19">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P19"><span class="sid">P19</span> 校验包完整性</label><span class="tag">rpm -V</span></div>
+    <div class="stb">
+      <pre>rpm -V httpd
+echo $?</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>rpm -V</code> <b>无输出</b>，<code>echo $?</code> 是 0 —— 所有文件与安装时记录一致。</div>
+      <div class="note"><b>输出里的 9 个字符</b>：<code>S</code> 大小、<code>M</code> 权限、<code>5</code> 摘要、<code>D</code> 设备、<code>L</code> 链接、<code>U</code> 属主、<code>G</code> 属组、<code>T</code> 时间、<code>P</code> 能力。看到 <code>.M.......</code> 就是权限被改过（可能被 chmod 了）。</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>7 · 附录一：命令速查 <span class="n">按「我想干什么」查</span></h2>
+  <div class="tblwrap">
+  <table>
+    <tr><th>我想…</th><th>命令</th><th>注意</th></tr>
+    <tr><td>看仓库列表</td><td><code>dnf repolist --all</code></td><td>读本地缓存，不联网</td></tr>
+    <tr><td>验证仓库可用</td><td><code>dnf clean all &amp;&amp; dnf makecache</code></td><td>唯一算数的验收</td></tr>
+    <tr><td>临时关掉其它仓库</td><td><code>--disablerepo='*' --enablerepo=X</code></td><td>优先级高于 .repo</td></tr>
+    <tr><td>找命令属于哪个包</td><td><code>dnf provides */命令</code></td><td>不用背包名</td></tr>
+    <tr><td>只下载不安装</td><td><code>dnf download --destdir=DIR 包名</code></td><td>需 dnf-plugins-core</td></tr>
+    <tr><td>撤销上一次操作</td><td><code>dnf history undo last</code></td><td>是反向执行，不是删记录</td></tr>
+    <tr><td>锁版本</td><td><code>dnf versionlock add 包</code></td><td>装 <code>dnf-command(versionlock)</code></td></tr>
+    <tr><td>装一个本地 rpm</td><td><code>dnf install ./x.rpm</code></td><td>比 <code>rpm -ivh</code> 会解依赖</td></tr>
+    <tr><td>看文件属于哪个包</td><td><code>rpm -qf /path</code></td><td>比 <code>dnf provides</code> 更快</td></tr>
+    <tr><td>看包装了哪些文件</td><td><code>rpm -ql 包名</code></td><td>配 <code>-qc</code> 只看配置</td></tr>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>8 · 附录二：报错速查 <span class="n">看到这行字该想到什么</span></h2>
+  <div class="tblwrap">
+  <table>
+    <tr><th>报错</th><th>真实原因</th><th>先查这个</th></tr>
+    <tr><td><code>Cannot download repomd.xml</code></td><td>仓库地址不可达 / 路径写错 / DNS 不通</td><td><code>curl -I &lt;baseurl&gt;</code></td></tr>
+    <tr><td><code>Curl error 6: Could not resolve host</code></td><td>DNS 或网络</td><td><code>ping</code> / <code>cat /etc/resolv.conf</code></td></tr>
+    <tr><td><code>repodata/repomd.xml ... not found</code></td><td>没跑 <code>createrepo_c</code></td><td><code>ls 目录/repodata/</code></td></tr>
+    <tr><td><code>No package X available</code></td><td>仓库里没有，或仓库没启用</td><td><code>dnf --enablerepo=X list available</code></td></tr>
+    <tr><td><code>nothing provides ...</code></td><td>缺依赖包，仓库不全</td><td><code>dnf provides */缺失的命令</code></td></tr>
+    <tr><td><code>GPG key retrieval failed</code></td><td>没导入 key 但 gpgcheck=1</td><td><code>rpm --import &lt;keyurl&gt;</code></td></tr>
+    <tr><td><code>Failed dependencies</code>（rpm 命令）</td><td>用了 <code>rpm -ivh</code>，它不解依赖</td><td>改用 <code>dnf install ./x.rpm</code></td></tr>
+    <tr><td><code>Cannot enable ... conflicting requests</code></td><td>模块流已被别的流占用</td><td><code>dnf module reset X</code></td></tr>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>9 · 附录三：自测 <span class="n">先自己答，再展开</span></h2>
+
+  <details><summary>1. 一个装了 100 个 rpm 的目录，为什么 dnf 看不见里面任何包？</summary>
+    <p>因为仓库的入口是 <code>repodata/repomd.xml</code>，不是 rpm 文件本身。没有索引，dnf 不知道目录里有什么、依赖关系如何。<code>createrepo_c</code> 就是生成这份索引的工具。</p></details>
+
+  <details><summary>2. <code>dnf repolist</code> 显示两个仓库都很正常，为什么还可能装不上包？</summary>
+    <p>因为它读的是本地缓存 <code>/var/cache/dnf/</code>，不联网。要证明仓库活着必须 <code>dnf clean all && dnf makecache</code>。<b>「配置读通了」和「仓库可用」是两件事。</b></p></details>
+
+  <details><summary>3. <code>file:///opt/repo</code> 和 <code>file://opt/repo</code> 差在哪？</summary>
+    <p>前者是本地路径 <code>/opt/repo</code>；后者把 <code>opt</code> 当成主机名，会尝试走网络。<b>本地路径必须三个斜杠。</b></p></details>
+
+  <details><summary>4. 往本地仓库里新加了几个 rpm，需要做什么？</summary>
+    <p>重新生成索引：<code>createrepo_c --update /opt/localrepo</code>，然后 <code>dnf clean all</code>。不重跑的话，新包在 repodata 里不存在，dnf 依然看不见。</p></details>
+
+  <details><summary>5. 怎么只从一个仓库装包，而不改动任何配置文件？</summary>
+    <p><code>dnf --disablerepo='*' --enablerepo=local install 包名</code>。命令行参数优先级高于 <code>.repo</code> 的 <code>enabled=</code>，且只对本次生效。</p></details>
+
+  <details><summary>6. 考试说「安装提供 <code>semanage</code> 命令的包」，你怎么找？</summary>
+    <p><code>dnf provides */semanage</code>。这比记包名（<code>policycoreutils-python-utils</code>）可靠得多，也是遇到 <code>command not found</code> 时的标准动作。</p></details>
+
+  <details><summary>7. <code>dnf install ./x.rpm</code> 和 <code>rpm -ivh ./x.rpm</code> 的本质区别？</summary>
+    <p>dnf 会连仓库、做依赖求解；rpm 只执行单个文件的事务，不解依赖、不联网。缺依赖时 rpm 直接 <code>Failed dependencies</code>。<b>优先用 dnf 装本地包。</b></p></details>
+
+  <details><summary>8. 装错了包，怎么回退？为什么说 <code>undo</code> 不是「时光倒流」？</summary>
+    <p><code>dnf history undo last</code>。它实际是<b>再执行一次反向事务</b>，不是删除历史记录；期间被手动改过的文件不会恢复。</p></details>
+
+  <details><summary>9. 为什么 <code>dnf module enable a:1</code> 之后想换 <code>a:2</code> 会失败？</summary>
+    <p>同一个模块同时只能启用一个流。要先 <code>dnf module reset a</code> 再 enable 另一个流。<b>模块流是「整个系统只用这个版本」的承诺。</b></p></details>
+
+  <details><summary>10. <code>rpm -V</code> 没有输出，说明什么？</summary>
+    <p>说明该包所有文件的校验信息与安装时记录一致，没有被改动。<b>没输出才是好结果</b>——和 <code>mount -a</code>、<code>parted</code> 的成功行为一致。</p></details>
+
+  <details><summary>11. BaseOS 和 AppStream 为什么要分成两个仓库？</summary>
+    <p>BaseOS 放系统底座（内核、glibc、systemd 这类，只有一个版本），AppStream 放应用与多版本组件（可以用 module 选流）。<b>分仓是为了让「底座稳定」和「应用可选版本」互不干扰。</b></p></details>
+
+  <details><summary>12. 仓库文件里 <code>enabled=0</code> 的仓库，<code>dnf install</code> 会用吗？</summary>
+    <p>不会，除非命令行临时 <code>--enablerepo=那个仓库</code>，或用 <code>dnf config-manager --set-enabled</code> 永久打开。</p></details>
+</section>
+
+</main>
+
+<footer>
+  <p>实验机实测整理，随进度更新。配套：<a href="/maps/storage-lab.html">存储实操手册</a> ｜ <a href="/maps/rhcsa.html">RHCSA 学习地图</a></p>
+</footer>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  var KEY = 'pkgs-lab-theme';
+  var CKEY = 'pkgs-lab-checks';
+  var btn = document.getElementById('tbtn');
+  function paintBtn(){ btn.textContent = root.dataset.theme === 'dark' ? '切换浅色' : '切换深色'; }
+  try{
+    var s = localStorage.getItem(KEY);
+    if(s){ root.dataset.theme = s; }
+    else if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){ root.dataset.theme = 'dark'; }
+  }catch(e){}
+  paintBtn();
+  btn.addEventListener('click', function(){
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem(KEY, root.dataset.theme); }catch(e){}
+    paintBtn();
+  });
+
+  var boxes = [].slice.call(document.querySelectorAll('.ck'));
+  var prog = document.getElementById('prog');
+  function paintProg(){
+    var n = boxes.filter(function(b){ return b.checked; }).length;
+    prog.textContent = n + '/' + boxes.length;
+  }
+  function save(){
+    var st = {};
+    boxes.forEach(function(b){ if(b.checked){ st[b.dataset.k] = 1; } });
+    try{ localStorage.setItem(CKEY, JSON.stringify(st)); }catch(e){}
+  }
+  var saved = {};
+  try{ saved = JSON.parse(localStorage.getItem(CKEY) || '{}') || {}; }catch(e){ saved = {}; }
+  boxes.forEach(function(b){
+    if(saved[b.dataset.k]){ b.checked = true; }
+    b.addEventListener('change', function(){
+      b.closest('.stp').classList.toggle('done', b.checked);
+      paintProg(); save();
+    });
+    b.closest('.stp').classList.toggle('done', b.checked);
+  });
+  paintProg();
+
+  document.getElementById('reset').addEventListener('click', function(){
+    boxes.forEach(function(b){ b.checked = false; b.closest('.stp').classList.remove('done'); });
+    paintProg();
+    try{ localStorage.removeItem(CKEY); }catch(e){}
+  });
+})();
+</script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>存储实操手册 · 分区 / LVM / 挂载 全流程</title>
+<title>存储实操手册 · 分区 / LVM / swap / 挂载 全流程</title>
 <style>
 :root{
   --bg:#ffffff; --panel:#f6f7f9; --panel2:#eceff2; --bd:#e1e4e8;
@@ -103,8 +103,8 @@ footer{max-width:1000px;margin:0 auto;padding:6px 24px 44px;color:var(--tx3);fon
 <body>
 <header>
   <div class="hd">
-    <h1>存储实操手册 · 分区 / LVM / 挂载 全流程</h1>
-    <p class="sub">把前面做过的三条线串成可重复的一条：裸分区直挂、LVM 新建再挂、LVM 扩容（含根分区）。每一步都写了「成功长什么样」，勾选框会记住进度。</p>
+    <h1>存储实操手册 · 分区 / LVM / swap / 挂载 全流程</h1>
+    <p class="sub">把做过的四条线串成可重复的一套：裸分区直挂、LVM 新建再挂、LVM 扩容（含根分区）、swap 启用。每一步都写了「成功长什么样」，勾选框会记住进度。</p>
     <div class="hdbar">
       <div class="nav">
         <a href="/maps/lvm.html">从磁盘到 LVM 关系图</a>
@@ -502,7 +502,124 @@ vgs rlm</pre>
 </section>
 
 <section>
-  <h2>5 · 附录一：四层命令对照表 <span class="n">建 / 看 / 拆，一层一套</span></h2>
+  <h2>5 · 实验 D：swap <span class="n">它不是文件系统，也没有挂载点</span></h2>
+  <p class="lead">目标：在 sdb 剩余空间建 512MiB swap，开机自动启用。这条线<b>用的是一整套不同的命令</b>——如果套用前面「mkfs + mount」的动作，到第一步就会卡住。</p>
+
+  <div class="tblwrap">
+  <table>
+    <tr><th>环节</th><th>普通分区（实验 A/B）</th><th>swap</th></tr>
+    <tr><td>建</td><td><code>mkfs.xfs</code></td><td><code>mkswap</code>（没有「格式化」这个概念）</td></tr>
+    <tr><td>启用</td><td><code>mount</code> / <code>mount -a</code></td><td><code>swapon</code> / <b><code>swapon -a</code></b></td></tr>
+    <tr><td>fstab 第 2 字段</td><td>目录路径</td><td><b><code>none</code></b>（不在文件树里）</td></tr>
+    <tr><td>fstab 第 6 字段</td><td>0 或 2</td><td><b>必须 0</b>（swap 不做 fsck）</td></tr>
+    <tr><td>验收</td><td><code>df</code> / <code>findmnt</code></td><td><b><code>free -h</code> / <code>swapon --show</code></b>（<code>df</code> 里永远看不到它）</td></tr>
+  </table>
+  </div>
+
+  <div class="warn"><b>最容易误判的一步</b>：改完 swap 的 fstab 去跑 <code>mount -a</code>，<b>什么都不会发生，也不报错</b>。这不是命令坏了——<code>mount</code> 结构上就不处理 swap 条目，它需要一个挂载点，而 swap 没有。同理 <code>swapon -a</code> 也不会去动 <code>/mnt/data</code>。</div>
+
+  <div class="stp" data-id="D1">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="D1"><span class="sid">D1</span> 看真实空闲起点</label><span class="tag">parted print free</span></div>
+    <div class="stb">
+      <pre>lsblk -f /dev/sdb
+parted /dev/sdb unit mib print free</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>sdb1</code> 后面有一段 <code>Free Space</code>，记下它的<b>起点 MiB</b>（本机是 1025MiB）。下面所有数字都要换成你自己看到的。</div>
+      <div class="note"><b>不要照抄教程里的数字</b>。分区起点差一个 MiB，parted 就会报 <code>overlapping partitions</code> 或者把起点挪到别的空位。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="D2">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="D2"><span class="sid">D2</span> 建 512MiB 分区并打 swap 标记</label><span class="tag">parted mkpart</span></div>
+    <div class="stb">
+      <pre>parted /dev/sdb mkpart primary linux-swap 1025MiB 1537MiB
+parted /dev/sdb unit mib print free
+partprobe /dev/sdb
+lsblk /dev/sdb</pre>
+      <div class="ok"><b>成功长什么样</b>：出现 <code>2  1025MiB  1537MiB  512MiB  ...  primary  swap</code>；<code>lsblk</code> 里 sdb2 大小 512M。</div>
+      <div class="warn"><b>会弹两条警告，都选继续</b>：<br>· <code>The closest location we can manage is ...</code> → parted 把起点后移了 1 个扇区，输 <code>yes</code>。<br>· <code>not properly aligned for best performance</code> → 输 <code>ignore</code>。<br>原因：上一分区的结束位置和新分区起点贴得太紧，parted 只能偏移 512 字节。512B 扇区的虚拟盘上没有实际代价；只有 4Kn 盘才需要在意。</div>
+      <p class="why"><b>为什么写 <code>linux-swap</code></b>：在 GPT 上它设置的是<b>分区类型 GUID</b>（等价于 msdos 的类型码 82），作用只是在分区表里做个标签，<b>不写任何数据</b>。真正的 swap 内容要靠下一步的 <code>mkswap</code>。</p>
+    </div>
+  </div>
+
+  <div class="stp" data-id="D3">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="D3"><span class="sid">D3</span> 生成 swap 签名</label><span class="tag">mkswap</span></div>
+    <div class="stb">
+      <pre>mkswap /dev/sdb2
+blkid /dev/sdb2</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>Setting up swapspace version 1, size = 512 MiB (536866816 bytes)</code> 加一行 <code>UUID=...</code>；<code>blkid</code> 出 <code>TYPE="swap"</code>。</div>
+      <div class="note"><b>字节数比 512MiB 少 4096</b>：512MiB = 536870912，输出是 536866816。<code>mkswap</code> 在开头写了一页（4KiB）放自己的头。<code>/proc/swaps</code> 里也会同样少 4，这不是 bug。</div>
+      <div class="warn"><b>又一次「blkid 有输出 ≠ 有文件系统」</b>：swap 根本不是文件系统，blkid 照样打 <code>TYPE</code>。判断只能看值本身是不是你期望的那个。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="D4">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="D4"><span class="sid">D4</span> 写 fstab（第 2 位是 none）</label><span class="tag">六个字段逐个对</span></div>
+    <div class="stb">
+      <pre>cp /etc/fstab /etc/fstab.$(date +%Y%m%d)
+vi /etc/fstab
+<span class="c"># 追加一行（UUID 换成 D3 的真实值）：</span>
+<span class="c"># UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx  none  swap  defaults  0 0</span>
+
+cat /etc/fstab</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>cat</code> 出来 6 个字段齐全 —— UUID 与 D3 一致、第 2 位 <code>none</code>、第 3 位 <code>swap</code>、最后一位 <code>0</code>。<b>写完回读一遍</b>。</div>
+      <div class="note"><b>备份带日期，不要覆盖</b>：写成 <code>/etc/fstab_bak</code> 的话，第二次执行就会把上次那份好的覆盖掉。带 <code>$(date +%Y%m%d)</code> 才是真的留了后路。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="D5">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="D5"><span class="sid">D5</span> 启用并在这里验收</label><span class="tag">swapon -a</span></div>
+    <div class="stb">
+      <pre>swapon -a
+swapon --show
+free -h
+cat /proc/swaps</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>swapon -a</code> 无任何输出；<code>swapon --show</code> 多出一行 <code>/dev/sdb2  partition  512M  0B  -3</code>；<code>free -h</code> 的 Swap 从 <b>820M 变成 1.3Gi</b>。</div>
+      <div class="warn"><b>两个容易误会的细节</b>：<br>· <code>swapon --show</code> 里系统盘那块显示成 <code>/dev/dm-1</code>——它是内核临时编号，重启可能变 dm-2。<b>fstab 里绝不能写 dm-N</b>，要用 UUID 或 <code>/dev/mapper/rlm-swap</code>。<br>· PRIO <code>-2</code> / <code>-3</code> 是自动分配的（负数=自动，后启用的低一档，数值越大越优先）。想让新盘先用，fstab 写 <code>defaults,pri=10</code>。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="D6">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="D6"><span class="sid">D6</span> 重启验收（唯一算数的一条）</label><span class="tag">reboot</span></div>
+    <div class="stb">
+      <pre>systemctl reboot
+<span class="c"># 回来后，不要手工敲任何命令，直接看：</span>
+free -h
+swapon --show</pre>
+      <div class="ok"><b>成功长什么样</b>：Swap 仍是 <b>1.3Gi</b>，<code>swapon --show</code> 里仍有 sdb2，全程没有手工 <code>swapon</code>。</div>
+      <div class="warn"><b>如果掉回 820M</b>：fstab 那行有问题，但开机<b>不会告诉你</b>（错误只在 journal 里）。查 <code>journalctl -b | grep -i swap</code>。<br><b>为什么不写 fstab 也「能生效一辈子」</b>：<code>swapon -a</code> 只在当前这次开机有效，重启即失。fstab 才是持久化的唯一位置。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="D7">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="D7"><span class="sid">D7</span> 练一次可逆</label><span class="tag">swapoff / swapon -a</span></div>
+    <div class="stb">
+      <pre>swapoff /dev/sdb2
+free -h
+swapon -a
+free -h</pre>
+      <div class="ok"><b>成功长什么样</b>：关掉后 Swap 掉回 820M，<code>swapon -a</code> 后回到 1.3Gi。<b>掉的量和回来的量必须一致</b>。</div>
+      <p class="why"><b><code>swapoff</code> 不是改标记</b>：它要把这块 swap 里的所有页<b>搬回物理内存</b>。内存不够时会很慢，甚至失败（搬迁无处可去）。这也是生产上关 swap 要挑时机的真实原因。</p>
+    </div>
+  </div>
+
+  <div class="stp" data-id="D8">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="D8"><span class="sid">D8</span> 换成 swap 文件（没有空闲分区时）</label><span class="tag">考试常出的另一半</span></div>
+    <div class="stb">
+      <pre>dd if=/dev/zero of=/swapfile bs=1M count=512
+chmod 600 /swapfile
+mkswap /swapfile
+restorecon -v /swapfile
+swapon /swapfile
+<span class="c"># fstab：/swapfile  none  swap  defaults  0 0</span></pre>
+      <div class="ok"><b>成功长什么样</b>：<code>ls -Z /swapfile</code> 的类型是 <code>swapfile_t</code>；<code>swapon --show</code> 里 TYPE 列显示 <code>file</code>。</div>
+      <div class="warn"><b>三个必踩的坑</b>：<br>· 权限必须 <code>600</code>，644 会报 insecure permissions。<br>· Enforcing 下必须 <code>restorecon</code>，否则 <code>swapon</code> 被 SELinux 拒绝。<br>· <b>XFS 上别用 <code>fallocate</code></b> 建 swap 文件——它生成 unwritten extents，<code>swapon</code> 报 <code>Invalid argument</code>，只能用 <code>dd</code> 实打实写。</div>
+      <div class="note"><b>状态</b>：这一条尚未在本机实操过，属于「同一能力的另一半」，等有空再补。</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>6 · 附录一：四层命令对照表 <span class="n">建 / 看 / 拆，一层一套</span></h2>
   <div class="tblwrap">
   <table>
     <tr><th>层</th><th>建</th><th>看</th><th>拆（由内向外）</th><th>失败时先查</th></tr>
@@ -518,7 +635,7 @@ vgs rlm</pre>
 </section>
 
 <section>
-  <h2>6 · 附录二：报错速查 <span class="n">看到这行字该想到什么</span></h2>
+  <h2>7 · 附录二：报错速查 <span class="n">看到这行字该想到什么</span></h2>
   <div class="tblwrap">
   <table>
     <tr><th>报错 / 现象</th><th>真实原因</th><th>怎么处理</th></tr>
@@ -540,7 +657,7 @@ vgs rlm</pre>
 </section>
 
 <section>
-  <h2>7 · 附录三：十条自测 <span class="n">先自己答，再展开</span></h2>
+  <h2>8 · 附录三：十二条自测 <span class="n">先自己答，再展开</span></h2>
 
   <details><summary>1. 分区表选 msdos 还是 gpt，判据是什么？</summary>
     <p>看整盘容量：超过 2TiB 必须 gpt（msdos 的 32 位 LBA 撑不住）；不超过也建议 gpt，因为 GPT 有备份表、分区数不受 4 个主分区限制。<b>注意 2T 说的是整盘，不是单个分区。</b></p></details>
@@ -571,6 +688,12 @@ vgs rlm</pre>
 
   <details><summary>10. 怎么一眼判断「分区建了但文件系统没建」？</summary>
     <p><code>lsblk -f</code>：能看到分区行，但 FSTYPE 列为空。<code>blkid</code> 也可能什么都没有。<b>lsblk 只看得到块设备结构，看不到文件系统 —— 这一列空着就是没 mkfs。</b></p></details>
+
+  <details><summary>11. 改完 swap 的 fstab，为什么跑 <code>mount -a</code> 没反应？</summary>
+    <p>因为 <code>mount</code> 需要挂载点，而 swap 的挂载点是 <code>none</code>，它根本不在文件树里。内核层面这是两条系统调用：<code>mount(2)</code> 和 <code>swapon(2)</code>。<b>不是 mount 忽略了 swap，是结构上不适用。</b>对应地，<code>swapon -a</code> 也不会去处理普通挂载条目。</p></details>
+
+  <details><summary>12. 分区表里标了 <code>swap</code>，是不是就表示这块已经是 swap 了？</summary>
+    <p>不是。那是两套互不校验的信息：分区表里的类型只是<b>标签</b>（<code>parted print</code> 的 Flags 列），<code>mkswap</code> 写在分区开头 4KiB 的签名才是<b>内核认的东西</b>（<code>blkid</code> 的 <code>TYPE="swap"</code>）。只标不打签名 → <code>swapon</code> 失败；只打签名不标 → <code>swapon</code> 照样成功。</p></details>
 </section>
 
 </main>
