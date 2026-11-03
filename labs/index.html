@@ -1,0 +1,300 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>实操手册 | Rui Cheng's Blog</title><meta name="author" content="Rui Cheng"><meta name="copyright" content="Rui Cheng"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="每个能力域一本手册，编号步骤 + 每步「成功长什么样」，照着敲就能走完。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="实操手册">
+<meta property="og:url" content="https://crui.is-a.dev/labs/index.html">
+<meta property="og:site_name" content="Rui Cheng&#39;s Blog">
+<meta property="og:description" content="每个能力域一本手册，编号步骤 + 每步「成功长什么样」，照着敲就能走完。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://crui.is-a.dev/img/avatar.svg">
+<meta property="article:published_time" content="2026-11-03T01:10:00.000Z">
+<meta property="article:modified_time" content="2026-11-03T01:01:47.529Z">
+<meta property="article:author" content="Rui Cheng">
+<meta property="article:tag" content="Linux,HPC,Kubernetes,Hexo,developer tools">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://crui.is-a.dev/img/avatar.svg"><script type="application/ld+json"></script><link rel="shortcut icon" href="/img/favicon.svg"><link rel="canonical" href="https://crui.is-a.dev/labs/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.5.3"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.12.0/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: true,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '实操手册',
+  isHighlightShrink: true,
+  isToc: false,
+  pageType: 'page'
+}</script><link rel="stylesheet" href="/css/custom.css"><link rel="icon" type="image/png" sizes="32x32" href="/img/favicon.png"><meta name="generator" content="Hexo 8.1.1"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.svg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">5</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">7</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">2</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/study-log/"><i class="fa-fw fas fa-book"></i><span> 学习日志</span></a></div><div class="menus_item"><a class="site-page" href="/maps/rhcsa.html"><i class="fa-fw fas fa-sitemap"></i><span> 学习地图</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-graduation-cap"></i><span> 教程</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/labs/"><i class="fa-fw fas fa-flask"></i><span> 实操手册</span></a></li><li><a class="site-page child" href="/maps/lvm.html"><i class="fa-fw fas fa-layer-group"></i><span> 磁盘与 LVM 关系图</span></a></li><li><a class="site-page child" href="/maps/labs.html"><i class="fa-fw fas fa-list-ul"></i><span> 手册总览</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div></div></div></div><div class="page" id="body-wrap"><header class="not-home-page" id="page-header"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Rui Cheng's Blog</span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/study-log/"><i class="fa-fw fas fa-book"></i><span> 学习日志</span></a></div><div class="menus_item"><a class="site-page" href="/maps/rhcsa.html"><i class="fa-fw fas fa-sitemap"></i><span> 学习地图</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-graduation-cap"></i><span> 教程</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/labs/"><i class="fa-fw fas fa-flask"></i><span> 实操手册</span></a></li><li><a class="site-page child" href="/maps/lvm.html"><i class="fa-fw fas fa-layer-group"></i><span> 磁盘与 LVM 关系图</span></a></li><li><a class="site-page child" href="/maps/labs.html"><i class="fa-fw fas fa-list-ul"></i><span> 手册总览</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="page-site-info"><h1 id="site-title">实操手册</h1></div></header><main class="layout" id="content-inner"><div id="page"><div class="container" id="article-container"><div class="labs-wrap">
+<p class="labs-lead">每个能力域一本手册，全部是「照着敲就能走完」的形态：编号步骤、每步写死验收标准、勾选框记录进度。<b>手册随进度生长</b>——做过一个域才写一本，标〔尚未在本机验证〕的步骤是还没走过一遍的。</p>
+<div class="labs-grid">
+<div class="labs-card">
+<div class="labs-kicker">存储域</div>
+<h3><a href="/maps/storage-lab.html">存储实操手册</a><span class="labs-badge done">已走完</span></h3>
+<p class="labs-desc">分区 → 文件系统 → 挂载 → LVM → 扩容 → swap。四个实验各自独立可跑，含重置起点与 13 条报错速查。</p>
+<div class="labs-chips"><span class="labs-chip c1">A 裸分区直挂</span><span class="labs-chip c2">B LVM 新建</span><span class="labs-chip c3">C 根分区扩容</span><span class="labs-chip c4">D swap</span></div>
+<div class="labs-bar"><i data-bar="storage"></i></div>
+<div class="labs-stat"><span>已记录 <b data-n="storage">0</b> 步</span><span>共 34 步</span></div>
+<a class="labs-go" href="/maps/storage-lab.html">打开手册 →</a>
+</div>
+<div class="labs-card">
+<div class="labs-kicker">软件包与仓库</div>
+<h3><a href="/maps/pkgs-lab.html">软件包实操手册</a><span class="labs-badge doing">进行中</span></h3>
+<p class="labs-desc">dnf 的五步链、本地 <code>file://</code> 仓库、远程仓库、装卸与回滚、组与 module stream、rpm 直接操作。</p>
+<div class="labs-chips"><span class="labs-chip c2">仓库与 repodata</span><span class="labs-chip c5">本地仓库</span><span class="labs-chip c1">装卸与回滚</span><span class="labs-chip c3">组 / 模块流</span></div>
+<div class="labs-bar"><i data-bar="pkgs"></i></div>
+<div class="labs-stat"><span>已记录 <b data-n="pkgs">0</b> 步</span><span>共 19 步</span></div>
+<a class="labs-go" href="/maps/pkgs-lab.html">打开手册 →</a>
+</div>
+<div class="labs-card ghost">
+<div class="labs-kicker">下一本</div>
+<h3>systemd 服务</h3>
+<p class="labs-desc">unit 文件、<code>start</code> 与 <code>enable</code> 的区别、<code>mask</code>、target、<code>journalctl</code> 排障。软件包走完就开这一本。</p>
+<div class="labs-chips"><span class="labs-chip">未开始</span></div>
+<div class="labs-bar"><i style="width:0"></i></div>
+<div class="labs-stat"><span>已记录 0 步</span><span>待定</span></div>
+</div>
+</div>
+<p class="labs-sub">手册回答「怎么做」，图回答「为什么是这样」。卡住时先看图，再回手册。</p>
+<div class="labs-links">
+<div class="labs-row"><span class="labs-t"><a href="/maps/rhcsa.html">RHCSA 学习地图</a></span><span class="labs-d">按能力域组织的知识地图：机制、判定标准、易错点、练习。每条学习日志的「能力索引」都指向这里。</span></div>
+<div class="labs-row"><span class="labs-t"><a href="/maps/lvm.html">磁盘 → LVM 关系图</a></span><span class="labs-d">谁包含谁：磁盘 → 分区 → PV → VG → LV → 文件系统 → 挂载点，每层由谁产生、怎么查、怎么撤。</span></div>
+<div class="labs-row"><span class="labs-t"><a href="/maps/labs.html">手册总览（纯静态版）</a></span><span class="labs-d">同一份目录的独立页面，不依赖主题，离线也能打开。</span></div>
+</div>
+<p class="labs-foot">进度存在浏览器里（localStorage），换浏览器或清缓存会重置。它只是提醒，不是成绩单。</p>
+</div>
+
+<style>
+.labs-wrap{--lb-tx:var(--font-color,#1f2328);--lb-tx2:var(--light-grey,#6e7681);--lb-card:var(--card-bg,#fff);--lb-bd:var(--border-color,#e1e4e8);--lb-accent:var(--btn-bg,#2f6f4f);font-size:15px}
+.labs-lead{margin:0 0 18px;color:var(--lb-tx2);font-size:14px;line-height:1.75}
+.labs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin:0 0 6px}
+.labs-card{border:1px solid var(--lb-bd);border-radius:12px;background:var(--lb-card);padding:15px 17px 13px;display:flex;flex-direction:column;transition:border-color .15s,transform .15s}
+.labs-card:hover{border-color:var(--lb-accent);transform:translateY(-1px)}
+.labs-card.ghost{opacity:.62}
+.labs-kicker{font-size:11.5px;letter-spacing:.4px;color:var(--lb-tx2);text-transform:uppercase}
+.labs-card h3{margin:3px 0 4px;font-size:16px;font-weight:600;line-height:1.4}
+.labs-card h3 a{color:var(--lb-tx);text-decoration:none;border:none}
+.labs-card h3 a:hover{color:var(--lb-accent)}
+.labs-badge{display:inline-block;font-size:11px;padding:1px 6px;border-radius:5px;margin-left:6px;vertical-align:2px;font-weight:400}
+.labs-badge.done{background:rgba(29,158,117,.14);color:#1D9E75}
+.labs-badge.doing{background:rgba(55,138,221,.14);color:#378ADD}
+.labs-desc{margin:4px 0 10px;font-size:13px;color:var(--lb-tx2);line-height:1.65;flex:1 1 auto}
+.labs-desc code{font-size:12.4px;padding:1px 4px;border-radius:4px;background:rgba(127,127,127,.12)}
+.labs-chips{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 11px}
+.labs-chip{font-size:11.5px;padding:1px 7px;border-radius:6px;border:1px solid var(--lb-bd);color:var(--lb-tx2);line-height:1.7}
+.labs-chip.c1{border-color:#BA7517;color:#BA7517}
+.labs-chip.c2{border-color:#378ADD;color:#378ADD}
+.labs-chip.c3{border-color:#7F77DD;color:#7F77DD}
+.labs-chip.c4{border-color:#1D9E75;color:#1D9E75}
+.labs-chip.c5{border-color:#639922;color:#639922}
+.labs-bar{height:6px;border-radius:4px;background:rgba(127,127,127,.16);overflow:hidden;margin:0 0 5px}
+.labs-bar i{display:block;height:100%;width:0;background:var(--lb-accent);border-radius:4px;transition:width .3s}
+.labs-stat{display:flex;justify-content:space-between;font-size:12px;color:var(--lb-tx2);margin-bottom:8px}
+.labs-stat b{color:var(--lb-accent);font-weight:600}
+.labs-go{font-size:13px;font-weight:500;text-decoration:none;border:none;align-self:flex-start}
+.labs-sub{margin:20px 0 10px;font-size:13.5px;color:var(--lb-tx2)}
+.labs-links{border:1px solid var(--lb-bd);border-radius:10px;overflow:hidden}
+.labs-row{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;padding:10px 14px;border-bottom:1px solid var(--lb-bd);font-size:13.4px}
+.labs-row:last-child{border-bottom:none}
+.labs-t{font-weight:500;flex:0 0 auto;min-width:150px}
+.labs-t a{text-decoration:none;border:none;color:var(--lb-tx)}
+.labs-t a:hover{color:var(--lb-accent)}
+.labs-d{color:var(--lb-tx2);font-size:13px;flex:1 1 220px;line-height:1.65}
+.labs-foot{margin:14px 0 0;font-size:12.5px;color:var(--lb-tx2)}
+[data-theme='dark'] .labs-chip.c1{color:#EF9F27;border-color:#EF9F27}
+[data-theme='dark'] .labs-chip.c2{color:#85B7EB;border-color:#85B7EB}
+[data-theme='dark'] .labs-chip.c3{color:#AFA9EC;border-color:#AFA9EC}
+[data-theme='dark'] .labs-chip.c4{color:#5DCAA5;border-color:#5DCAA5}
+[data-theme='dark'] .labs-chip.c5{color:#97C459;border-color:#97C459}
+[data-theme='dark'] .labs-badge.done{color:#5DCAA5;background:rgba(93,202,165,.14)}
+[data-theme='dark'] .labs-badge.doing{color:#85B7EB;background:rgba(133,183,235,.14)}
+@media(max-width:560px){.labs-grid{grid-template-columns:1fr}}
+</style>
+
+<script>
+(function(){
+  var MAP=[{id:'storage',ckey:'storage-lab-checks',total:34},{id:'pkgs',ckey:'pkgs-lab-checks',total:19}];
+  MAP.forEach(function(m){
+    var n=0;
+    try{var st=JSON.parse(localStorage.getItem(m.ckey)||'{}')||{};n=Object.keys(st).filter(function(k){return st[k];}).length;}catch(e){n=0;}
+    if(n>m.total){n=m.total;}
+    var num=document.querySelector('[data-n="'+m.id+'"]');
+    var bar=document.querySelector('[data-bar="'+m.id+'"]');
+    if(num){num.textContent=n;}
+    if(bar){bar.style.width=(m.total?Math.round(n/m.total*100):0)+'%';}
+  });
+})();
+</script>
+</div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.svg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Rui Cheng</div><div class="author-info-description">Notes on Linux, HPC and the tools I use.</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">5</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">7</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">2</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/hccc044-bit"><i class="fab fa-github"></i><span>Follow Me</span></a></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">Welcome! This blog collects my hands-on notes on Linux, HPC, Kubernetes and developer tools.</div></div><div class="sticky_layout"><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/study-log/2026-11/" title="学习日志 · 2026 年 11 月">学习日志 · 2026 年 11 月</a><time datetime="2026-10-31T16:00:00.000Z" title="Created 2026-11-01 00:00:00">2026-11-01</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/study-log/2026-10/" title="学习日志 · 2026 年 10 月">学习日志 · 2026 年 10 月</a><time datetime="2026-09-30T16:00:00.000Z" title="Created 2026-10-01 00:00:00">2026-10-01</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/09/10/build-your-own-website/" title="从零搭建自己的技术博客：Hexo + GitHub Pages + 免费短域名实战">从零搭建自己的技术博客：Hexo + GitHub Pages + 免费短域名实战</a><time datetime="2026-09-10T08:30:00.000Z" title="Created 2026-09-10 16:30:00">2026-09-10</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/study-log/2026-09/" title="学习日志 · 2026 年 9 月">学习日志 · 2026 年 9 月</a><time datetime="2026-08-31T16:00:00.000Z" title="Created 2026-09-01 00:00:00">2026-09-01</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/01/05/Kiro%E8%BF%9C%E7%A8%8B%E8%BF%9E%E6%8E%A5%E6%8F%92%E4%BB%B6%E4%BD%BF%E7%94%A8/" title="Kiro远程连接插件使用">Kiro远程连接插件使用</a><time datetime="2026-01-05T09:04:11.000Z" title="Created 2026-01-05 17:04:11">2026-01-05</time></div></div></div></div><div class="card-widget card-categories"><div class="item-headline">
+            <i class="fas fa-folder-open"></i>
+            <span>Categories</span>
+            
+          </div>
+          <ul class="card-category-list" id="aside-cat-list">
+            <li class="card-category-list-item "><a class="card-category-list-link" href="/categories/%E5%AD%A6%E4%B9%A0%E6%97%A5%E5%BF%97/"><span class="card-category-list-name">学习日志</span><span class="card-category-list-count">3</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/%E6%95%99%E7%A8%8B/"><span class="card-category-list-name">教程</span><span class="card-category-list-count">1</span></a></li>
+          </ul></div><div class="card-widget card-tags"><div class="item-headline"><i class="fas fa-tags"></i><span>Tags</span></div><div class="card-tag-cloud"><a href="/tags/GitHub-Pages/" style="font-size: 1.1em; color: #999">GitHub Pages</a> <a href="/tags/Hexo/" style="font-size: 1.1em; color: #999">Hexo</a> <a href="/tags/RHCSA/" style="font-size: 1.5em; color: #99a9bf">RHCSA</a> <a href="/tags/Linux/" style="font-size: 1.1em; color: #999">Linux</a> <a href="/tags/%E5%BB%BA%E7%AB%99%E6%95%99%E7%A8%8B/" style="font-size: 1.1em; color: #999">建站教程</a> <a href="/tags/%E5%AD%A6%E4%B9%A0%E6%97%A5%E5%BF%97/" style="font-size: 1.5em; color: #99a9bf">学习日志</a> <a href="/tags/%E5%9F%9F%E5%90%8D/" style="font-size: 1.1em; color: #999">域名</a></div></div><div class="card-widget card-archives">
+    <div class="item-headline">
+      <i class="fas fa-archive"></i>
+      <span>Archives</span>
+      
+    </div>
+  
+    <ul class="card-archive-list">
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2026/11/">
+            <span class="card-archive-list-date">
+              November 2026
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2026/10/">
+            <span class="card-archive-list-date">
+              October 2026
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2026/09/">
+            <span class="card-archive-list-date">
+              September 2026
+            </span>
+            <span class="card-archive-list-count">2</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2026/01/">
+            <span class="card-archive-list-date">
+              January 2026
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+    </ul>
+  </div><div class="card-widget card-webinfo"><div class="item-headline"><i class="fas fa-chart-line"></i><span>Website Info</span></div><div class="webinfo"><div class="webinfo-item"><div class="item-name">Article Count :</div><div class="item-count">5</div></div><div class="webinfo-item"><div class="item-name">Unique Visitors :</div><div class="item-count" id="busuanzi_value_site_uv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">Page Views :</div><div class="item-count" id="busuanzi_value_site_pv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">Last Update :</div><div class="item-count" id="last-push-date" data-lastPushDate="2026-11-03T01:02:06.486Z"><i class="fa-solid fa-spinner fa-spin"></i></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Rui Cheng</span><span class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.1</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.3</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.3"></script><script src="/js/main.js?v=5.5.3"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
