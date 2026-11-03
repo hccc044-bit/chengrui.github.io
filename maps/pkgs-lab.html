@@ -321,6 +321,16 @@ dnf versionlock list
 dnf versionlock delete tree</pre>
       <div class="ok"><b>成功长什么样</b>：<code>list</code> 里出现 <code>tree-0:1.8.0-...</code> 这样的行，带 <code>0:</code> 前缀和 epoch。</div>
       <div class="note"><b><code>'dnf-command(versionlock)'</code> 是一种虚拟 provides</b>——用「我需要的能力」而不是包名去装，这在不知道插件包叫什么时特别有用。同类的还有 <code>dnf-command(config-manager)</code>。</div>
+      <div class="why"><b>锁住之后 <code>dnf update</code> 是「静默跳过」，不报错</b>：命中时 dnf 直接把候选从求解过程里去掉，输出 <code>Nothing to do.</code> / <code>Complete!</code>，退出码 0。<b>它不会被当成失败</b>——所以别指望用「有没有报错」来判断锁生效了没有。</div>
+      <div class="warn"><b>★ 实测最反直觉的一点：锁对「查询」无效，只对「求解」有效</b><br>
+        用 <code>grub2-tools</code>（本机 126，仓库有 127）实测：<br>
+        · <code>dnf list --upgrades grub2-tools</code> → <b>锁着也照样显示 127</b><br>
+        · <code>dnf update grub2-tools</code> → <code>Nothing to do.</code><br>
+        <code>list</code> / <code>repoquery</code> 走的是包集合查询，<code>update</code> / <code>install</code> 走的是事务求解器，<b>versionlock 只塞进后者</b>。<br>
+        ⇒ <b>所以「锁前 / 锁后跑同一条 list」这个对照是无效的，别用。</b></div>
+      <div class="note"><b>正确判据（两条合起来才成立）</b>：① 用<b>不受锁影响</b>的命令确认候选确实存在 —— <code>dnf list --upgrades &lt;包&gt;</code> 或 <code>dnf check-update</code>；② 看 <code>dnf update &lt;包&gt;</code> 是否真的不动。<b>「有候选」+「不动」= 锁生效</b>。<br>
+        决定性复核（不会真的升级）：<code>dnf update &lt;包&gt; --disableexcludes=all --assumeno</code> —— 若这时列出了升级面版并 <code>Operation aborted.</code>，说明之前不动的原因就是排除规则。<code>--assumeno</code> 自动答 No，安全。</div>
+      <div class="warn"><b>另外：拿一个「本来就是最新版」的包测锁，是无效实验</b>。锁生效与没得升，两条路都是 <code>Nothing to do.</code>。先用 <code>dnf check-update</code> 找一个真正有更新的包（本机当时是 <code>grub2</code> 系列 126→127）。</div>
     </div>
   </div>
 
@@ -343,10 +353,14 @@ dnf provides '*/nc'</pre>
     <div class="sth"><label><input type="checkbox" class="ck" data-k="P15"><span class="sid">P15</span> 软件包组</label><span class="tag">group</span></div>
     <div class="stb">
       <pre>dnf group list
+dnf group list --installed
 dnf group info "Development Tools"
-dnf group install -y "Development Tools"</pre>
+
+# 只在这些情况下才真的装（本机未执行，Development Tools 约 100+ 包）
+# dnf group install -y "Development Tools"</pre>
       <div class="ok"><b>成功长什么样</b>：<code>group list</code> 分「已安装组 / 可用组」两段；<code>group info</code> 列出 Mandatory / Optional 包清单。</div>
       <div class="warn"><b>组名带空格必须加引号</b>，且大小写要与 <code>group list</code> 输出的完全一致。写错会报 <code>No group marked for installation</code>。</div>
+      <div class="note"><b>组其实有两层，<code>group list</code> 的输出会分三段告诉你</b>：<br><b>Available / Installed Environment Groups</b> —— 环境组，描述的是「整台机器装成什么样」，如 <code>Minimal Install</code>（本机已装的就是它）、<code>Server with GUI</code>。<br><b>Available Groups</b> —— 功能组，是「一堆包打包成一份清单」，如 <code>Development Tools</code>、<code>System Tools</code>。<br>装环境组用 <code>dnf group install</code>，和功能组同一条命令；差别只在你选的是哪一类名字。</div>
     </div>
   </div>
 
@@ -369,37 +383,116 @@ dnf module reset nodejs</pre>
   <h2>6 · 直接处理 rpm 文件 <span class="n">离线场景，以及「dnf 和 rpm 到底差在哪」</span></h2>
 
   <div class="stp" data-id="P17">
-    <div class="sth"><label><input type="checkbox" class="ck" data-k="P17"><span class="sid">P17</span> dnf 装本地包 vs rpm 装本地包</label><span class="tag">关键区别</span></div>
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P17"><span class="sid">P17</span> rpm 查询七连（纯只读）</label><span class="tag">一个包的全部身份</span></div>
     <div class="stb">
-      <pre>dnf install -y ./tree-1.8.0-6.el9.x86_64.rpm
-rpm -ivh ./tree-1.8.0-6.el9.x86_64.rpm
-rpm -Uvh ./tree-1.8.0-7.el9.x86_64.rpm</pre>
-      <div class="ok"><b>成功长什么样</b>：<code>dnf install ./x.rpm</code> 会自动去仓库补齐依赖并打印依赖解析结果；<code>rpm -ivh</code> 只打印 <code>Preparing... / Installing...</code>，缺依赖时直接 <code>Failed dependencies</code> 退出。</div>
-      <div class="warn"><b>这是两者的本质区别</b>：<code>dnf</code> = 仓库 + 依赖求解；<code>rpm</code> = 单个文件的事务执行器，<b>不联网、不解依赖</b>。<br><b>实践结论</b>：能用 <code>dnf install ./x.rpm</code> 就别用 <code>rpm -ivh</code>；只有确定依赖齐全（或做离线批量）时才用 rpm。</div>
-      <div class="note"><b><code>-i</code> vs <code>-U</code></b>：<code>-i</code> 是安装（已存在会冲突），<code>-U</code> 是升级或安装（已存在则升级）。<code>-F</code> 只升级已装的。</div>
+      <pre>rpm -q openssh-server
+rpm -qi openssh-server | head -12
+rpm -ql openssh-server | wc -l
+rpm -qc openssh-server
+rpm -qd openssh-server
+rpm -qf /etc/ssh/sshd_config
+rpm -qR openssh-server | head -8
+rpm -qpl /opt/localrepo/tree-1.8.0-10.el9.x86_64.rpm | head</pre>
+      <div class="ok"><b>成功长什么样</b>（Rocky 9 实测）：<br>
+      · <code>-q</code> → 一行 <code>openssh-server-9.9p1-9.el9_8.rocky.0.1.x86_64</code><br>
+      · <code>-qi</code> → Name / Version / Release / <b>Install Date</b> / Signature（签名行带 Key ID）<br>
+      · <code>-ql</code> → <b>27 行</b><br>
+      · <code>-qc</code> → <b>4 行</b>（<code>/etc/pam.d/sshd</code>、<code>/etc/ssh/sshd_config</code>、<code>/etc/ssh/sshd_config.d/50-redhat.conf</code>、<code>/etc/sysconfig/sshd</code>）<br>
+      · <code>-qd</code> → 4 个 man 页<br>
+      · <code>-qf</code> → 反查回 <code>openssh-server-9.9p1-...</code><br>
+      · <code>-qR</code> → 依赖清单，<code>/bin/sh</code> 会<b>重复出现多次</b>（每个能力各要一次）<br>
+      · <code>-qp</code>（加 <code>-p</code>）→ 查<b>还没装</b>的 rpm 文件</div>
+      <div class="why"><b>四个易混点</b>：<br>
+      ① <code>-qc</code> 出 4 行，<code>rpm -ql | grep ^/etc</code> 出 5 行 —— 少的那行是目录 <code>/etc/ssh/sshd_config.d</code>。<b><code>-qc</code> 只列文件级、且带 config 标记的条目，目录永远不列。</b><br>
+      ② <code>-ql</code> 含目录，<code>-qc</code> / <code>-qd</code> 不含。<br>
+      ③ <code>-qf</code> 的路径必须<b>真实存在</b>；软链接要想到它可能归属另一个包。<br>
+      ④ 一次查多个包时，只要<b>有一个没装</b>，退出码就是 <b>3</b>（各包状态仍逐条打印）。</div>
+      <div class="warn"><b>退出码别乱用</b>：<code>rpm -q</code> 单包 → 0 装了 / 1 没装；多包 → 3 表示有没装的。脚本里先 <code>rpm -q pkg &gt;/dev/null</code>，<b>别接管道</b>（管道会把退出码换成后一个命令的）。</div>
     </div>
   </div>
 
   <div class="stp" data-id="P18">
-    <div class="sth"><label><input type="checkbox" class="ck" data-k="P18"><span class="sid">P18</span> rpm 查询四连</label><span class="tag">-qf / -ql / -qc / -qi</span></div>
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P18"><span class="sid">P18</span> 看懂 <code>rpm -V</code> 的九位标记</label><span class="tag">同一个文件三种破坏</span></div>
     <div class="stb">
-      <pre>rpm -qa | grep httpd
-rpm -qf /usr/sbin/httpd
-rpm -ql httpd | head -20
-rpm -qc httpd
-rpm -qi httpd</pre>
-      <div class="ok"><b>成功长什么样</b>：<code>-qf</code> 反查文件归属；<code>-ql</code> 列出包内全部文件；<code>-qc</code> 只列配置文件；<code>-qi</code> 打印版本、安装时间、签名。</div>
-      <div class="why"><b>什么时候用哪条</b>：<br>· 改坏了某个配置，想知道它属于哪个包 → <code>-qf</code><br>· 想知道这个包会不会覆盖我的文件 → <code>-ql</code><br>· 想只备份该备份的 → <code>-qc</code></div>
+      <pre>rpm -V openssh-server
+echo "# lab" &gt;&gt; /etc/ssh/sshd_config
+rpm -V openssh-server
+chmod 644 /etc/ssh/sshd_config
+rpm -V openssh-server
+chmod 600 /etc/ssh/sshd_config</pre>
+      <div class="ok"><b>成功长什么样</b>（实测逐步对照）：<br>
+      · 第一步 → <b>无输出</b>，<code>echo $?</code> = 0<br>
+      · 追加一行后 → <code>S.5....T.&nbsp;&nbsp;c /etc/ssh/sshd_config</code><br>
+      · 改成 644 后 → <code>.M.....T.&nbsp;&nbsp;c /etc/ssh/sshd_config</code><br>
+      · 改回 600 → 只剩 <code>.......T.&nbsp;&nbsp;c /etc/ssh/sshd_config</code></div>
+      <div class="note"><b>九位顺序</b>（对不上就是没记住，按这个背）：<br>
+      <code>S</code> Size 大小 · <code>M</code> Mode 权限 · <code>5</code> MD5 内容摘要 · <code>D</code> Device 设备号 · <code>L</code> Link 链接指向 · <code>U</code> User 属主 · <code>G</code> Group 属组 · <code>T</code> mTime 修改时间 · <code>P</code> caPabilities<br>
+      行尾的 <code>c</code> = config 文件，<code>d</code> = doc，什么都没写 = 普通文件。</div>
+      <div class="warn"><b><code>rpm -V</code> 有输出 ≠ 文件坏了</b>。改完再改回来，内容与权限都复原了，<code>T</code> 位照样亮 —— 因为 <b>mtime 被永久改掉了，而 mtime 也是被校验的</b>。判断「是否被篡改」要逐位看：只有 <code>5</code>（内容）位亮才是真的内容不对。</div>
     </div>
   </div>
 
   <div class="stp" data-id="P19">
-    <div class="sth"><label><input type="checkbox" class="ck" data-k="P19"><span class="sid">P19</span> 校验包完整性</label><span class="tag">rpm -V</span></div>
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P19"><span class="sid">P19</span> 从 rpm 包里取回原版文件</label><span class="tag">无仓库时的唯一救命手段</span></div>
     <div class="stb">
-      <pre>rpm -V httpd
+      <pre>mkdir -p /tmp/fix &amp;&amp; cd /tmp/fix
+dnf download --destdir /tmp/fix openssh-server-9.9p1-9.el9_8.rocky.0.1
+rpm2cpio openssh-server-9.9p1-9.el9_8.rocky.0.1.x86_64.rpm | cpio -idmv ./etc/ssh/sshd_config
+ls --full-time /tmp/fix/etc/ssh/sshd_config
+touch -r /tmp/fix/etc/ssh/sshd_config /etc/ssh/sshd_config
+rpm -V openssh-server</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>cpio</code> 打印 <code>./etc/ssh/sshd_config</code> 和 <code>2992 blocks</code>；<code>ls --full-time</code> 看到包内原始 mtime <code>2026-07-30 20:05:41</code>；<code>touch -r</code> 之后 <code>rpm -V</code> <b>无输出、退出 0</b>。</div>
+      <div class="warn"><b>三个必踩的坑</b>：<br>
+      ① <code>dnf download openssh-server</code>（不写版本）下到的是<b>仓库最新版 13.el9</b>，系统装的是 <b>9.el9</b>。版本不对，提取出来的是另一版配置 —— <b>必须写全 NVRA</b>（名字-版本-发行版-架构）。<br>
+      ② <code>cpio</code> 的模式<b>必须带 <code>./</code></b>（包内路径就是 <code>./etc/...</code>）。写成 <code>etc/ssh/sshd_config</code> 会<b>一个文件都不提取</b>，只打印 <code>2992 blocks</code> 然后<b>退出 0</b> —— 看着像成功，实际什么都没做。<br>
+      ③ 只复制内容不够：mtime 不同，<code>rpm -V</code> 会一直报 <code>.......T.</code>。要 <code>touch -r</code> 借用包内文件的时间戳，别手写一个近似时间（<code>20:05:00</code> 是错的，真值是 <code>20:05:41</code>）。</div>
+      <div class="note"><b>还有更省事的路</b>：仓库可用时直接 <code>dnf reinstall openssh-server</code>。<code>rpm2cpio</code> 是<b>没有仓库、只能拿到一个 .rpm 文件</b>时的兜底。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="P20">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P20"><span class="sid">P20</span> 离线装卸与 <code>--test</code> 试穿</label><span class="tag">dnf 与 rpm 的本质区别</span></div>
+    <div class="stb">
+      <pre>rpm -ivh --test /opt/localrepo/tree-1.8.0-10.el9.x86_64.rpm
+rpm -ivh --test --replacepkgs /opt/localrepo/tree-1.8.0-10.el9.x86_64.rpm
+mkdir -p /tmp/t &amp;&amp; dnf download --destdir /tmp/t httpd
+rpm -ivh --test /tmp/t/httpd-*.rpm
+rpm -ivh --test --nodeps /tmp/t/httpd-*.rpm
+dnf install -y /tmp/t/httpd-*.rpm</pre>
+      <div class="ok"><b>成功长什么样</b>（实测）：<br>
+      · 第 1 条 → 先打印 <code>Verifying...</code> <code>Preparing...</code> 两行进度条，最后一行才是 <code>package tree-1.8.0-10.el9.x86_64 is already installed</code><br>
+      · 第 2 条 → 只有两行进度条，<b>无报错、退出 0</b><br>
+      · 第 4 条 → <code>Failed dependencies: httpd-core = 0:2.4.62-13.el9_8.9 is needed by ...; system-logos-httpd is needed by ...</code><br>
+      · 第 5 条加 <code>--nodeps</code> → 通过（因为 <code>--test</code> 不真装）<br>
+      · 最后 <code>dnf install ./x.rpm</code> → 自动把 <code>httpd-core</code>、<code>system-logos-httpd</code> 一起解出来装上</div>
+      <div class="warn"><b><code>--test</code> 是唯一安全的试穿</b>：依赖检查、文件冲突检查全跑一遍，<b>一个文件都不写</b>。所有不确定的 rpm 装卸，先加 <code>--test</code>。<br>
+      ★ <b>进度条会骗人</b>：<code>Verifying... Preparing...</code> 出现不代表要装成了，它只是 rpm 在解包校验。<b>只认最后一行和退出码。</b></div>
+      <div class="why"><b>本质区别</b>：<code>dnf</code> = 仓库元数据 + 依赖求解；<code>rpm</code> = 单个文件的事务执行器，<b>不联网、不解依赖</b>。<br>
+      <b>实践</b>：能用 <code>dnf install ./x.rpm</code> 就别用 <code>rpm -ivh</code>；只有依赖确定齐全（或纯离线批量）时才用 rpm。<br>
+      <code>-i</code> 装（已存在则报冲突）· <code>-U</code> 升级或安装 · <code>-F</code> 只升级已装的 · <code>--replacepkgs</code> 允许重装同版本。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="P21">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P21"><span class="sid">P21</span> 卸载边界与退出码陷阱</label><span class="tag">--whatrequires 才是判据</span></div>
+    <div class="stb">
+      <pre>rpm -e --test glibc 2&gt;&amp;1 | head -3
+rpm -q --whatrequires openssh-server
+rpm -e --test openssh-server
+rpm -ivh --test /tmp/nonexist.rpm | head -2
+echo $?
+rpm -ivh --test /tmp/nonexist.rpm &gt; /tmp/e.txt 2&gt;&amp;1
 echo $?</pre>
-      <div class="ok"><b>成功长什么样</b>：<code>rpm -V</code> <b>无输出</b>，<code>echo $?</code> 是 0 —— 所有文件与安装时记录一致。</div>
-      <div class="note"><b>输出里的 9 个字符</b>：<code>S</code> 大小、<code>M</code> 权限、<code>5</code> 摘要、<code>D</code> 设备、<code>L</code> 链接、<code>U</code> 属主、<code>G</code> 属组、<code>T</code> 时间、<code>P</code> 能力。看到 <code>.M.......</code> 就是权限被改过（可能被 chmod 了）。</div>
+      <div class="ok"><b>成功长什么样</b>（实测）：<br>
+      · <code>rpm -e --test glibc</code> → 刷屏，<b>3428 条</b> <code>is needed by (installed) ...</code><br>
+      · <code>--whatrequires openssh-server</code> → <code>no package requires openssh-server</code><br>
+      · <code>rpm -e --test openssh-server</code> → <b>无输出、退出 0</b><br>
+      · <code>| head</code> 之后 <code>echo $?</code> → <b>0</b>；改成重定向后 <code>echo $?</code> → <b>1</b></div>
+      <div class="warn"><b>三件必须分开记的事</b>：<br>
+      ① <b>没有输出 ≠ 没有依赖者</b>。<code>openssh-server</code> 确实没有包依赖它（<code>--whatrequires</code> 空），所以 <code>rpm -e --test</code> 干净退出。要判断"能不能卸"，先问 <code>--whatrequires</code>。<br>
+      ② <b>sshd 正在运行 / 你正连着它，rpm 完全不看</b> —— rpm 只查 rpm 数据库里的依赖关系。<br>
+      ③ <b><code>| head</code> 会吞掉退出码</b>（拿到的是 head 的 0）。脚本里要判成败，重定向到文件再 <code>echo $?</code>，这一条对所有命令都成立。</div>
+      <div class="note"><b><code>--nodeps</code> 是拆系统</b>：<code>rpm -e --nodeps</code> 不管依赖硬删，删完系统可能"能开机但功能残缺"。真正需要时先用 <code>--test</code> 看清后果，再决定。</div>
     </div>
   </div>
 </section>
