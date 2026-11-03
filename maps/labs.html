@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>实操手册 · 总览</title>
+<style>
+:root{
+  --bg:#ffffff; --panel:#f6f7f9; --panel2:#eceff2; --bd:#e1e4e8;
+  --tx:#1f2328; --tx2:#57606a; --tx3:#8b949e;
+  --code:#f2f4f7; --accent:#2f6f4f; --warn:#b42318; --warnbg:#fdeceb;
+  --ok:#0f6e56; --okbg:#e7f6f0; --note:#185fa5; --notebg:#e8f2fb;
+  --l1:#BA7517; --l2:#378ADD; --l3:#7F77DD; --l4:#1D9E75; --l5:#639922; --l6:#D85A30;
+}
+html[data-theme="dark"]{
+  --bg:#14171a; --panel:#1b1f23; --panel2:#22272b; --bd:#30363d;
+  --tx:#e6edf3; --tx2:#9aa4ae; --tx3:#6e7681;
+  --code:#1b1f23; --accent:#5bbd8e; --warn:#f85149; --warnbg:#2d1618;
+  --ok:#5dcaa5; --okbg:#122b24; --note:#85b7eb; --notebg:#12202e;
+  --l1:#EF9F27; --l2:#85B7EB; --l3:#AFA9EC; --l4:#5DCAA5; --l5:#97C459; --l6:#F0997B;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--tx);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:12.6px;background:var(--code);padding:1px 5px;border-radius:4px}
+header{padding:26px 24px 18px;border-bottom:1px solid var(--bd)}
+.hd{max-width:1000px;margin:0 auto}
+h1{margin:0;font-size:22px;font-weight:600;letter-spacing:-.2px}
+.sub{margin:6px 0 0;color:var(--tx2);font-size:13.5px}
+.hdbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+.spacer{flex:1 1 auto}
+button{font-family:inherit;font-size:13px;padding:7px 12px;border:1px solid var(--bd);border-radius:8px;
+  background:var(--panel);color:var(--tx2);cursor:pointer}
+button:hover{border-color:var(--tx3);color:var(--tx)}
+.nav a{font-size:13px;margin-right:14px;color:var(--tx2)}
+main{max-width:1000px;margin:0 auto;padding:22px 24px 8px}
+section{margin-bottom:34px}
+h2{font-size:16px;font-weight:600;margin:0 0 4px;display:flex;align-items:center;gap:9px}
+h2::before{content:"";width:3px;height:15px;border-radius:2px;background:var(--accent);flex:0 0 auto}
+h2 .n{font-size:12px;color:var(--tx3);font-weight:400}
+p.lead{margin:8px 0 14px;color:var(--tx2);font-size:13.5px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.card{border:1px solid var(--bd);border-radius:12px;background:var(--bg);padding:16px 18px 14px;
+  display:flex;flex-direction:column;transition:border-color .15s}
+.card:hover{border-color:var(--tx3)}
+.card .kicker{font-size:11.5px;letter-spacing:.4px;color:var(--tx3);text-transform:uppercase}
+.card h3{margin:3px 0 2px;font-size:16px;font-weight:600}
+.card h3 a{color:var(--tx)}
+.card .desc{margin:6px 0 10px;font-size:13.2px;color:var(--tx2);flex:1 1 auto}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.chip{font-size:11.8px;padding:2px 8px;border-radius:6px;border:1px solid var(--bd);color:var(--tx2);background:var(--panel)}
+.chip.c1{border-color:var(--l1);color:var(--l1)}
+.chip.c2{border-color:var(--l2);color:var(--l2)}
+.chip.c3{border-color:var(--l3);color:var(--l3)}
+.chip.c4{border-color:var(--l4);color:var(--l4)}
+.chip.c5{border-color:var(--l5);color:var(--l5)}
+.chip.c6{border-color:var(--l6);color:var(--l6)}
+.bar{height:6px;border-radius:4px;background:var(--panel2);overflow:hidden;margin:0 0 6px}
+.bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:4px;transition:width .3s}
+.stat{display:flex;justify-content:space-between;font-size:12.3px;color:var(--tx3);margin-bottom:10px}
+.stat b{color:var(--accent);font-weight:600}
+.go{display:inline-block;font-size:13px;font-weight:500;padding:6px 0}
+.badge{display:inline-block;font-size:11.5px;padding:1px 7px;border-radius:5px;margin-left:6px;vertical-align:2px}
+.badge.done{background:var(--okbg);color:var(--ok)}
+.badge.doing{background:var(--notebg);color:var(--note)}
+
+.note,.warn{margin:10px 0;padding:9px 13px 9px 31px;border-radius:8px;font-size:13.2px;position:relative;line-height:1.62}
+.note{background:var(--notebg);color:var(--note)}
+.note::before{content:"i";position:absolute;left:12px;top:9px;font-weight:700;font-style:italic}
+.warn{background:var(--warnbg);color:var(--warn)}
+.warn::before{content:"!";position:absolute;left:12px;top:9px;font-weight:700}
+.note b,.warn b{font-weight:600}
+
+.list{border:1px solid var(--bd);border-radius:10px;overflow:hidden}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;padding:11px 15px;border-bottom:1px solid var(--bd);font-size:13.4px}
+.row:last-child{border-bottom:none}
+.row .t{font-weight:500;color:var(--tx);flex:0 0 auto;min-width:150px}
+.row .d{color:var(--tx2);font-size:13px;flex:1 1 240px}
+footer{border-top:1px solid var(--bd);margin-top:10px;padding:16px 24px;color:var(--tx3);font-size:12.5px}
+footer .in{max-width:1000px;margin:0 auto}
+@media(max-width:560px){
+  .grid{grid-template-columns:1fr}
+  h1{font-size:19px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="hd">
+    <h1>实操手册 · 总览</h1>
+    <p class="sub">每个能力域一本手册，全部是「照着敲就能走完」的形态：编号步骤 + 每步「成功长什么样」+ 可勾选记录进度。这里只做目录和进度汇总。</p>
+    <div class="hdbar">
+      <div class="nav">
+        <a href="/maps/rhcsa.html">RHCSA 学习地图</a>
+        <a href="/maps/lvm.html">磁盘→LVM 关系图</a>
+        <a href="/study-log/">学习日志</a>
+      </div>
+      <div class="spacer"></div>
+      <button id="tbtn" type="button">切换深色</button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<section>
+  <h2>手册 <span class="n">按学习顺序排，越靠前越基础</span></h2>
+  <p class="lead">下面每个卡片都能直接进手册。进度是从各手册自己存的勾选记录里读出来的，<b>只反映当前这个浏览器</b>。</p>
+
+  <div class="grid">
+
+    <div class="card">
+      <div class="kicker">存储域</div>
+      <h3><a href="/maps/storage-lab.html">存储实操手册</a><span class="badge done">已走完</span></h3>
+      <p class="desc">分区 → 文件系统 → 挂载 → LVM → 扩容 → swap，四个实验各自独立可跑。含重置起点与 13 条报错速查。</p>
+      <div class="chips">
+        <span class="chip c1">A 裸分区直挂</span>
+        <span class="chip c2">B LVM 新建</span>
+        <span class="chip c3">C 根分区扩容</span>
+        <span class="chip c4">D swap</span>
+      </div>
+      <div class="bar"><i data-bar="storage"></i></div>
+      <div class="stat"><span>已记录 <b data-n="storage">0</b> 步</span><span>共 34 步</span></div>
+      <a class="go" href="/maps/storage-lab.html">打开手册 →</a>
+    </div>
+
+    <div class="card">
+      <div class="kicker">软件包与仓库</div>
+      <h3><a href="/maps/pkgs-lab.html">软件包实操手册</a><span class="badge doing">进行中</span></h3>
+      <p class="desc">dnf 的五步链、本地 <code>file://</code> 仓库、远程仓库、装卸与回滚、组与 module stream、rpm 直接操作。</p>
+      <div class="chips">
+        <span class="chip c2">仓库与 repodata</span>
+        <span class="chip c5">本地仓库</span>
+        <span class="chip c1">装卸与回滚</span>
+        <span class="chip c3">组 / 模块流</span>
+      </div>
+      <div class="bar"><i data-bar="pkgs"></i></div>
+      <div class="stat"><span>已记录 <b data-n="pkgs">0</b> 步</span><span>共 19 步</span></div>
+      <a class="go" href="/maps/pkgs-lab.html">打开手册 →</a>
+    </div>
+
+  </div>
+
+  <div class="note"><b>为什么只有两本</b>：手册随进度长，做完一个能力域才写一本。后面的 systemd、计划任务、网络、firewalld、SELinux、SSH、文本处理，都会各自开一本，新增的会自动出现在这里。</div>
+</section>
+
+<section>
+  <h2>配套图 <span class="n">不是操作流程，是「想清楚」用的</span></h2>
+  <p class="lead">手册回答「怎么做」，图回答「为什么是这样」。卡住时先看图，再回手册。</p>
+  <div class="list">
+    <div class="row">
+      <span class="t"><a href="/maps/rhcsa.html">RHCSA 学习地图</a></span>
+      <span class="d">按能力域组织的知识地图：机制解释、判定标准、易错点、练习题。每条学习日志的「能力索引」都指向这里。</span>
+    </div>
+    <div class="row">
+      <span class="t"><a href="/maps/lvm.html">磁盘 → LVM 关系图</a></span>
+      <span class="d">一张图看清谁包含谁：磁盘 → 分区 → PV → VG → LV → 文件系统 → 挂载点，每层由谁产生、怎么查、怎么撤。</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>怎么用这套东西 <span class="n">三条规矩</span></h2>
+  <div class="list">
+    <div class="row">
+      <span class="t">① 先看「成功长什么样」</span>
+      <span class="d">每一步都写死了验收标准。没有输出就等于没做对，别往下走。这条能挡掉大部分「以为做完了」。</span>
+    </div>
+    <div class="row">
+      <span class="t">② 勾选框只记自己做过</span>
+      <span class="d">标〔尚未在本机验证〕的步骤是写在纸上还没走的，别勾。勾了下次自己会被骗。</span>
+    </div>
+    <div class="row">
+      <span class="t">③ 进度存在浏览器里</span>
+      <span class="d">换浏览器、清缓存、换设备都会重置。它只是提醒，不是成绩单。</span>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="in">实验机实测整理，随进度更新。所有手册均为单文件页面，离线也可打开。</div>
+</footer>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  var KEY = 'labs-theme';
+  var btn = document.getElementById('tbtn');
+  function paintBtn(){ btn.textContent = root.dataset.theme === 'dark' ? '切换浅色' : '切换深色'; }
+  try{
+    var s = localStorage.getItem(KEY);
+    if(s){ root.dataset.theme = s; }
+    else if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){ root.dataset.theme = 'dark'; }
+  }catch(e){}
+  paintBtn();
+  btn.addEventListener('click', function(){
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem(KEY, root.dataset.theme); }catch(e){}
+    paintBtn();
+  });
+
+  var MAP = [
+    { id:'storage', ckey:'storage-lab-checks', total:34 },
+    { id:'pkgs',    ckey:'pkgs-lab-checks',    total:19 }
+  ];
+  MAP.forEach(function(m){
+    var n = 0;
+    try{
+      var st = JSON.parse(localStorage.getItem(m.ckey) || '{}') || {};
+      n = Object.keys(st).filter(function(k){ return st[k]; }).length;
+    }catch(e){ n = 0; }
+    if(n > m.total){ n = m.total; }
+    var num = document.querySelector('[data-n="' + m.id + '"]');
+    var bar = document.querySelector('[data-bar="' + m.id + '"]');
+    if(num){ num.textContent = n; }
+    if(bar){ bar.style.width = (m.total ? Math.round(n / m.total * 100) : 0) + '%'; }
+  });
+})();
+</script>
+</body>
+</html>
