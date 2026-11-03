@@ -328,8 +328,12 @@ dnf versionlock delete tree</pre>
         · <code>dnf update grub2-tools</code> → <code>Nothing to do.</code><br>
         <code>list</code> / <code>repoquery</code> 走的是包集合查询，<code>update</code> / <code>install</code> 走的是事务求解器，<b>versionlock 只塞进后者</b>。<br>
         ⇒ <b>所以「锁前 / 锁后跑同一条 list」这个对照是无效的，别用。</b></div>
-      <div class="note"><b>正确判据（两条合起来才成立）</b>：① 用<b>不受锁影响</b>的命令确认候选确实存在 —— <code>dnf list --upgrades &lt;包&gt;</code> 或 <code>dnf check-update</code>；② 看 <code>dnf update &lt;包&gt;</code> 是否真的不动。<b>「有候选」+「不动」= 锁生效</b>。<br>
-        决定性复核（不会真的升级）：<code>dnf update &lt;包&gt; --disableexcludes=all --assumeno</code> —— 若这时列出了升级面版并 <code>Operation aborted.</code>，说明之前不动的原因就是排除规则。<code>--assumeno</code> 自动答 No，安全。</div>
+      <div class="note"><b>正确判据（两条合起来才成立）</b>：① 用<b>不受锁影响</b>的命令确认候选确实存在 —— <code>dnf list --upgrades &lt;包&gt;</code> 或 <code>dnf check-update</code>；② 看 <code>dnf update &lt;包&gt;</code> 是否真的不动。<b>「有候选」+「不动」= 锁生效</b>。<code>dnf update &lt;包&gt; --assumeno</code> 会自动答 No，只解析不执行，拿来复核很安全。</div>
+      <div class="warn"><b>★ <code>--disableexcludes=all</code> 绕不过 versionlock（实测）</b>：它只管 <code>.repo</code> 里的 <code>excludepkgs</code>，versionlock 的过滤走的是另一条通道。锁后执行 <code>dnf update &lt;包&gt; --disableexcludes=all --assumeno</code>，照样 <code>Nothing to do.</code>。<b>只有 <code>versionlock delete</code> / <code>clear</code> 能解。</b></div>
+      <div class="warn"><b>另外两个易错点</b>：<br>
+        ① <b>显式写全 NVRA 也装不上</b>：<code>dnf install 包-新版本</code> 会报 <code>All matches were filtered out by exclude filtering</code>。锁不是「只挡自动选版本」。<br>
+        ② <b>对没安装的包执行 <code>add</code> 是陷阱</b>：会把当时仓库里<b>所有可用版本全部加锁</b>（实测 5 条），以后新版本永远进不来。动手前先 <code>versionlock list</code> 看清楚。</div>
+      <div class="note"><b>锁文件在哪</b>：<code>/etc/dnf/plugins/versionlock.list</code>，由 <code>versionlock.conf</code> 里的 <code>locklist=</code> 指定，<code>dnf versionlock list</code> 读的就是它。<b>锁对 <code>reinstall</code> 无效</b> —— 锁的是当前版本，重装同一版本不算升级，照常执行。</div>
       <div class="warn"><b>另外：拿一个「本来就是最新版」的包测锁，是无效实验</b>。锁生效与没得升，两条路都是 <code>Nothing to do.</code>。先用 <code>dnf check-update</code> 找一个真正有更新的包（本机当时是 <code>grub2</code> 系列 126→127）。</div>
     </div>
   </div>

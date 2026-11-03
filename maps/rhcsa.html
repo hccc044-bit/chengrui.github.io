@@ -1241,8 +1241,8 @@ const MAP = [
   ]
 },
 {
-  id: 'pkg', name: '五、软件包与仓库', status: 'doing',
-  note: '一句话概括这一域：仓库 = 一堆包 + 一份索引。dnf 只认索引（repodata/repomd.xml），从不扫目录里的 rpm —— 这一域所有的坑都是从这句话长出来的。',
+  id: 'pkg', name: '五、软件包与仓库', status: 'ok',
+  note: '一句话概括这一域：仓库 = 一堆包 + 一份索引。dnf 只认索引（repodata/repomd.xml），从不扫目录里的 rpm —— 这一域所有的坑都是从这句话长出来的。考纲内的部分已走完（仓库 / 装删 / versionlock 边界 / rpm 查询），直接操作 rpm 文件那一段是选做。',
   nodes: [
     {
       t: '仓库的三层：文件 → 定义 → 启用集',
@@ -1310,12 +1310,61 @@ const MAP = [
         '<p>不加通配时，dnf 会先把参数当包名 / 能力名匹配一遍，容易给出意外的结果；写成 <code>*/xxx</code> 等于明确告诉它「这是一个路径」。</p>',
         '<p><span class="ok">判据：provides 的输出里看 <code>Matched from</code> 和 <code>Repo</code> 两列 —— 前者说「以什么身份匹配上」，后者说「来自哪个仓库」。</span></p>'
       ]
+    },
+    {
+      q: 'dnf versionlock 把包锁住之后，用 dnf list --upgrades 还看得见升级候选 —— 是锁没生效吗？怎么设计一个不骗人的实验？',
+      a: [
+        '<div class="lbl">同一个锁，两个层给出相反的答案</div>',
+        '<p>实测（本机 <code>grub2-tools</code> 126，仓库 127）：上锁之后 <code>dnf list --upgrades grub2-tools</code> 与 <code>dnf repoquery --upgrades grub2-tools</code> <b>照样显示 127</b>，而 <code>dnf update grub2-tools</code> 是 <code>Nothing to do.</code>。</p>',
+        '<p>原因：<code>list</code> / <code>repoquery</code> 走<b>包集合查询</b>（sack query），<code>update</code> / <code>install</code> 走<b>事务求解器</b>（libsolv job）。versionlock 的排除只被塞进后者。所以 <b>「锁前 / 锁后跑同一条 list」是无效对照</b> —— 两次都显示 127，证明不了任何事。</p>',
+        '<div class="lbl">正确判据：两个层各取一次证</div>',
+        '<pre>dnf list --upgrades &lt;包&gt;      # ① 查询层：确认候选确实存在（不受锁影响，正好当基准）\ndnf update &lt;包&gt;              # ② 求解层：看它是否真的不动</pre>',
+        '<p><span class="ok">「候选存在」+「update 不动」= 锁生效。</span>两步缺一不可。另外必须先用 <code>dnf check-update</code> 找一个<b>真正有更新</b>的包：拿本来就是最新版的包测锁，锁生效与没得升级都是 <code>Nothing to do.</code>，两条路无法区分。</p>',
+        '<div class="lbl">三个容易想当然的地方（都实测过）</div>',
+        '<ul>',
+        '<li><code>--disableexcludes=all</code> <b>绕不过</b> versionlock。它只管 <code>.repo</code> 里的 <code>excludepkgs</code>，碰不到插件的过滤通道。只有 <code>versionlock delete / clear</code> 能解。</li>',
+        '<li>显式写全 NVRA 也装不上：<code>dnf install 包-新版本</code> → <code>All matches were filtered out by exclude filtering</code>。不是「自动选版本时才拦」。</li>',
+        '<li>对<b>没安装</b>的包执行 <code>versionlock add</code>，会把当时仓库里所有可用版本<b>全部加锁</b>，以后新版本永远进不来。锁文件在 <code>/etc/dnf/plugins/versionlock.list</code>，<code>list</code> 一眼能看出来。</li>',
+        '</ul>',
+        '<p><code>dnf reinstall</code> 照常执行 —— 锁的就是当前版本，重装同一版本不算升级。</p>'
+      ]
+    },
+    {
+      q: 'dnf remove 明明只删了一个包，依赖却被一起清掉了 —— 那 dnf history undo 和 remove 到底差在哪？',
+      a: [
+        '<div class="lbl">先看配置文件，再看命令</div>',
+        '<p>实测 <code>dnf remove htop</code> 的输出里有 <code>Removing unused dependencies: hwloc-libs</code>，两个包一起走。原因是 <code>/etc/dnf/dnf.conf</code> 默认 <code>clean_requirements_on_remove=True</code>：<b>不再被需要的依赖会被顺手清掉</b>。在这个场景里 remove 和 undo 的结果<b>完全相同</b>。</p>',
+        '<p>★ 命令的语义有一部分写在配置文件里，不在命令本身。讲「A 和 B 有什么区别」之前，先确认影响语义的那个默认项 —— 否则讲的是上游 dnf 的行为，不是这台机器的行为。</p>',
+        '<div class="lbl">undo 真正不可替代的三种场合</div>',
+        '<ul>',
+        '<li>事务里是<b>升级</b> → undo 会<b>降级回原版本</b>；remove 只会删掉，不会退回旧版。</li>',
+        '<li>事务里是 <b>remove</b> → undo 会把包装回去；remove 做不到。</li>',
+        '<li>一个事务动了 <b>N 个包</b> → undo 整体回退，不依赖你记得那 N 个包名。</li>',
+        '</ul>',
+        '<div class="lbl">一个参数位置的小坑</div>',
+        '<p><code>dnf history info latest</code> 不报「参数非法」，而是 <code>No transaction which manipulates package \'latest\' was found</code> —— 因为那个位置既可以是事务 ID，也可以被当成<b>包名</b>（<code>dnf history info &lt;包&gt;</code> 是查这个包的历史）。写错一个词，走的是另一条合法路径。正解是 <code>last</code>。</p>'
+      ]
+    },
+    {
+      q: 'rpm -V 输出的九个位置上，哪一位亮了才说明文件内容真的被改了？为什么改回去之后那一位还消不掉？',
+      a: [
+        '<div class="lbl">九位顺序（对不上就是没背下来）</div>',
+        '<p><code>S</code> 大小 · <code>M</code> 权限 · <code>5</code> 内容摘要 · <code>D</code> 设备号 · <code>L</code> 链接指向 · <code>U</code> 属主 · <code>G</code> 属组 · <code>T</code> mtime · <code>P</code> capabilities。行尾 <code>c</code> = 配置文件，<code>d</code> = 文档，空 = 普通文件。</p>',
+        '<pre>rpm -V openssh-server        # 基线：无输出，退出 0\necho "# lab" &gt;&gt; /etc/ssh/sshd_config   # → S.5....T.  c\nchmod 644 /etc/ssh/sshd_config        # → .M.....T.  c\nchmod 600 /etc/ssh/sshd_config        # → .......T.  c  ← T 消不掉</pre>',
+        '<div class="lbl">只有 5 位是「内容变了」</div>',
+        '<p><code>S</code> 是大小、<code>M</code> 是权限 <b>和它记录的值不同</b>、<code>T</code> 是 mtime 变了 —— 三者都可能因为合法操作出现。真正说明<b>内容被改过</b>的是第 3 位 <code>5</code>（MD5 摘要不符）。</p>',
+        '<div class="lbl">T 为什么永远消不掉</div>',
+        '<p>因为 <b>mtime 本身也是被校验的</b>：内容改回来、权限改回来，文件时间戳已经被永久改掉，<code>T</code> 就一直在。想彻底复原，得用 <code>touch -r 包内原文件</code> 借时间戳，<b>手写一个近似时间不行</b>（真值 <code>20:05:41</code>，写 <code>20:05:00</code> 照样报 T）。</p>',
+        '<p><span class="ok">判据：<code>rpm -V</code> 有输出 ≠ 文件坏了。逐位看，别把整个输出当成「被入侵了」。</span></p>',
+        '<div class="lbl">顺带两个查询边界</div>',
+        '<p><code>rpm -qc</code> 只列<b>文件级</b>的配置，目录永远不列（<code>-ql | grep ^/etc</code> 比它多一行，多的那行是目录）。一次查多个包时，<b>只要有一个没装，退出码就是 3</b>。</p>'
+      ]
     }
   ]
 },
 {
-  id: 'sys', name: '六、运行中系统与服务', status: 'todo',
-  note: '尚未展开。这一域是「贯穿工具」而不是「学完就过」的模块，从系统管理的第一天起就一直在用。',
+  id: 'sys', name: '六、运行中系统与服务', status: 'doing',
+  note: '这一域是「贯穿工具」而不是「学完就过」的模块。已进：服务的两个维度（enabled × active）与 unit 查找优先级、mask 的机制。待进：target、journalctl、计划任务三件套、时间同步。',
   nodes: [
     {
       t: '本节将要覆盖的能力',
@@ -1325,14 +1374,54 @@ const MAP = [
         '日志：journalctl 的时间过滤、按单元过滤、持久化配置',
         '计划任务：cron（crontab -e / -l / -r、/etc/cron.d）、at、systemd timer',
         '启动与目标：systemctl get-default / set-default、单用户模式与 root 口令重置',
-        '软件包管理深入：组安装、module 流、rpm 查询（仓库基础见第五章）',
         '时间同步：chrony / timedatectl',
         '系统调优：tuned 的 profile 切换'
       ],
-      k: ['→ 进度：未开始。等存储与挂载收尾后展开。']
+      k: ['→ 进度：已开始。服务的两个维度与 mask 机制已实测，其余待展开。']
+    },
+    {
+      t: '服务的两个维度：enabled 与 active',
+      p: ['「服务起没起」和「开机自不自启」是<b>两个独立的事实</b>，两个命令分别回答，四种组合都真实存在。'],
+      c: [
+        ['systemctl start / stop / restart <unit>', '改的是<b>现在</b>：active ↔ inactive'],
+        ['systemctl enable / disable <unit>', '改的是<b>开机</b>：在 multi-user.target.wants/ 里建 / 删符号链接'],
+        ['systemctl is-active <unit>', '只回答「现在跑着吗」'],
+        ['systemctl is-enabled <unit>', '只回答「开机会起来吗」；返回值还有 static / masked 等'],
+        ['systemctl status <unit>', '两件事一起看：Loaded 行给 enabled 状态，Active 行给运行状态'],
+        ['systemctl mask / unmask <unit>', '比 disable 更彻底：连手动 start 都不许']
+      ],
+      k: ['→ 四象限实测：<code>disable</code> 之后 <code>is-enabled=disabled</code> 而 <code>is-active=active</code> —— 服务照旧跑着，只是下次开机不起来了。',
+          '★ <code>enable</code> 的输出是「Created symlink …→ /usr/lib/systemd/system/xxx.service」，这条链接<b>就是</b>「开机自启」的全部实体。没有别的地方记着这件事。',
+          '★ 环境太干净时（本机 16 个运行中服务全是 enabled+active）没有现成样本，要<b>人为造</b>：stop 一个保持 enabled、disable 一个保持运行。']
+    },
+    {
+      t: 'unit 文件放哪儿，mask 是怎么成立的',
+      p: ['systemd 找 unit 时按目录<b>优先级</b>取第一个碰到的，同名文件后面的直接被盖掉、不是合并。'],
+      k: ['→ 查找顺序：<code>/etc/systemd/system</code> &gt; <code>/run/systemd/system</code> &gt; <code>/usr/lib/systemd/system</code>。<code>/etc</code> 最高，这是「不改厂商文件也能覆盖」的通用手法。',
+          '★ <code>mask</code> 就是往 <code>/etc</code> 放一个指向 <code>/dev/null</code> 的同名 unit —— 不是删除、不是改标志位，而是<b>用一个空 unit 把真 unit 盖住</b>。所以 mask 之后连 <code>start</code> 都会失败：<code>Failed to start xxx.service: Unit xxx.service is masked.</code>',
+          '★ <code>unmask</code> 之后 <code>is-enabled</code> 可能<b>直接回到 enabled</b> —— 因为 disable 时删的是 wants 里的链接，而 mask 期间那条链接一直没被动过。mask 和 enable/disable 管的是两样东西。',
+          '→ <code>systemctl show -p FragmentPath <unit></code> 能问出这个 unit 文件<b>实际</b>是从哪个路径读来的，比猜优先级快。']
     }
   ],
-  quiz: []
+  quiz: [
+    {
+      q: '对 crond 执行 systemctl mask 之后，为什么连手动 start 都失败？unmask 之后为什么 is-enabled 又变回 enabled？',
+      a: [
+        '<div class="lbl">mask 不是「禁止自启」，是「禁止存在」</div>',
+        '<p><code>mask</code> 会在 <code>/etc/systemd/system/crond.service</code> 建一个<b>指向 <code>/dev/null</code></b> 的符号链接。systemd 按 <code>/etc</code> &gt; <code>/run</code> &gt; <code>/usr/lib</code> 的顺序找 unit，先碰到这个空壳，真正的 <code>/usr/lib/systemd/system/crond.service</code> 就被盖掉了。</p>',
+        '<p>于是 <code>start</code> 报 <code>Failed to start crond.service: Unit crond.service is masked.</code>，退出码 1 —— <b>它不知道怎么启动一个空的 unit</b>，不是权限问题。</p>',
+        '<div class="lbl">unmask 回到 enabled，说明两套开关互不相干</div>',
+        '<ul>',
+        '<li><code>enable / disable</code> 管的是 <code>/etc/systemd/system/multi-user.target.wants/</code> 里那条链接</li>',
+        '<li><code>mask / unmask</code> 管的是 <code>/etc/systemd/system/</code> 下那个指向 <code>/dev/null</code> 的链接</li>',
+        '</ul>',
+        '<p>mask 期间 wants 里的链接一直没被删，所以 unmask 把空壳拿掉之后，状态自然回到 enabled。<span class="ok">判据：判断「某个开关的状态」时，先问它改的是哪个文件 —— 想看实际读到了什么，用 <code>systemctl show -p FragmentPath</code>。</span></p>',
+        '<div class="lbl">和 disable 的区别</div>',
+        '<p><code>disable</code> = 可以手动启，只是开机会不启；<code>mask</code> = 连手动启都不许，通常用在「别的服务会把它拉起来」时（依赖关系、socket 激活）。</p>',
+        '<p>★ 还要区分 <code>is-enabled</code> 与 <code>is-active</code>：这两个问题各有各的答案。<code>disable</code> 一个正在跑的服务，它<b>继续跑</b>，只是下次开机不起来了。</p>'
+      ]
+    }
+  ]
 },
 {
   id: 'shell', name: '七、Shell 脚本与文本处理', status: 'todo',
@@ -1472,6 +1561,26 @@ const MAP = [
         '<p>子进程（<code>spawn</code> / <code>spawnSync</code> / <code>system()</code>）默认<b>继承调用者的工作目录</b>；而生成、打包、编译这类工具大多按「当前目录」去找配置文件。目录不对时，很多工具<span class="no">不报错，只是找不到东西、什么都不做</span>。→ <b>脚本里调外部命令，工作目录和退出码一样要显式管。</b></p>',
         '<div class="lbl">和前面几条是同一族</div>',
         '<p><code>dnf repolist</code> 验的是源列表能不能解析、<code>blkid</code> 验的是签名、<code>mount -a</code> 在挂载点已存在时会直接跳过、<code>pvs</code> 的 <code>&lt;7.00g</code> 只是取整。★ 判据永远是那一句：<b>「我看到的这个结果，是在哪一层产生的？」</b></p>'
+      ]
+    },
+    {
+      q: '命令跑完了、没报错、退出码 0 —— 但什么都没发生。这种情况怎么在事前就识破？',
+      a: [
+        '<div class="lbl">「空结果」是最难识破的一种输出</div>',
+        '<p>因为一条输出为空 / 说「无事可做」的命令，<b>同时兼容两个相反的结论</b>：机制生效了，或者本来就没有东西可做。两个实例都很典型：</p>',
+        '<ul>',
+        '<li><code>dnf update tree</code> → <code>Nothing to do.</code>：可能是 versionlock 挡住了，也可能是 <code>tree</code> 本来就最新</li>',
+        '<li><code>rpm2cpio x.rpm | cpio -idmv etc/ssh/sshd_config</code>（少了 <code>./</code>）→ 一个文件都没提取，仍打印 <code>2992 blocks</code>、<b>退出 0</b></li>',
+        '</ul>',
+        '<div class="lbl">事前就该问的一句</div>',
+        '<p><span class="ok">「如果它<b>有</b>东西可做，这条命令会显示成什么样？」</span>答不上来，这条命令就不能当验收用。</p>',
+        '<div class="lbl">三种补救</div>',
+        '<ul>',
+        '<li><b>先跑一次阳性对照</b>：换一个确定有东西的对象，确认这条命令「有东西时确实会显示」。<code>dnf check-update</code> 找一个真有更新的包，再回来测锁。</li>',
+        '<li><b>让操作产生可见副作用再验</b>：<code>cpio</code> 之后 <code>ls -l</code> 目标文件，而不是看它打印了几个 blocks。</li>',
+        '<li><b>管道会换掉退出码</b>：<code>cmd | head</code> 之后 <code>$?</code> 是 <code>head</code> 的 0。<code>rpm -ivh --test /tmp/nonexist.rpm | head</code> 拿到 0，去掉管道才是 1。要判成败，重定向到文件再 <code>echo $?</code>。</li>',
+        '</ul>',
+        '<p>★ 和前面几条同源：<b>没报错不是证据，能区分两种可能才是证据。</b></p>'
       ]
     }
   ]
