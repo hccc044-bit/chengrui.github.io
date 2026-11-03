@@ -380,7 +380,9 @@ dnf module reset nodejs</pre>
 </section>
 
 <section>
-  <h2>6 · 直接处理 rpm 文件 <span class="n">离线场景，以及「dnf 和 rpm 到底差在哪」</span></h2>
+  <h2>6 · 直接处理 rpm 文件 <span class="n">选做：不在考纲里，用来解释 dnf 的报错</span></h2>
+
+  <div class="note"><b>先说清楚定位</b>：EX200 考纲只写到「通过红帽 CDN、远程存储库<b>或本地文件系统</b>安装和更新软件包」，标准做法是 <code>dnf install /path/x.rpm</code>；<b><code>rpm -V</code> / <code>rpm2cpio</code> 都不在考纲</b>。这一章是「深层理解 + 排障」内容，<b>可以先跳过</b>，等 dnf 报错看不懂时再回来。</div>
 
   <div class="stp" data-id="P17">
     <div class="sth"><label><input type="checkbox" class="ck" data-k="P17"><span class="sid">P17</span> rpm 查询七连（纯只读）</label><span class="tag">一个包的全部身份</span></div>
