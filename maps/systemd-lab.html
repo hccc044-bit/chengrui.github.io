@@ -232,6 +232,61 @@ systemctl list-units  --type=service --all --no-legend | wc -l</pre>
       <div class="warn"><b>★ 这条是今天最坑的一处</b>：<code>list-unit-files --state=running</code> 会输出 <code>0 unit files listed.</code>、<b>stderr 一片空白</b>、<b>退出码 1</b>。因为 <code>running</code> 是 sub-state，<code>list-unit-files</code> 不认；但如果你接了 <code>| wc -l</code>，退出码换成 <code>wc</code> 的 0，你只会看到一个「0」，看着像「没有服务在跑」。<br>正确做法：<code>--state=running</code> 只配 <code>list-units</code>；要判成败，别接管道。</div>
     </div>
   </div>
+
+  <div class="stp" data-id="T7">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T7"><span class="sid">T7</span> restart 换进程，reload 不换</label><span class="tag">盯住 MainPID</span></div>
+    <div class="stb">
+      <pre>systemctl show -p MainPID --value crond
+systemctl restart crond
+systemctl show -p MainPID --value crond
+systemctl show -p CanReload crond
+systemctl reload crond
+systemctl show -p MainPID --value crond</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>restart</code> 前后 PID <b>一定不同</b>（实测 7565 → 7922）；<code>reload</code> 前后 PID <b>一定相同</b>（实测 8025 → 8025）；<code>CanReload=yes</code>。</div>
+      <div class="why"><b>机制</b>：<code>restart</code> = <code>stop</code> + <code>start</code>，旧进程被杀、新进程拉起，PID 必然变。<code>reload</code> 不杀进程，只按 unit 里的 <code>ExecReload=</code> 给现有进程发信号（crond 是 <code>/bin/kill -HUP $MAINPID</code>），进程本身没死，PID 自然不变。</div>
+      <div class="warn"><b>reload 不是万能的</b>：unit 里没写 <code>ExecReload=</code> 就不支持。先查 <code>systemctl show -p CanReload X</code>（<code>yes</code>/<code>no</code>）。硬要 reload 会得到 <code>Failed to reload X: Job type reload is not applicable for unit X.</code>，<b>退出码 3</b>（不是 1）。本机实测：<code>crond</code>、<code>sshd</code> 是 yes，<code>chronyd</code>、<code>dnf-makecache</code> 是 no。</div>
+      <div class="note"><b>考试怎么选</b>：改监听地址/端口、换了被监听的 socket → <code>restart</code>；只是重读配置（日志级别、白名单）→ <code>reload</code>，不断连接。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="T8">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T8"><span class="sid">T8</span> <code>--now</code> 把两条命令合成一条</label><span class="tag">enable --now / disable --now</span></div>
+    <div class="stb">
+      <pre>systemctl disable --now crond
+systemctl is-enabled crond; systemctl is-active crond
+systemctl enable --now crond
+systemctl is-enabled crond; systemctl is-active crond</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>disable --now</code> 之后 <b>disabled + inactive</b>；<code>enable --now</code> 之后 <b>enabled + active</b>。会同时打印 <code>Removed ...</code> / <code>Created symlink ...</code>。</div>
+      <div class="why"><b>等价关系</b>：<code>enable --now</code> = <code>enable</code> + <code>start</code>；<code>disable --now</code> = <code>disable</code> + <code>stop</code>。<code>--now</code> 只负责「顺手把另一个维度也做了」，没有新增语义。<br>所以 <code>enable --now</code> <b>不等于</b> <code>restart</code>：服务已经在跑时，它不会再起一次，PID 不变。</div>
+      <div class="note"><b>考试省时间</b>：装完 httpd 要「开机自启且现在就跑」，一条 <code>systemctl enable --now httpd</code> 就够，别写成两条。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="T9">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T9"><span class="sid">T9</span> <code>static</code>：没有 [Install] 段的服务</label><span class="tag">enable 返回 0 却没生效</span></div>
+    <div class="stb">
+      <pre>systemctl is-enabled dnf-makecache.service; echo "exit=$?"
+systemctl cat dnf-makecache.service | grep -n Install; echo "grep_exit=$?"
+systemctl enable dnf-makecache.service; echo "enable_exit=$?"
+systemctl is-enabled dnf-makecache.service
+ls /etc/systemd/system/multi-user.target.wants/ | grep makecache; echo "ls_exit=$?"</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>is-enabled</code> 输出 <b>static</b>、<b>exit=0</b>；<code>grep Install</code> <b>无输出、exit=1</b>（证明没有 <code>[Install]</code> 段）；<code>enable</code> 往 <b>stderr</b> 打一大段 <code>The unit files have no installation config (WantedBy=, RequiredBy=, Also=, Alias= ...)</code>，但 <b>enable_exit=0</b>；最后 <code>is-enabled</code> 仍是 <b>static</b>，<code>ls | grep</code> 找不到链接。</div>
+      <div class="why"><b>static 的含义</b>：unit 文件里<b>没有 <code>[Install]</code> 段</b>。而 <code>enable</code> 的全部工作就是读 <code>[Install]</code> 里的 <code>WantedBy=</code> 去建链接 —— 没有这段，它不知道往哪儿建，所以「没法被 enable」。这种 unit 只能：被别的 unit 用 <code>Wants=</code>/<code>Requires=</code> 拉起来，或者手动 <code>start</code>。</div>
+      <div class="warn"><b>★ 这是今天第 13 个「验收命令会骗人」</b>：<code>systemctl enable</code> <b>退出码 0</b> ≠ 启用成功。因为它认为「这个 unit 不需要安装配置」不算错误。判断是否真生效，只能看 <code>is-enabled</code> 的结果和 <code>wants/</code> 里有没有新链接。<br>反过来：<code>is-enabled</code> 对 <code>enabled</code> 和 <code>static</code> <b>都返回 0</b>，光看退出码区分不出来，必须看文本。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="T10">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T10"><span class="sid">T10</span> <code>--state=enable</code>：拼错一个字，静默返回 0 个</label><span class="tag">systemctl 不校验 state 取值</span></div>
+    <div class="stb">
+      <pre>systemctl list-unit-files --type=service --state=enable; echo "exit=$?"
+systemctl list-unit-files --type=service --state=enable | wc -l; echo "pipe_exit=$?"
+systemctl list-unit-files --type=service --state=enabled --no-legend | wc -l</pre>
+      <div class="ok"><b>成功长什么样</b>：前两条都打印 <code>0 unit files listed.</code>，但<b>第一条 <code>exit=1</code>、第二条 <code>pipe_exit=0</code></b>；第三条是 <b>23</b>（正确拼写）。</div>
+      <div class="why"><b>为什么会这样</b>：合法值是形容词 <code>enabled</code>，不是动词 <code>enable</code>。而 <code>--state</code> 对取值<b>不做白名单校验</b> —— 它拿这个字符串去过滤，匹配不上任何 unit，就是 0 个，<b>stderr 一个字节都没有</b>（实测 <code>err_size=0</code>）。它不会告诉你「你拼错了」。</div>
+      <div class="note"><b>同类</b>：<code>--state=running</code> 也是 0 个（T6）。记住一句话 —— <b>systemctl 的 <code>--state</code> 是过滤条件，不是校验器；零结果先怀疑自己写错，别怀疑机器。</b></div>
+    </div>
+  </div>
 </section>
 
 <section>
@@ -247,6 +302,10 @@ systemctl list-units  --type=service --all --no-legend | wc -l</pre>
     <tr><td>看这个服务最近干了什么</td><td><code>systemctl status X</code></td><td>尾部日志是摘要，完整要用 journalctl</td></tr>
     <tr><td>看 unit 文件全文</td><td><code>systemctl cat X</code></td><td>会显示实际生效的路径</td></tr>
     <tr><td>看它挂在哪个 target 下</td><td><code>systemctl show -p WantedBy X</code></td><td>决定 enable 往哪建链接</td></tr>
+    <tr><td>重启进程（会断连接）</td><td><code>systemctl restart X</code></td><td>PID 一定变</td></tr>
+    <tr><td>只重读配置（不断连接）</td><td><code>systemctl reload X</code></td><td>PID 不变；先查 <code>CanReload</code></td></tr>
+    <tr><td>这个服务支不支持 reload</td><td><code>systemctl show -p CanReload X</code></td><td>no 时硬 reload 退出码 3</td></tr>
+    <tr><td>它为什么不能 enable</td><td><code>systemctl is-enabled X</code></td><td>返回 <code>static</code> 就是没有 [Install] 段</td></tr>
   </table>
   </div>
 </section>
@@ -270,7 +329,16 @@ systemctl list-units  --type=service --all --no-legend | wc -l</pre>
     <p><code>running</code> 是 sub-state，<code>list-unit-files</code> 不接受；它静默返回 <code>0 unit files listed.</code> 并给退出码 1。<code>running</code> 只能配 <code>list-units</code>。</p></details>
 
   <details><summary>6. <code>static</code> 的服务能 enable 吗？</summary>
-    <p>不能。static 表示 unit 文件里没有 <code>[Install]</code> 段，<code>enable</code> 没有可写的目标，会报 <code>The unit files have no installation config</code>。本机例子：<code>dnf-makecache.service</code>。</p></details>
+    <p>不能。static 表示 unit 文件里没有 <code>[Install]</code> 段，<code>enable</code> 没有可写的目标，会报 <code>The unit files have no installation config</code>。本机例子：<code>dnf-makecache.service</code>。<b>但注意它的退出码是 0</b> —— 不能靠 <code>$?</code> 判断。</p></details>
+
+  <details><summary>7. <code>restart</code> 和 <code>reload</code> 怎么选？</summary>
+    <p><code>restart</code> 杀进程重开，PID 变，连接全断；<code>reload</code> 只给现有进程发信号（如 <code>HUP</code>），PID 不变，连接不断。改端口/换 socket 必须 restart；只改配置内容优先 reload，但要先用 <code>show -p CanReload</code> 确认支持。</p></details>
+
+  <details><summary>8. <code>enable --now</code> 等于什么？服务已经在跑时它会不会重启它？</summary>
+    <p>等于 <code>enable</code> + <code>start</code>。已经在跑时 <code>start</code> 是空操作，<b>不会重启</b>，PID 不变。要换进程得用 <code>restart</code> 或 <code>try-restart</code>。</p></details>
+
+  <details><summary>9. <code>--state=enable</code> 和 <code>--state=enabled</code> 差在哪？</summary>
+    <p>前者是拼错的非法值，但 <code>systemctl</code> 不校验，直接过滤出 0 个、<b>stderr 全空</b>、退出码 1；后者才是合法值（23 个）。<b><code>--state</code> 只是过滤器，不是校验器。</b></p></details>
 </section>
 
 </main>
