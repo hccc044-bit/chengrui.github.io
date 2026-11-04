@@ -272,7 +272,7 @@ systemctl is-enabled dnf-makecache.service
 ls /etc/systemd/system/multi-user.target.wants/ | grep makecache; echo "ls_exit=$?"</pre>
       <div class="ok"><b>成功长什么样</b>：<code>is-enabled</code> 输出 <b>static</b>、<b>exit=0</b>；<code>grep Install</code> <b>无输出、exit=1</b>（证明没有 <code>[Install]</code> 段）；<code>enable</code> 往 <b>stderr</b> 打一大段 <code>The unit files have no installation config (WantedBy=, RequiredBy=, Also=, Alias= ...)</code>，但 <b>enable_exit=0</b>；最后 <code>is-enabled</code> 仍是 <b>static</b>，<code>ls | grep</code> 找不到链接。</div>
       <div class="why"><b>static 的含义</b>：unit 文件里<b>没有 <code>[Install]</code> 段</b>。而 <code>enable</code> 的全部工作就是读 <code>[Install]</code> 里的 <code>WantedBy=</code> 去建链接 —— 没有这段，它不知道往哪儿建，所以「没法被 enable」。这种 unit 只能：被别的 unit 用 <code>Wants=</code>/<code>Requires=</code> 拉起来，或者手动 <code>start</code>。</div>
-      <div class="warn"><b>★ 这是今天第 13 个「验收命令会骗人」</b>：<code>systemctl enable</code> <b>退出码 0</b> ≠ 启用成功。因为它认为「这个 unit 不需要安装配置」不算错误。判断是否真生效，只能看 <code>is-enabled</code> 的结果和 <code>wants/</code> 里有没有新链接。<br>反过来：<code>is-enabled</code> 对 <code>enabled</code> 和 <code>static</code> <b>都返回 0</b>，光看退出码区分不出来，必须看文本。</div>
+      <div class="warn"><b>★ 又一个「验收命令会骗人」</b>：<code>systemctl enable</code> <b>退出码 0</b> ≠ 启用成功。因为它认为「这个 unit 不需要安装配置」不算错误。判断是否真生效，只能看 <code>is-enabled</code> 的结果和 <code>wants/</code> 里有没有新链接。<br>反过来：<code>is-enabled</code> 对 <code>enabled</code> 和 <code>static</code> <b>都返回 0</b>，光看退出码区分不出来，必须看文本。</div>
     </div>
   </div>
 
