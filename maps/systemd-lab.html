@@ -97,7 +97,7 @@ footer{max-width:1000px;margin:0 auto;padding:6px 24px 44px;color:var(--tx3);fon
 <header>
   <div class="hd">
     <h1>systemd 服务实操手册 · 自启 / 状态 / 日志 / 定时</h1>
-    <p class="sub">按 EX200 考纲裁剪：只写考纲里有的（启停服务与开机自启、默认目标、日志与保留、at/cron/timer、时间服务、中断启动）。每一步都写了「成功长什么样」，勾选框记进度。<b>本手册随进度生长</b>：走完一组再加下一组，没在本机验证过的内容不写进来。</p>
+    <p class="sub">按 EX200 考纲裁剪：只写考纲里有的（启停服务与开机自启、默认目标、日志与保留、at/cron/timer、时间服务、中断启动）。每一步都写了「成功长什么样」，勾选框记进度。<b>本手册随进度生长</b>：走完一组再加下一组；还没在本机验证过的步骤会显式标注「尚未在本机验证」，不会当成已完成。</p>
     <div class="hdbar">
       <div class="nav">
         <a href="/maps/labs.html">手册总览</a>
@@ -344,7 +344,93 @@ systemctl show -p AllowIsolate multi-user.target rescue.target</pre>
 </section>
 
 <section>
-  <h2>3 · 附录：命令速查 <span class="n">按「我想干什么」查</span></h2>
+  <h2>3 · journald：日志在哪、怎么筛、怎么留 <span class="n">考纲：定位和解读系统日志</span></h2>
+
+  <div class="stp" data-id="T15">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T15"><span class="sid">T15</span> 先把「日志到底落在哪」查清楚</label><span class="tag">journalctl --disk-usage</span></div>
+    <div class="stb">
+      <pre>ls /run/systemd/journal/
+ls /run/log/journal/
+ls -d /var/log/journal; echo "exit=$?"
+journalctl --disk-usage</pre>
+      <div class="ok"><b>成功长什么样</b>：第一条只有 <code>socket</code> <code>dev-log</code> <code>stdout</code> <code>streams</code> 这类文件；第二条是 <code>&lt;machine-id&gt;</code> 目录，里面躺着一堆 <code>*.journal</code>；第三条报 <b><code>No such file or directory</code>（exit=2）</b>；<code>--disk-usage</code> 打印 <code>Archived and active journals take up 3.3M</code> 之类的数字（本机实测约 3.3M）。</div>
+      <div class="why"><b>三个路径别混</b>：<code>/run/systemd/journal/</code> 是 <b>socket 目录</b>（进程把日志交给 journald 的通道），不是数据；数据在 <code>/run/log/journal/&lt;machine-id&gt;/</code>；<code>/var/log/journal/</code> 是<b>持久化</b>目录，不存在就说明现在没开持久。</div>
+      <div class="warn"><b>★ 记住这条因果</b>：<code>/run</code> 是 <b>tmpfs</b>，内存里的东西 ⇒ <b>默认重启即丢</b>。所以「日志重启后没了」不是故障，是默认行为。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="T16">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T16"><span class="sid">T16</span> <code>-p</code> 是「≤」，不是「=」</label><span class="tag">journalctl -p 3 / -p 2</span></div>
+    <div class="stb">
+      <pre>journalctl -p 3 --no-pager | wc -l
+journalctl -p 2 --no-pager | wc -l
+journalctl -p err --no-pager | wc -l
+journalctl -p crit -n 5 --no-pager</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>-p 3</code> 与 <code>-p err</code> <b>条数完全相同</b>（本机 13 行），<code>-p 2</code> <b>一定更少</b>（7 行）；<code>-p crit -n 5</code> 只出 5 行。</div>
+      <div class="why"><b>级别表</b>：<code>0 emerg</code> / <code>1 alert</code> / <code>2 crit</code> / <code>3 err</code> / <code>4 warning</code> / <code>5 notice</code> / <code>6 info</code> / <code>7 debug</code>。<code>-p err</code> 的含义是<b>「err 及更严重」</b>，所以它包含 emerg / alert / crit / err 四档。<br>数字和字母是同一个东西的两种写法，<code>-p 3</code> == <code>-p err</code>。</div>
+      <div class="note"><b>为什么条数会变少</b>：数字越小越严重，能满足「≤ 2」的记录必然比「≤ 3」少。这是<b>包含关系</b>，不是过滤得更狠。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="T17">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T17"><span class="sid">T17</span> 一条日志只进 journal、不进 messages：拿 debug 级证明</label><span class="tag">logger -p debug</span></div>
+    <div class="stb">
+      <pre>logger -p debug -t labdebug "debug line only"
+journalctl -t labdebug --no-pager
+grep labdebug /var/log/messages; echo "grep_exit=$?"
+logger -p info -t labinfo "info line"
+grep labinfo /var/log/messages | tail -1
+grep -n "messages" /etc/rsyslog.conf</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>journalctl -t labdebug</code> <b>能看到</b> <code>debug line only</code>；<code>grep labdebug /var/log/messages</code> <b>什么都没有、exit=1</b>；换成 <code>-p info</code> 立刻就在 messages 里 <code>grep</code> 得到；<code>rsyslog.conf</code> 里能看到 <code>*.info;mail.none;authpriv.none;cron.none&nbsp;&nbsp;/var/log/messages</code>。</div>
+      <div class="why"><b>管线</b>：进程 / 内核 → <code>systemd-journald</code> → <code>imjournal</code> 模块 → <code>rsyslog</code> → <code>/var/log/messages</code> / <code>secure</code> / <code>cron</code>。<code>rsyslog</code> 是 journald 的<b>下游消费者</b>，不是平行的一套。<br><code>*.info</code> 是「info 及以上」⇒ <b>debug 在这一层被丢掉</b>，只留在 journal 里。所以「两边都有」是常态，想找只进 journal 的证据必须挑它过滤掉的级别。</div>
+      <div class="warn"><b>试错记录</b>：一开始我用 <code>logger -t labtest "hello"</code> 演示，默认 priority 是 <b>info</b>，两边都有，等于什么都没证明。<b>给演示命令前先验证它能证明标题里的结论。</b></div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="T18">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T18"><span class="sid">T18</span> 结构化字段：grep 做不到的筛法</label><span class="tag">-o json-pretty / -F / 字段=值</span></div>
+    <div class="stb">
+      <pre>journalctl -o json-pretty -n 1 --no-pager
+journalctl -F _SYSTEMD_UNIT | head
+journalctl _SYSTEMD_UNIT=crond.service --no-pager | tail -5
+journalctl -u crond --since "1 hour ago" --no-pager</pre>
+      <div class="ok"><b>成功长什么样</b>：json 里能看到 <code>_PID</code> <code>_UID</code> <code>_COMM</code> <code>PRIORITY</code> <code>_SYSTEMD_UNIT</code> <code>_BOOT_ID</code>；<code>-F</code> 列出该字段出现过的所有取值；按字段过滤的结果与 <code>-u crond</code> 一致。</div>
+      <div class="why"><b>差别在哪</b>：journald 存的是<b>结构化记录</b>，每行日志除了 MESSAGE 还带一堆元数据。<code>grep</code> 只能搜文本，没法区分「谁产的、哪个 boot、什么优先级」；按字段过滤能在源头筛，不会把别的 unit 里同样字样的行一起捞进来。</div>
+      <div class="note"><b>考试够用的三个维度</b>：<code>-u</code>（哪个 unit）、<code>-p</code>（多严重）、<code>--since/--until/-b</code>（哪段时间 / 本次启动）。三个可以叠用。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="T19">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T19"><span class="sid">T19</span> <code>--flush</code> 在没持久化时：零输出、退出码 0</label><span class="tag">又一个会骗人的验收</span></div>
+    <div class="stb">
+      <pre>ls -d /var/log/journal; echo "before_exit=$?"
+journalctl --flush; echo "flush_exit=$?"
+ls -d /var/log/journal; echo "after_exit=$?"</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>before_exit=2</code>（目录不存在）；<code>--flush</code> <b>一行输出都没有、flush_exit=0</b>；<code>after_exit</code> <b>仍然是 2</b> —— 目录压根没被创建。</div>
+      <div class="why"><b>它在干什么</b>：<code>--flush</code> 只把 <code>/run/log/journal</code> 里<b>已有</b>的记录刷进 <code>/var/log/journal</code>。目标目录不存在时它无事可做，但「无事可做」不算错误，于是静默返回 0。</div>
+      <div class="warn"><b>★ 不能当验收</b>：零输出 + 退出码 0 在这里<b>什么都没证明</b>。判据是 <code>ls /var/log/journal/*/</code> 里有没有 <code>*.journal</code> 文件、<code>--disk-usage</code> 的数字有没有变大。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="T20">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T20"><span class="sid">T20</span> 打开持久化：建目录就行，不用改配置</label><span class="tag">尚未在本机验证</span></div>
+    <div class="stb">
+      <pre>mkdir /var/log/journal
+systemd-tmpfiles --create --prefix /var/log/journal
+ls -ld /var/log/journal
+systemctl restart systemd-journald
+journalctl --flush; echo "flush_exit=$?"
+ls /var/log/journal/*/ | head
+journalctl --disk-usage</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>ls -ld</code> 显示 <code>drwxr-sr-x ... root systemd-journal</code>（<b>2755</b>，不是普通 mkdir 出来的 <code>755 root:root</code>）；重启 journald 后 <code>--flush</code> 让 <code>/var/log/journal/&lt;machine-id&gt;/</code> 里出现 <code>*.journal</code>；<code>--disk-usage</code> 的数字跟着涨。</div>
+      <div class="why"><b>为什么建目录就够</b>：<code>journald.conf</code> 里 <code>Storage=auto</code>（默认，常被注释掉）的语义就是「<b><code>/var/log/journal</code> 存在才持久化</b>」。改成 <code>persistent</code> 效果一样，但建目录更直接。<br>权限别自己 <code>chown</code>：<code>systemd-tmpfiles --create</code> 会按 <code>/usr/lib/tmpfiles.d/systemd.conf:28</code> 的规则把目录修成 <code>root:systemd-journal 2755</code>（本机已实测这一步的输出）。</div>
+      <div class="warn"><b>★ 尚未在本机验证</b>：今天只验到 <code>systemd-tmpfiles --create</code> 改权限那一步（实测 <code>mkdir</code> 后是 <code>root:root 755</code>，tmpfiles 之后变 <code>2755 root systemd-journal</code>）。<code>restart journald</code> + <code>--flush</code> 产生 <code>*.journal</code> 这一步<b>还没跑</b>，明天从这里开始。勾这个框之前先亲手验一遍。</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>4 · 附录：命令速查 <span class="n">按「我想干什么」查</span></h2>
   <div class="tblwrap">
   <table>
     <tr><th>我想…</th><th>命令</th><th>注意</th></tr>
@@ -369,7 +455,7 @@ systemctl show -p AllowIsolate multi-user.target rescue.target</pre>
 </section>
 
 <section>
-  <h2>4 · 自测 <span class="n">先自己答，再展开</span></h2>
+  <h2>5 · 自测 <span class="n">先自己答，再展开</span></h2>
 
   <details><summary>1. <code>disable</code> 之后服务还在跑，正常吗？</summary>
     <p>正常。<code>disable</code> 只删 <code>wants/</code> 里的软链接，影响的是「下次开机」，不影响当前进程。要停得另外 <code>stop</code>。</p></details>

@@ -1364,7 +1364,7 @@ const MAP = [
 },
 {
   id: 'sys', name: '六、运行中系统与服务', status: 'doing',
-  note: '这一域是「贯穿工具」而不是「学完就过」的模块。已进：服务的两个维度（enabled × active）与 unit 查找优先级、mask 的机制。待进：target、journalctl、计划任务三件套、时间同步。',
+  note: '这一域是「贯穿工具」而不是「学完就过」的模块。已进：服务的两个维度（enabled × active）、unit 查找优先级与 mask、restart / reload、target 与默认启动目标、journald 与 rsyslog 的上下游。待进：日志持久化与保留策略、计划任务三件套、时间同步。',
   nodes: [
     {
       t: '本节将要覆盖的能力',
@@ -1377,7 +1377,7 @@ const MAP = [
         '时间同步：chrony / timedatectl',
         '系统调优：tuned 的 profile 切换'
       ],
-      k: ['→ 进度：已开始。服务的两个维度与 mask 机制已实测，其余待展开。']
+      k: ['→ 进度：服务的两个维度、mask、restart / reload、target、journald 已实测；日志持久化与保留策略、计划任务、时间同步待展开。']
     },
     {
       t: '服务的两个维度：enabled 与 active',
@@ -1401,6 +1401,39 @@ const MAP = [
           '★ <code>mask</code> 就是往 <code>/etc</code> 放一个指向 <code>/dev/null</code> 的同名 unit —— 不是删除、不是改标志位，而是<b>用一个空 unit 把真 unit 盖住</b>。所以 mask 之后连 <code>start</code> 都会失败：<code>Failed to start xxx.service: Unit xxx.service is masked.</code>',
           '★ <code>unmask</code> 之后 <code>is-enabled</code> 可能<b>直接回到 enabled</b> —— 因为 disable 时删的是 wants 里的链接，而 mask 期间那条链接一直没被动过。mask 和 enable/disable 管的是两样东西。',
           '→ <code>systemctl show -p FragmentPath <unit></code> 能问出这个 unit 文件<b>实际</b>是从哪个路径读来的，比猜优先级快。']
+    },
+    {
+      t: 'target：默认启动目标是一条链接',
+      p: ['开机时 systemd 只启动一个东西 —— <code>default.target</code>。它<b>没有进程、没有 ExecStart</b>，就是一条指向真 target 的软链接。'],
+      c: [
+        ['systemctl get-default', '读 <code>/etc/systemd/system/default.target</code> 指向谁'],
+        ['systemctl set-default X.target', '换那条链接，只影响<b>下次开机</b>'],
+        ['systemctl isolate X.target', '切<b>当前</b>运行目标，会停掉不属于新目标的 unit，不碰链接'],
+        ['systemctl list-dependencies X.target', '看它拉起哪些 unit —— 依赖树，不是配置文件'],
+        ['systemctl show -p AllowIsolate X.target', 'no 的目标不能被 isolate']
+      ],
+      k: ['→ 依赖树里 <code>graphical.target</code> 含着 <code>multi-user.target</code>，它是<b>超集</b>：设成 graphical 不会丢掉 multi-user 那一层，只多一个 display-manager.service。',
+          '★ 同值 <code>set-default</code>：<b>零输出、退出码 0、链接 mtime 不变</b>。无输出既可能是成功，也可能是没执行，判据只能看 <code>get-default</code> 与 <code>ls -l</code>。',
+          '★ 判断 set-default 成没成功<b>不能看有没有图形界面</b>：Minimal 装机没有 <code>display-manager.service</code>，设成 graphical 也照样进 multi-user。',
+          '★ <code>isolate rescue.target</code> / <code>emergency.target</code> 会<b>立刻断网</b>（依赖树里没有 network 和 sshd），只能从控制台做。']
+    },
+    {
+      t: '日志：journald 是上游，rsyslog 是下游',
+      p: ['日志不是一个文件，是一条管线：进程 / 内核 → <code>systemd-journald</code> → <code>imjournal</code> → <code>rsyslog</code> → <code>/var/log/*</code>。所以「两边都有」是常态。'],
+      c: [
+        ['journalctl -u X', '按 unit 过滤'],
+        ['journalctl -p err', '优先级 <b>≤ err</b>（emerg / alert / crit / err），不是「等于」'],
+        ['journalctl --since "1 hour ago" -b', '按时间、按本次启动过滤'],
+        ['journalctl -o json-pretty', '看结构化字段：_PID _UID _COMM PRIORITY _SYSTEMD_UNIT _BOOT_ID'],
+        ['journalctl --flush', '把 /run 里的日志刷进 /var/log/journal'],
+        ['journalctl --vacuum-size=200M', '按体积裁掉旧日志；按时间用 <code>--vacuum-time=7d</code>']
+      ],
+      k: ['→ 数据在 <code>/run/log/journal/&lt;machine-id&gt;/</code>，<code>/run</code> 是 tmpfs，<b>默认重启即丢</b>。<code>/run/systemd/journal/</code> 只是 socket 目录，不是数据。',
+          '★ 持久化的开关是<b>建不建 <code>/var/log/journal</code> 这个目录</b>，不是改某个配置项；建完还要重启 journald 才生效。',
+          '★ <code>journalctl --flush</code> 在 <code>/var/log/journal</code> 不存在时<b>零输出、退出码 0</b> —— 静默什么也没做，不能当验收。',
+          '★ <code>-p err</code> 是「≤ err」。数字越小越严重：<code>-p 2</code>（crit 及以上）永远比 <code>-p 3</code>（err 及以上）少。',
+          '★ <code>/etc/rsyslog.conf</code> 里 <code>*.info;mail.none;authpriv.none;cron.none → /var/log/messages</code>，所以 <b>debug 级只进 journal</b>；<code>cron.*</code> 又被 <code>cron.none</code> 排到 <code>/var/log/cron</code>。',
+          '→ <code>/var/log/journal</code> 的正确权限是 <code>drwxr-sr-x root systemd-journal</code>（2755），由 <code>systemd-tmpfiles --create</code> 按 <code>/usr/lib/tmpfiles.d/systemd.conf</code> 造出来，别自己 mkdir 完就用。']
     }
   ],
   quiz: [
@@ -1419,6 +1452,66 @@ const MAP = [
         '<div class="lbl">和 disable 的区别</div>',
         '<p><code>disable</code> = 可以手动启，只是开机会不启；<code>mask</code> = 连手动启都不许，通常用在「别的服务会把它拉起来」时（依赖关系、socket 激活）。</p>',
         '<p>★ 还要区分 <code>is-enabled</code> 与 <code>is-active</code>：这两个问题各有各的答案。<code>disable</code> 一个正在跑的服务，它<b>继续跑</b>，只是下次开机不起来了。</p>'
+      ]
+    },
+    {
+      q: 'systemctl restart 和 reload 怎么选？为什么 reload 前后 PID 必须不变？硬 reload 一个不支持的 unit 会怎样？',
+      a: [
+        '<div class="lbl">restart = stop + start</div>',
+        '<p>旧进程被杀、新进程拉起，所以 <b>MainPID 一定变</b>（本机实测 7565 → 7922）。连接会断，正在处理的请求会丢。</p>',
+        '<div class="lbl">reload = 给现有进程发信号</div>',
+        '<p><code>reload</code> 不杀进程，只按 unit 里的 <code>ExecReload=</code> 执行一条命令或发一个信号（crond 是 <code>/bin/kill -HUP $MAINPID</code>）。进程没死，所以 <b>MainPID 一定不变</b>（8025 → 8025），连接不断。</p>',
+        '<div class="lbl">先查 CanReload，再决定</div>',
+        '<p>unit 里没写 <code>ExecReload=</code> 就不支持 reload。用 <code>systemctl show -p CanReload X</code> 先问一句：<code>crond</code>、<code>sshd</code> 是 <code>yes</code>；<code>chronyd</code>、<code>dnf-makecache</code> 是 <code>no</code>。</p>',
+        '<p>硬 reload 一个 <code>CanReload=no</code> 的 unit，会报 <code>Job type reload is not applicable for unit X.</code>，<b>退出码 3</b> —— 不是 1。所以脚本里判 <code>$? -ne 0</code> 是对的，但别写 <code>-eq 1</code>。<span class="ok">判据：改监听地址 / 端口、换了 socket → restart；只重读配置内容 → reload。</span></p>'
+      ]
+    },
+    {
+      q: 'systemctl enable --now 等价于什么？一个服务已经在跑，执行它会重启吗？',
+      a: [
+        '<div class="lbl">等价关系</div>',
+        '<p><code>enable --now</code> = <code>enable</code> + <code>start</code>；<code>disable --now</code> = <code>disable</code> + <code>stop</code>。<code>--now</code> 只是「顺手把另一个维度也做了」，没有新语义。</p>',
+        '<div class="lbl">它不等于 restart</div>',
+        '<p>服务已经在跑时，<code>start</code> 是<b>空操作</b>，PID 不变。要换进程必须用 <code>restart</code>（或 <code>try-restart</code>）。</p>',
+        '<div class="lbl">考试里怎么用</div>',
+        '<p>装完 httpd 要「开机自启且现在就跑」，一条 <code>systemctl enable --now httpd</code> 就够，别写成两条命令。<span class="ok">判据：<code>--now</code> 解决的是「两个维度一起设」，不是「立刻重来一遍」。</span></p>'
+      ]
+    },
+    {
+      q: '对 dnf-makecache.service 执行 systemctl enable，退出码是 0，算成功吗？static 到底是什么意思？',
+      a: [
+        '<div class="lbl">static = 没有 [Install] 段</div>',
+        '<p><code>enable</code> 的全部工作就是读 unit 里的 <code>[Install]</code>（<code>WantedBy=</code> / <code>RequiredBy=</code> / <code>Also=</code> / <code>Alias=</code>）再往对应 <code>.wants/</code> 建链接。没有这一段，它不知道往哪建，所以「不能被 enable」。</p>',
+        '<p>验证方法：<code>systemctl cat dnf-makecache.service | grep Install</code> <b>无输出、退出码 1</b>。实测本机 96 个服务是 static（<code>dm-event.service</code> 也是）。</p>',
+        '<div class="lbl">★ 退出码 0 不等于启用成功</div>',
+        '<p><code>enable</code> 会往 <b>stderr</b> 打一大段 <code>The unit files have no installation config (...)</code>，但 <b>退出码仍然是 0</b> —— 它认为「这个 unit 不需要安装配置」不算错误，也没建任何链接，<code>is-enabled</code> 还是 <code>static</code>。</p>',
+        '<p>反过来也一样坑：<code>is-enabled</code> 对 <code>enabled</code> 和 <code>static</code> <b>都返回 0</b>，只看 <code>$?</code> 区分不出来。<span class="ok">判据：这一域只认输出文本，不认退出码 —— 再看 <code>wants/</code> 里有没有新链接。</span></p>'
+      ]
+    },
+    {
+      q: 'default.target 是什么？同值 set-default 为什么一点输出都没有？isolate 会改 get-default 吗？',
+      a: [
+        '<div class="lbl">它不是服务，是一条软链</div>',
+        '<p><code>/etc/systemd/system/default.target</code> 是指向真 target 的符号链接（本机 → <code>/usr/lib/systemd/system/multi-user.target</code>）。<code>get-default</code> 读的就是这条链接，所以它和 <code>ls -l</code> 看的是同一个对象。所谓「换运行级别」，在文件系统上就是<b>换一条链接</b>。</p>',
+        '<div class="lbl">同值 set-default 是幂等的</div>',
+        '<p>发现目标已经是它就直接返回：<b>零输出、退出码 0、mtime 不变</b>。所以「无输出」既可能是成功，也可能是压根没执行 —— 判据只能看 <code>get-default</code> 和 <code>ls -l</code>。</p>',
+        '<div class="lbl">isolate 和 set-default 各管一头</div>',
+        '<p><code>isolate</code> 换<b>当前</b>运行目标（会停掉不属于新目标的服务），<b>不动</b> <code>default.target</code>；<code>set-default</code> 只改<b>下次开机</b>用的链接，不动当前状态。实测 <code>isolate multi-user.target</code> 后 <code>get-default</code> 与链接时间戳都不变。这和 <code>stop</code> / <code>enable</code> 的关系完全同构。</p>',
+        '<p>★ <code>graphical.target</code> 是 <code>multi-user.target</code> 的<b>超集</b>（依赖树里 multi-user 是它的子项），设成 graphical 不会丢服务；但 Minimal 装机没有 <code>display-manager.service</code>，所以「有没有图形界面」不能当验收。<span class="ok">判据：看链接，不看现象。</span></p>'
+      ]
+    },
+    {
+      q: 'journald 和 rsyslog 是什么关系？为什么 debug 级日志在 journalctl 里能看到、在 /var/log/messages 里没有？日志默认存在哪、重启会不会丢？',
+      a: [
+        '<div class="lbl">上游写，下游消费</div>',
+        '<p>管线是：进程 / 内核 → <code>systemd-journald</code> → <code>imjournal</code> 模块 → <code>rsyslog</code> → <code>/var/log/messages</code>、<code>secure</code>、<code>cron</code>。<code>rsyslog</code> 只是 journald 的一个<b>消费者</b>，不是平行的另一套收集器。</p>',
+        '<div class="lbl">debug 被 rules 丢掉了</div>',
+        '<p><code>/etc/rsyslog.conf</code> 里写的是 <code>*.info;mail.none;authpriv.none;cron.none → /var/log/messages</code>。<code>*.info</code> 意思是「info 及以上」，所以 <b>debug 不进 messages</b>，只留在 journal 里。实测 <code>logger -p debug -t labdebug</code> 后 <code>journalctl -t labdebug</code> 有、<code>grep labdebug /var/log/messages</code> 无（退出码 1）。</p>',
+        '<p>顺带：<code>cron.*</code> 被 <code>cron.none</code> 排到 <code>/var/log/cron</code>。想找「只进 journal」的证据，必须挑它过滤掉的级别，别拿默认 info 去试。</p>',
+        '<div class="lbl">存在哪：/run 是 tmpfs</div>',
+        '<p>数据在 <code>/run/log/journal/&lt;machine-id&gt;/</code>，<code>/run</code> 是 tmpfs ⇒ <b>默认重启即丢</b>。<code>/run/systemd/journal/</code> 只是 socket 目录（dev-log、socket、stdout、streams），不是数据。</p>',
+        '<p>持久化的开关是<b>建不建 <code>/var/log/journal</code> 这个目录</b>：<code>Storage=auto</code> 的含义就是「目录存在才持久化」。建完还要 <code>restart systemd-journald</code> 并 <code>--flush</code>。★ 而 <code>--flush</code> 在目录不存在时<b>零输出、退出码 0</b>，静默什么也不做。</p>',
+        '<p>★ <code>-p err</code> 是「≤ err」（emerg / alert / crit / err），不是等于；实测 <code>-p 3</code> 13 行、<code>-p 2</code> 7 行 —— <b>数字越小越严重、条数越少</b>。<span class="ok">判据：日志不上线不是 rsyslog 坏了，先看 journald 这一层有没有收到。</span></p>'
       ]
     }
   ]
