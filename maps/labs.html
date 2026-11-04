@@ -144,9 +144,25 @@ footer .in{max-width:1000px;margin:0 auto}
       <a class="go" href="/maps/pkgs-lab.html">打开手册 →</a>
     </div>
 
+    <div class="card">
+      <div class="kicker">服务与日志</div>
+      <h3><a href="/maps/systemd-lab.html">systemd 实操手册</a><span class="badge doing">进行中</span></h3>
+      <p class="desc">按 EX200 考纲裁剪：启停服务与开机自启、默认 target、journalctl 与日志保留、at/cron/timer、时间服务、中断启动。</p>
+      <div class="chips">
+        <span class="chip c2">enabled vs active</span>
+        <span class="chip c3">mask</span>
+        <span class="chip c4">target</span>
+        <span class="chip c1">日志与保留</span>
+        <span class="chip c5">at / cron / timer</span>
+      </div>
+      <div class="bar"><i data-bar="systemd"></i></div>
+      <div class="stat"><span>已记录 <b data-n="systemd">0</b> 步</span><span>共 6 步</span></div>
+      <a class="go" href="/maps/systemd-lab.html">打开手册 →</a>
+    </div>
+
   </div>
 
-  <div class="note"><b>为什么只有两本</b>：手册随进度长，做完一个能力域才写一本。后面的 systemd、计划任务、网络、firewalld、SELinux、SSH、文本处理，都会各自开一本，新增的会自动出现在这里。</div>
+  <div class="note"><b>手册随进度长</b>：做完一个能力域才写一本，新增的会自动出现在这里。后面的计划任务、网络、firewalld、SELinux、SSH、文本处理，都会各自开一本。</div>
 </section>
 
 <section>
@@ -208,7 +224,8 @@ footer .in{max-width:1000px;margin:0 auto}
 
   var MAP = [
     { id:'storage', ckey:'storage-lab-checks', total:34 },
-    { id:'pkgs',    ckey:'pkgs-lab-checks',    total:21 }
+    { id:'pkgs',    ckey:'pkgs-lab-checks',    total:21 },
+    { id:'systemd', ckey:'systemd-lab-checks', total:6 }
   ];
   MAP.forEach(function(m){
     var n = 0;

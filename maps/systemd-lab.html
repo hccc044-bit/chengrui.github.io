@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>systemd 服务实操手册 · 自启 / 状态 / 日志 / 定时</title>
+<style>
+:root{
+  --bg:#ffffff; --panel:#f6f7f9; --panel2:#eceff2; --bd:#e1e4e8;
+  --tx:#1f2328; --tx2:#57606a; --tx3:#8b949e;
+  --code:#f2f4f7; --accent:#2f6f4f; --warn:#b42318; --warnbg:#fdeceb;
+  --ok:#0f6e56; --okbg:#e7f6f0; --note:#185fa5; --notebg:#e8f2fb;
+  --l1:#BA7517; --l2:#378ADD; --l3:#7F77DD; --l4:#1D9E75; --l5:#639922; --l6:#D85A30;
+}
+html[data-theme="dark"]{
+  --bg:#14171a; --panel:#1b1f23; --panel2:#22272b; --bd:#30363d;
+  --tx:#e6edf3; --tx2:#9aa4ae; --tx3:#6e7681;
+  --code:#1b1f23; --accent:#5bbd8e; --warn:#f85149; --warnbg:#2d1618;
+  --ok:#5dcaa5; --okbg:#122b24; --note:#85b7eb; --notebg:#12202e;
+  --l1:#EF9F27; --l2:#85B7EB; --l3:#AFA9EC; --l4:#5DCAA5; --l5:#97C459; --l6:#F0997B;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--tx);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+header{padding:26px 24px 18px;border-bottom:1px solid var(--bd)}
+.hd{max-width:1000px;margin:0 auto}
+h1{margin:0;font-size:22px;font-weight:600;letter-spacing:-.2px}
+.sub{margin:6px 0 0;color:var(--tx2);font-size:13.5px}
+.hdbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+.spacer{flex:1 1 auto}
+button{font-family:inherit;font-size:13px;padding:7px 12px;border:1px solid var(--bd);border-radius:8px;
+  background:var(--panel);color:var(--tx2);cursor:pointer}
+button:hover{border-color:var(--tx3);color:var(--tx)}
+.nav a{font-size:13px;margin-right:14px;color:var(--tx2)}
+.prog{font-size:13px;color:var(--tx2)}
+.prog b{color:var(--accent);font-weight:600}
+main{max-width:1000px;margin:0 auto;padding:22px 24px 8px}
+section{margin-bottom:34px}
+h2{font-size:16px;font-weight:600;margin:0 0 4px;display:flex;align-items:center;gap:9px}
+h2::before{content:"";width:3px;height:15px;border-radius:2px;background:var(--accent);flex:0 0 auto}
+h2 .n{font-size:12px;color:var(--tx3);font-weight:400}
+p.lead{margin:8px 0 14px;color:var(--tx2);font-size:13.5px}
+
+.stp{border:1px solid var(--bd);border-radius:10px;margin:10px 0;background:var(--bg);overflow:hidden}
+.sth{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:9px 12px;background:var(--panel);
+  border-bottom:1px solid var(--bd);font-size:13.5px}
+.sth input[type=checkbox]{width:15px;height:15px;accent-color:var(--accent);margin:0 2px 0 0;cursor:pointer}
+.sth label{display:flex;align-items:center;gap:7px;cursor:pointer;font-weight:500}
+.sth .sid{font-size:11.5px;font-weight:700;color:var(--bg);background:var(--tx3);
+  padding:1px 6px;border-radius:5px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.sth .tag{margin-left:auto;font-size:12px;color:var(--tx3)}
+.stp.done{opacity:.62}
+.stp.done .sid{background:var(--accent)}
+.stb{padding:12px 14px 14px}
+pre{margin:0 0 10px;padding:10px 12px;background:var(--code);border:1px solid var(--bd);
+  border-radius:8px;font-size:12.8px;line-height:1.65;overflow-x:auto;white-space:pre}
+pre .c{color:var(--tx3)}
+.ok,.warn,.note{margin:8px 0;padding:8px 12px 8px 30px;border-radius:8px;font-size:13.2px;position:relative;line-height:1.62}
+.ok{background:var(--okbg);color:var(--ok)}
+.ok::before{content:"✓";position:absolute;left:11px;top:8px;font-weight:700}
+.warn{background:var(--warnbg);color:var(--warn)}
+.warn::before{content:"!";position:absolute;left:11px;top:8px;font-weight:700}
+.note{background:var(--notebg);color:var(--note)}
+.note::before{content:"i";position:absolute;left:11px;top:8px;font-weight:700;font-style:italic}
+.ok b,.warn b,.note b{font-weight:600}
+.why{font-size:13.2px;color:var(--tx2);margin:8px 0}
+.why b{color:var(--tx);font-weight:500}
+
+table{border-collapse:collapse;width:100%;font-size:13px;margin:10px 0}
+.tblwrap{overflow-x:auto}
+th,td{border:1px solid var(--bd);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:600;color:var(--tx2);font-size:12.5px;white-space:nowrap}
+td code{font-size:12.4px;background:var(--code);padding:1px 5px;border-radius:4px}
+.chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12.5px;
+  padding:10px 12px;border:1px solid var(--bd);border-radius:9px;background:var(--panel);margin:10px 0}
+.chain .n{padding:3px 9px;border-radius:7px;border:1px solid var(--bd);background:var(--bg);white-space:nowrap}
+.chain .n.a{border-color:var(--l1)} .chain .n.b{border-color:var(--l2)}
+.chain .n.c{border-color:var(--l3)} .chain .n.d{border-color:var(--l4)}
+.chain .n.e{border-color:var(--l5)} .chain .ar{color:var(--tx3)}
+details{border:1px solid var(--bd);border-radius:9px;padding:9px 13px;margin:8px 0;background:var(--panel);font-size:13.3px}
+details summary{cursor:pointer;color:var(--tx);font-weight:500}
+details[open] summary{margin-bottom:7px}
+details p{margin:5px 0;color:var(--tx2)}
+footer{max-width:1000px;margin:0 auto;padding:6px 24px 44px;color:var(--tx3);font-size:12.5px}
+@media print{
+  header,.hdbar{display:none}
+  .stp{break-inside:avoid;border-color:#ccc}
+  body{font-size:11pt}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="hd">
+    <h1>systemd 服务实操手册 · 自启 / 状态 / 日志 / 定时</h1>
+    <p class="sub">按 EX200 考纲裁剪：只写考纲里有的（启停服务与开机自启、默认目标、日志与保留、at/cron/timer、时间服务、中断启动）。每一步都写了「成功长什么样」，勾选框记进度。<b>本手册随进度生长</b>：走完一组再加下一组，没在本机验证过的内容不写进来。</p>
+    <div class="hdbar">
+      <div class="nav">
+        <a href="/maps/labs.html">手册总览</a>
+        <a href="/maps/pkgs-lab.html">软件包实操手册</a>
+        <a href="/maps/storage-lab.html">存储实操手册</a>
+        <a href="/maps/rhcsa.html">RHCSA 学习地图</a>
+        <a href="/study-log/">学习日志</a>
+      </div>
+      <div class="spacer"></div>
+      <span class="prog">进度 <b id="prog">0/0</b></span>
+      <button id="tbtn" type="button">切换深色</button>
+      <button id="reset" type="button">清空勾选</button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<section>
+  <h2>0 · 先把「服务」拆成三个维度 <span class="n">不建立这个模型，后面全是死记</span></h2>
+  <p class="lead">考纲只写了一句「启动和停止服务，配置服务以在系统启动时自动启动」，但它背后是三个互相独立的维度。绝大多数错误判断，都是把这三个混成一个「服务开没开」。</p>
+
+  <div class="tblwrap">
+  <table>
+    <tr><th>维度</th><th>问的问题</th><th>查法</th><th>取值</th></tr>
+    <tr><td>有没有</td><td>这个 unit 存不存在</td><td><code>systemctl cat X</code></td><td>有 / <code>No such file</code></td></tr>
+    <tr><td>开机启不启</td><td>下次开机跑不跑</td><td><code>is-enabled</code></td><td>enabled / disabled / masked / static</td></tr>
+    <tr><td>现在跑不跑</td><td>此刻有没有进程</td><td><code>is-active</code></td><td>active / inactive / failed</td></tr>
+  </table>
+  </div>
+
+  <div class="chain">
+    <span class="n a">is-enabled = enabled</span><span class="ar">+</span>
+    <span class="n b">is-active = active</span><span class="ar">=</span>
+    <span class="n d">正常服务</span>
+  </div>
+  <div class="chain">
+    <span class="n a">disabled</span><span class="ar">+</span>
+    <span class="n b">active</span><span class="ar">=</span>
+    <span class="n c">正在跑，但重启后不会自己回来</span>
+  </div>
+  <div class="chain">
+    <span class="n a">enabled</span><span class="ar">+</span>
+    <span class="n b">inactive</span><span class="ar">=</span>
+    <span class="n e">设了开机自启，但现在没跑</span>
+  </div>
+
+  <div class="note"><b>命令各管一维，互不越界</b>：<code>start / stop / restart</code> 只动进程（影响 is-active）；<code>enable / disable</code> 只动链接（影响 is-enabled）；<code>mask / unmask</code> 封锁的是「还能不能被启动」。</div>
+</section>
+
+<section>
+  <h2>1 · 看清现状（纯只读）<span class="n">一个字节都不要改</span></h2>
+
+  <div class="stp" data-id="T1">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T1"><span class="sid">T1</span> 两维一起查，别只看一个</label><span class="tag">is-enabled / is-active</span></div>
+    <div class="stb">
+      <pre>systemctl is-enabled crond sshd firewalld
+systemctl is-active  crond sshd firewalld
+systemctl status crond --no-pager -l</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>is-enabled</code> 三行 <code>enabled</code>；<code>is-active</code> 三行 <code>active</code>；<code>status</code> 头部能读到两行关键信息 —— <code>Loaded: loaded (/usr/lib/systemd/system/crond.service; enabled; preset: enabled)</code> 和 <code>Active: active (running)</code>。</div>
+      <div class="warn"><b>参数别打错</b>：是 <code>--no-pager</code>（不是 <code>--no-paper</code>），是 <code>-l</code>（小写字母 L，不是数字 1）。打错时 systemd 只会甩一句 <code>unrecognized option</code>，不给你任何提示。</div>
+      <div class="note"><b><code>preset:</code> 是什么</b>：装机时按厂商策略自动设定的默认值（Rocky/RHEL 一般是 enabled）。它只解释「这个状态是怎么来的」，不影响你现在的操作。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="T2">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T2"><span class="sid">T2</span> 造一个「disabled 但正在跑」</label><span class="tag">disable 不动进程</span></div>
+    <div class="stb">
+      <pre>ls -l /etc/systemd/system/multi-user.target.wants/crond.service
+systemctl disable crond
+systemctl is-enabled crond
+systemctl is-active  crond
+ls -l /etc/systemd/system/multi-user.target.wants/crond.service</pre>
+      <div class="ok"><b>成功长什么样</b>：动手前能看到 <code>crond.service -&gt; /usr/lib/systemd/system/crond.service</code> 的软链接；<code>disable</code> 打印 <code>Removed "/etc/systemd/system/multi-user.target.wants/crond.service".</code>；之后是 <b>disabled + active</b>；最后 <code>ls</code> 报 <code>No such file or directory</code>。</div>
+      <div class="why"><b>disable 只做一件事</b>：删掉 <code>wants/</code> 目录里那个指向 unit 文件的软链接。它<b>不碰</b> <code>/usr/lib/systemd/system/crond.service</code>，也<b>不碰</b>正在运行的进程。所以「服务还在跑」和「不自启」同时成立，很正常。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="T3">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T3"><span class="sid">T3</span> 造一个「enabled 但没在跑」</label><span class="tag">stop 不动自启</span></div>
+    <div class="stb">
+      <pre>systemctl stop crond
+systemctl is-enabled crond
+systemctl is-active  crond
+systemctl start crond
+systemctl enable crond
+systemctl is-enabled crond; systemctl is-active crond</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>stop</code> 之后是 <b>enabled + inactive (dead)</b>，<code>status</code> 里 <code>Main PID</code> 那行消失、出现 <code>Duration: 2d 2h 50min</code>；<code>start</code> 之后 <b>Main PID 换成一个新数字</b>（原来的进程已经退出）；最后两行回到 <b>enabled + active</b>。</div>
+      <div class="warn"><b>只拿 crond 练，不要动 sshd</b>。你是通过 SSH 连进去的，<code>systemctl stop sshd</code> 会当场断开，而且它不会自己回来。</div>
+      <div class="note"><b>PID 一定会变</b>：<code>start</code> / <code>restart</code> 都是「新建进程」，不是「恢复原进程」。看到 PID 变了不是异常，是必然。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="T4">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T4"><span class="sid">T4</span> mask 的因果链：连 enable 都被拒</label><span class="tag">/etc 遮盖 /usr/lib</span></div>
+    <div class="stb">
+      <pre>systemctl mask crond
+systemctl is-enabled crond
+systemctl enable crond
+systemctl start crond
+systemctl status crond --no-pager -l | head -6
+ls -l /etc/systemd/system/crond.service</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>mask</code> 打印 <code>Created symlink /etc/systemd/system/crond.service -&gt; /dev/null.</code>；<code>is-enabled</code> 返回 <b>masked</b>；<code>enable</code> 失败并说 <code>Failed to enable unit: Unit file /etc/systemd/system/crond.service is masked.</code>；<code>start</code> 失败并说 <code>Failed to start crond.service: Unit crond.service is masked.</code>；<code>status</code> 显示 <code>Loaded: masked (Reason: Unit crond.service is masked.)</code> 但 <code>Active: active (running)</code>。</div>
+      <div class="why"><b>为什么 enable 也会失败</b>：<code>enable</code> 要先读 unit 的 <code>[Install]</code> 段，才知道该往哪个 target 的 <code>wants/</code> 里建链接。mask 之后这个路径指向 <code>/dev/null</code>，内容是空的，读不到 <code>WantedBy=</code> —— 于是无从下手。<b>顺序只能是 unmask → enable。</b></div>
+      <div class="warn"><b>两个同名文件，别搞混</b>：<code>/etc/systemd/system/multi-user.target.wants/crond.service</code> 是开机自启的链接；<code>/etc/systemd/system/crond.service</code> 是 mask 的遮盖。在 <code>wants/</code> 目录里 <code>ls</code> 看到还指向 <code>/usr/lib</code>，<b>不代表 mask 没生效</b>。</div>
+      <div class="note"><b>mask 不杀进程</b>：正在跑的 crond 依然是 active。mask 只回答「以后还能不能启动它」，不回答「现在要不要停」。日志里会多一条 <code>crond.service: Current command vanished from the unit file</code> —— 这是 systemd 发现 <code>ExecStart=</code> 不见了，只警告、不终止。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="T5">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T5"><span class="sid">T5</span> unmask 之后为什么直接回 enabled</label><span class="tag">wants 链接一直没动</span></div>
+    <div class="stb">
+      <pre>systemctl unmask crond
+systemctl is-enabled crond
+systemctl is-active crond
+ls -l /etc/systemd/system/crond.service
+systemctl status crond --no-pager -l | head -4</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>unmask</code> 打印 <code>Removed "/etc/systemd/system/crond.service".</code>；随后 <b>enabled + active</b>；<code>ls</code> 报 <code>No such file or directory</code>（遮盖已删）；<code>status</code> 回到 <code>Loaded: loaded (/usr/lib/systemd/system/crond.service; enabled; ...)</code>。</div>
+      <div class="why"><b>关键</b>：<code>unmask</code> 删的只是 <code>/etc/systemd/system/crond.service -&gt; /dev/null</code> 这个遮盖。<code>wants/</code> 里的自启链接<b>从 mask 到 unmask 全程没被碰过</b>，所以一揭开就还是 enabled。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="T6">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T6"><span class="sid">T6</span> 三个数字的口径：157 / 23 / 16</label><span class="tag">list-unit-files vs list-units</span></div>
+    <div class="stb">
+      <pre>systemctl list-unit-files --type=service --no-legend | wc -l
+systemctl list-unit-files --type=service --state=enabled --no-legend | wc -l
+systemctl list-units  --type=service --state=running --no-legend | wc -l
+systemctl list-units  --type=service --all --no-legend | wc -l</pre>
+      <div class="ok"><b>成功长什么样</b>：四个数依次约 <b>157 / 23 / 16 / 110</b>（服务装得不一样会浮动，重点是理解口径）。</div>
+      <div class="why"><b>口径</b>：<code>list-unit-files</code> 数的是<b>磁盘上的 unit 文件</b>（静态视角，含没加载的）；<code>list-units</code> 数的是<b>已经加载进内存的 unit</b>（运行时视角，默认只列 active，<code>--all</code> 才全看）。所以 16 和 23 分属两个集合，本来就不该相等。</div>
+      <div class="warn"><b>★ 这条是今天最坑的一处</b>：<code>list-unit-files --state=running</code> 会输出 <code>0 unit files listed.</code>、<b>stderr 一片空白</b>、<b>退出码 1</b>。因为 <code>running</code> 是 sub-state，<code>list-unit-files</code> 不认；但如果你接了 <code>| wc -l</code>，退出码换成 <code>wc</code> 的 0，你只会看到一个「0」，看着像「没有服务在跑」。<br>正确做法：<code>--state=running</code> 只配 <code>list-units</code>；要判成败，别接管道。</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>2 · 附录：命令速查 <span class="n">按「我想干什么」查</span></h2>
+  <div class="tblwrap">
+  <table>
+    <tr><th>我想…</th><th>命令</th><th>注意</th></tr>
+    <tr><td>看它现在跑不跑</td><td><code>systemctl is-active X</code></td><td>只看进程，不看自启</td></tr>
+    <tr><td>看它开机会不会自己起</td><td><code>systemctl is-enabled X</code></td><td>只看链接，不看进程</td></tr>
+    <tr><td>设成开机自启并立刻启动</td><td><code>systemctl enable --now X</code></td><td>等于 enable + start</td></tr>
+    <tr><td>取消自启并立刻停止</td><td><code>systemctl disable --now X</code></td><td>等于 disable + stop</td></tr>
+    <tr><td>彻底封死，连手动启都不行</td><td><code>systemctl mask X</code></td><td>先 unmask 才能 enable</td></tr>
+    <tr><td>看这个服务最近干了什么</td><td><code>systemctl status X</code></td><td>尾部日志是摘要，完整要用 journalctl</td></tr>
+    <tr><td>看 unit 文件全文</td><td><code>systemctl cat X</code></td><td>会显示实际生效的路径</td></tr>
+    <tr><td>看它挂在哪个 target 下</td><td><code>systemctl show -p WantedBy X</code></td><td>决定 enable 往哪建链接</td></tr>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>3 · 自测 <span class="n">先自己答，再展开</span></h2>
+
+  <details><summary>1. <code>disable</code> 之后服务还在跑，正常吗？</summary>
+    <p>正常。<code>disable</code> 只删 <code>wants/</code> 里的软链接，影响的是「下次开机」，不影响当前进程。要停得另外 <code>stop</code>。</p></details>
+
+  <details><summary>2. <code>stop</code> 之后 <code>is-enabled</code> 为什么还是 enabled？</summary>
+    <p>因为 <code>stop</code> 走的是进程控制路径，<code>enable</code> 走的是链接路径，两者根本不通信。</p></details>
+
+  <details><summary>3. mask 之后为什么连 <code>enable</code> 都失败？</summary>
+    <p><code>enable</code> 需要读 unit 的 <code>[Install]</code> 段才知道往哪建链接；mask 让该路径指向 <code>/dev/null</code>，读不到内容，于是无从下手。必须 <code>unmask</code> 先。</p></details>
+
+  <details><summary>4. <code>unmask</code> 之后为什么直接回到 enabled 而不是 disabled？</summary>
+    <p>因为 <code>wants/</code> 里的自启链接在 mask 期间从未被删除。<code>unmask</code> 只删掉 <code>/etc/systemd/system/X -&gt; /dev/null</code> 这个遮盖。</p></details>
+
+  <details><summary>5. <code>list-unit-files --state=running</code> 为什么返回 0？</summary>
+    <p><code>running</code> 是 sub-state，<code>list-unit-files</code> 不接受；它静默返回 <code>0 unit files listed.</code> 并给退出码 1。<code>running</code> 只能配 <code>list-units</code>。</p></details>
+
+  <details><summary>6. <code>static</code> 的服务能 enable 吗？</summary>
+    <p>不能。static 表示 unit 文件里没有 <code>[Install]</code> 段，<code>enable</code> 没有可写的目标，会报 <code>The unit files have no installation config</code>。本机例子：<code>dnf-makecache.service</code>。</p></details>
+</section>
+
+</main>
+
+<footer>
+  <p>实验机实测整理，随进度更新。配套：<a href="/maps/labs.html">手册总览</a> ｜ <a href="/maps/rhcsa.html">RHCSA 学习地图</a></p>
+</footer>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  var KEY = 'systemd-lab-theme';
+  var CKEY = 'systemd-lab-checks';
+  var btn = document.getElementById('tbtn');
+  function paintBtn(){ btn.textContent = root.dataset.theme === 'dark' ? '切换浅色' : '切换深色'; }
+  try{
+    var s = localStorage.getItem(KEY);
+    if(s){ root.dataset.theme = s; }
+    else if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){ root.dataset.theme = 'dark'; }
+  }catch(e){}
+  paintBtn();
+  btn.addEventListener('click', function(){
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    try{ localStorage.setItem(KEY, root.dataset.theme); }catch(e){}
+    paintBtn();
+  });
+
+  var boxes = [].slice.call(document.querySelectorAll('.ck'));
+  var prog = document.getElementById('prog');
+  function paintProg(){
+    var n = boxes.filter(function(b){ return b.checked; }).length;
+    prog.textContent = n + '/' + boxes.length;
+  }
+  function save(){
+    var st = {};
+    boxes.forEach(function(b){ if(b.checked){ st[b.dataset.k] = 1; } });
+    try{ localStorage.setItem(CKEY, JSON.stringify(st)); }catch(e){}
+  }
+  var saved = {};
+  try{ saved = JSON.parse(localStorage.getItem(CKEY) || '{}') || {}; }catch(e){ saved = {}; }
+  boxes.forEach(function(b){
+    if(saved[b.dataset.k]){ b.checked = true; }
+    b.addEventListener('change', function(){
+      b.closest('.stp').classList.toggle('done', b.checked);
+      paintProg(); save();
+    });
+    b.closest('.stp').classList.toggle('done', b.checked);
+  });
+  paintProg();
+
+  document.getElementById('reset').addEventListener('click', function(){
+    boxes.forEach(function(b){ b.checked = false; b.closest('.stp').classList.remove('done'); });
+    paintProg();
+    try{ localStorage.removeItem(CKEY); }catch(e){}
+  });
+})();
+</script>
+</body>
+</html>
