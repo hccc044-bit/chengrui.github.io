@@ -290,7 +290,61 @@ systemctl list-unit-files --type=service --state=enabled --no-legend | wc -l</pr
 </section>
 
 <section>
-  <h2>2 · 附录：命令速查 <span class="n">按「我想干什么」查</span></h2>
+  <h2>2 · target 与默认启动目标 <span class="n">考纲：配置系统自动启动进入某个特定目标</span></h2>
+
+  <div class="stp" data-id="T11">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T11"><span class="sid">T11</span> <code>default.target</code> 不是服务，是一个指针</label><span class="tag">get-default 读的就是这条软链</span></div>
+    <div class="stb">
+      <pre>systemctl get-default
+ls -l /etc/systemd/system/default.target
+readlink -f /etc/systemd/system/default.target
+systemctl cat multi-user.target | head -20</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>get-default</code> 打印 <b>multi-user.target</b>；<code>ls -l</code> 显示 <code>/etc/systemd/system/default.target -&gt; /usr/lib/systemd/system/multi-user.target</code>；<code>readlink -f</code> 把这条链一路解析到底。</div>
+      <div class="why"><b>机制</b>：开机时 systemd 只启动一个东西 —— <code>default.target</code>。它本身没有进程、没有 <code>ExecStart=</code>，<b>只是一条软链接</b>，指向真正的目标（这里是 multi-user.target）。systemd 顺着链接找到它，再按它的 <code>Wants=</code>/<code>Requires=</code> 把一整片服务拉起来。<br>所以「换默认运行级别」在文件系统上就是<b>换一条软链接</b>，没有别的魔法。</div>
+      <div class="note"><b>两个位置</b>：<code>/etc/systemd/system/default.target</code> 是管理员可改的（set-default 写这里）；<code>/usr/lib/systemd/system/</code> 是发行版自带的。前者优先级更高。你改 /usr/lib 里的东西，下次包升级会被覆盖。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="T12">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T12"><span class="sid">T12</span> 同值 <code>set-default</code>：无输出、exit 0、什么都不变</label><span class="tag">幂等</span></div>
+    <div class="stb">
+      <pre>systemctl set-default multi-user.target; echo "exit=$?"
+ls -l /etc/systemd/system/default.target</pre>
+      <div class="ok"><b>成功长什么样</b>：<b>一行输出都没有</b>，<code>exit=0</code>，链接的时间戳<b>不变</b>（说明没重建）。</div>
+      <div class="why"><b>判据</b>：<code>set-default</code> 发现目标已经是它，就直接返回。想确认真的生效，不能看「有没有输出」，要看 <code>get-default</code> 和 <code>ls -l</code> 的结果 —— <b>无输出既可能是成功，也可能是没执行</b>。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="T13">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T13"><span class="sid">T13</span> 切到 graphical 再切回来：graphical 包含 multi-user</label><span class="tag">依赖树</span></div>
+    <div class="stb">
+      <pre>systemctl set-default graphical.target; echo "exit=$?"
+ls -l /etc/systemd/system/default.target; systemctl get-default
+systemctl list-dependencies graphical.target --no-pager | head -20
+systemctl set-default multi-user.target; echo "exit=$?"
+systemctl get-default</pre>
+      <div class="ok"><b>成功长什么样</b>：切换时打印两行 —— <code>Removed "/etc/systemd/system/default.target".</code> 再 <code>Created symlink ... → ...graphical.target.</code>；<code>get-default</code> 立刻跟着变；依赖树第一层是 <code>display-manager.service</code>、<code>systemd-update-utmp-runlevel.service</code>、<b><code>multi-user.target</code></b>。最后必须切回 <b>multi-user.target</b>。</div>
+      <div class="why"><b>包含关系</b>：<code>graphical.target</code> 在 <code>multi-user.target</code> 之上<b>再加</b>一个图形登录管理器（display-manager.service）。所以设成 graphical <b>不会丢掉</b> multi-user 那一层 —— 它是超集，不是替代品。</div>
+      <div class="warn"><b>本机的实际情况</b>：<code>/usr/lib/systemd/system/display-manager.service</code> <b>不存在</b>（Minimal 没装桌面），<code>list-units --all</code> 里它是 <code>not-found inactive dead</code>。所以即使设成 graphical，开机也只是「想拉但拉不到」，照样进 multi-user。<b>不要用「有没有图形界面」判断 set-default 成没成功</b>，要看软链接。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="T14">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T14"><span class="sid">T14</span> <code>isolate</code> 改「现在」，<code>set-default</code> 改「下次」</label><span class="tag">两条互不通信的路</span></div>
+    <div class="stb">
+      <pre>systemctl isolate multi-user.target; echo "exit=$?"
+systemctl get-default
+ls -l /etc/systemd/system/default.target
+systemctl show -p AllowIsolate multi-user.target rescue.target</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>isolate</code> <b>无输出、exit 0</b>；<code>get-default</code> 和链接<b>都不变</b>；<code>AllowIsolate</code> 两个都是 <b>yes</b>。</div>
+      <div class="why"><b>和 stop/enable 一模一样的结构</b>：<code>isolate</code> 只切换<b>当前</b>运行目标（会停掉不属于新目标的服务），不碰 <code>default.target</code> 链接；<code>set-default</code> 只改<b>下次开机</b>用的链接，不动当前运行状态。两者正交。</div>
+      <div class="danger"><b>不要远程 isolate rescue/emergency</b>：<code>rescue.target</code> 只拉起 <code>sysinit.target</code> + <code>rescue.service</code>，网络、sshd 全部不在里面 —— 从 SSH 执行会<b>立刻失联</b>。这类操作只能在 VMware 控制台做。手册里只观察依赖树，不动手。</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>3 · 附录：命令速查 <span class="n">按「我想干什么」查</span></h2>
   <div class="tblwrap">
   <table>
     <tr><th>我想…</th><th>命令</th><th>注意</th></tr>
@@ -306,12 +360,16 @@ systemctl list-unit-files --type=service --state=enabled --no-legend | wc -l</pr
     <tr><td>只重读配置（不断连接）</td><td><code>systemctl reload X</code></td><td>PID 不变；先查 <code>CanReload</code></td></tr>
     <tr><td>这个服务支不支持 reload</td><td><code>systemctl show -p CanReload X</code></td><td>no 时硬 reload 退出码 3</td></tr>
     <tr><td>它为什么不能 enable</td><td><code>systemctl is-enabled X</code></td><td>返回 <code>static</code> 就是没有 [Install] 段</td></tr>
+    <tr><td>看当前默认启动目标</td><td><code>systemctl get-default</code></td><td>读的是 <code>default.target</code> 软链</td></tr>
+    <tr><td>改下次开机的目标</td><td><code>systemctl set-default X.target</code></td><td>只改链接，不影响当前</td></tr>
+    <tr><td>立刻切到某个目标</td><td><code>systemctl isolate X.target</code></td><td>只改现在，不改默认；rescue 会断网</td></tr>
+    <tr><td>看某个目标包含哪些东西</td><td><code>systemctl list-dependencies X.target</code></td><td>看的是依赖树，不是配置</td></tr>
   </table>
   </div>
 </section>
 
 <section>
-  <h2>3 · 自测 <span class="n">先自己答，再展开</span></h2>
+  <h2>4 · 自测 <span class="n">先自己答，再展开</span></h2>
 
   <details><summary>1. <code>disable</code> 之后服务还在跑，正常吗？</summary>
     <p>正常。<code>disable</code> 只删 <code>wants/</code> 里的软链接，影响的是「下次开机」，不影响当前进程。要停得另外 <code>stop</code>。</p></details>
@@ -339,6 +397,18 @@ systemctl list-unit-files --type=service --state=enabled --no-legend | wc -l</pr
 
   <details><summary>9. <code>--state=enable</code> 和 <code>--state=enabled</code> 差在哪？</summary>
     <p>前者是拼错的非法值，但 <code>systemctl</code> 不校验，直接过滤出 0 个、<b>stderr 全空</b>、退出码 1；后者才是合法值（23 个）。<b><code>--state</code> 只是过滤器，不是校验器。</b></p></details>
+
+  <details><summary>10. <code>default.target</code> 是什么？<code>get-default</code> 看的是什么？</summary>
+    <p>它<b>不是服务</b>，是一条软链接（<code>/etc/systemd/system/default.target</code>），指向真正的 target（本机是 multi-user.target）。<code>get-default</code> 就是读这条链接，所以它和 <code>ls -l</code> 看的是同一个对象。</p></details>
+
+  <details><summary>11. <code>graphical.target</code> 和 <code>multi-user.target</code> 谁包含谁？</summary>
+    <p>graphical <b>包含</b> multi-user（依赖树里 multi-user 是它的子项），只多了一个 display-manager.service。所以设成 graphical 不会丢服务。</p></details>
+
+  <details><summary>12. <code>isolate</code> 之后 <code>get-default</code> 会变吗？</summary>
+    <p>不会。<code>isolate</code> 换的是<b>当前</b>运行目标，<code>set-default</code> 改的是<b>下次开机</b>的链接，两条路互不通信。和 <code>stop</code> / <code>enable</code> 的关系完全同构。</p></details>
+
+  <details><summary>13. 什么时候该用 rescue / emergency？</summary>
+    <p><code>rescue</code>：挂载本地文件系统、拉起 <code>sysinit.target</code> + <code>rescue.service</code>（单用户、要 root 密码），修 fstab、改服务配置。<code>emergency</code>：只起 <code>emergency.service</code>，连本地文件系统都只读挂 <code>/</code>，用于根分区都起不来的情况。<b>两者都没有网络和 sshd，只能走控制台。</b></p></details>
 </section>
 
 </main>
