@@ -1429,7 +1429,7 @@ const MAP = [
         ['journalctl --vacuum-size=200M', '按体积裁掉旧日志；按时间用 <code>--vacuum-time=7d</code>']
       ],
       k: ['→ 数据在 <code>/run/log/journal/&lt;machine-id&gt;/</code>，<code>/run</code> 是 tmpfs，<b>默认重启即丢</b>。<code>/run/systemd/journal/</code> 只是 socket 目录，不是数据。',
-          '★ 持久化的开关是<b>建不建 <code>/var/log/journal</code> 这个目录</b>，不是改某个配置项；建完还要重启 journald 才生效。',
+          '★ 持久化的开关是<b><code>/var/log/journal</code> 这个目录在不在</b>（这正是 <code>Storage=auto</code> 的语义）。两条路：自己 <code>mkdir</code> + <code>systemd-tmpfiles --create --prefix</code> → <code>2755 root:systemd-journal</code> + ACL（组员可读）；写 <code>Storage=persistent</code> 让 journald 自建 → 只有 <code>755 root:root</code>（组员读不到）。建完都要 restart journald。',
           '★ <code>journalctl --flush</code> 在 <code>/var/log/journal</code> 不存在时<b>零输出、退出码 0</b> —— 静默什么也没做，不能当验收。',
           '★ <code>-p err</code> 是「≤ err」。数字越小越严重：<code>-p 2</code>（crit 及以上）永远比 <code>-p 3</code>（err 及以上）少。',
           '★ <code>/etc/rsyslog.conf</code> 里 <code>*.info;mail.none;authpriv.none;cron.none → /var/log/messages</code>，所以 <b>debug 级只进 journal</b>；<code>cron.*</code> 又被 <code>cron.none</code> 排到 <code>/var/log/cron</code>。',
@@ -1510,8 +1510,51 @@ const MAP = [
         '<p>顺带：<code>cron.*</code> 被 <code>cron.none</code> 排到 <code>/var/log/cron</code>。想找「只进 journal」的证据，必须挑它过滤掉的级别，别拿默认 info 去试。</p>',
         '<div class="lbl">存在哪：/run 是 tmpfs</div>',
         '<p>数据在 <code>/run/log/journal/&lt;machine-id&gt;/</code>，<code>/run</code> 是 tmpfs ⇒ <b>默认重启即丢</b>。<code>/run/systemd/journal/</code> 只是 socket 目录（dev-log、socket、stdout、streams），不是数据。</p>',
-        '<p>持久化的开关是<b>建不建 <code>/var/log/journal</code> 这个目录</b>：<code>Storage=auto</code> 的含义就是「目录存在才持久化」。建完还要 <code>restart systemd-journald</code> 并 <code>--flush</code>。★ 而 <code>--flush</code> 在目录不存在时<b>零输出、退出码 0</b>，静默什么也不做。</p>',
+        '<p>持久化的开关是<b><code>/var/log/journal</code> 这个目录在不在</b>：<code>Storage=auto</code> 的含义就是「目录存在才持久化」。建完 <code>restart systemd-journald</code> 就够了 —— 重启时它自己就建好 <code>&lt;machine-id&gt;/system.journal</code> 并预分配，<b>不需要 <code>--flush</code></b>。★ <code>--flush</code> 在目录不存在时<b>零输出、退出码 0</b>，静默什么也不做；目录存在时它也只是把 <code>/run</code> 里的旧记录搬过去。</p>',
         '<p>★ <code>-p err</code> 是「≤ err」（emerg / alert / crit / err），不是等于；实测 <code>-p 3</code> 13 行、<code>-p 2</code> 7 行 —— <b>数字越小越严重、条数越少</b>。<span class="ok">判据：日志不上线不是 rsyslog 坏了，先看 journald 这一层有没有收到。</span></p>'
+      ]
+    },
+    {
+      q: '日志持久化有两条路 —— mkdir + systemd-tmpfiles，和 Storage=persistent —— 都能让日志活过重启，差别到底在哪？为什么普通用户在其中一条路上读不到日志？',
+      a: [
+        '<div class="lbl">机制一样，差在目录权限</div>',
+        '<p>两条路的触发条件完全相同：<b><code>/var/log/journal</code> 存在，就持久化</b>。journald 启动时会在 <code>&lt;machine-id&gt;/</code> 下建 <code>system.journal</code> 并预分配（本机 8 MiB）。区别只在于<b>这个目录是谁建的、按什么权限建的</b>：</p>',
+        '<ul>',
+        '<li>自己 <code>mkdir</code> 再 <code>systemd-tmpfiles --create --prefix /var/log/journal</code> → <code>drwxr-sr-x+ root systemd-journal</code>（<b>2755 + ACL</b>）</li>',
+        '<li>写 <code>Storage=persistent</code> 让 journald 自建 → <code>drwxr-xr-x. root root</code>（<b>755，没有 s 位、没有 <code>+</code></b>）</li>',
+        '</ul>',
+        '<p>2755 里的 setgid 让目录下新建的文件继承 <code>systemd-journal</code> 组，ACL 再补上组读权限；755 <code>root:root</code> 则只留给 root。所以「加了组就能读」只在第一条路上成立。</p>',
+        '<div class="lbl">本机对照实测</div>',
+        '<p>把一个普通用户加进 <code>systemd-journal</code> 组之后：tmpfiles 那条路上 <code>journalctl</code> <b>退出 0</b>；<code>Storage=persistent</code> 那条路上报 <code>No journal files were opened due to insufficient permissions</code>，<b>退出 1</b>。同一个人、同一个组、同一个文件系统，只因为目录权限不同，结果相反。</p>',
+        '<p><span class="ok">判据：考试两种做法都算对；生产上选 <code>mkdir</code> + <code>systemd-tmpfiles</code>，因为「组员能读」是可预期的。验收一律看 <code>ls -ld</code> 输出里有没有 <code>s</code> 位和 <code>+</code>，别只看目录在不在。</span></p>'
+      ]
+    },
+    {
+      q: 'journalctl --disk-usage 从 1.6M 跳到 8.0M，是日志条目变多了吗？--vacuum-size=1M 打印 freed 3.6M，之后还显示 8.0M，是没删干净吗？',
+      a: [
+        '<div class="lbl">8M 是预分配，不是内容</div>',
+        '<p>journal 文件按<b>固定槽位</b>预分配，本机一个槽 8 MiB。新建的 <code>system.journal</code> 表观大小就是 <code>8388608</code>，而里面当时只有 <b>17 行</b>记录。变的是<b>预留的空间</b>，不是日志条数。</p>',
+        '<div class="lbl">三个命令，三个数</div>',
+        '<ul>',
+        '<li><code>ls -l</code> → <b>表观大小</b>：归档文件和活动文件都显示 8MB</li>',
+        '<li><code>du -h</code> → <b>实际占用块</b>：归档 3.7M、活动 8.0M（同一个文件，两个命令两个答案）</li>',
+        '<li><code>journalctl --disk-usage</code> → <b>实际块之和</b>：11.6M（8.0 + 3.6）</li>',
+        '</ul>',
+        '<div class="lbl">vacuum 只删归档，永远删不到 0</div>',
+        '<p><code>--vacuum-*</code> 只处理 <code>system@&lt;machine-id&gt;-…journal</code> 这些<b>归档</b>文件，正在写的 <code>system.journal</code> 一个都不碰。11.6M − 3.6M = 8.0M，正好对上 <code>freed 3.6M</code>。所以<b>活动文件有多大，<code>--disk-usage</code> 的下限就是多大</b>。</p>',
+        '<p><span class="ok">判据：裁之前先 <code>journalctl --rotate</code>，把活动文件切出去；判成败看 <code>freed</code> 的数字和前后差值，别拿「还剩多少」当唯一标准。</span></p>'
+      ]
+    },
+    {
+      q: 'SystemMaxUse 和 SystemMaxFileSize 是什么关系？用 drop-in 改了上限，怎么确认它真的生效了？',
+      a: [
+        '<div class="lbl">单文件大小默认是总量的 1/8</div>',
+        '<p><code>SystemMaxFileSize</code> 没写时默认 = <b><code>SystemMaxUse</code> / 8</b>。本机设 <code>SystemMaxUse=20M</code> 后，rotate 出的新活动文件正好 <code>2621440</code> 字节（2.5 MiB）。<b>调小总量会连带把单个文件切小</b>，这容易让人误以为「配置写错了」。</p>',
+        '<div class="lbl">那个 1.0G 也不是写死的</div>',
+        '<p><code>journald.conf</code> 里 <code>#SystemMaxUse=</code> 是<b>注释掉</b>的。默认值是算法算出来的：<b><code>/var/log</code> 所在文件系统大小的 10%</b>。本机根分区 <code>10875830272</code> 字节 × 10% ≈ 1.01 GiB，所以显示 <code>max 1.0G</code>。</p>',
+        '<div class="lbl">验收用 cat-config，不是 cat</div>',
+        '<p><code>systemd-analyze cat-config systemd/journald.conf</code> 会把主文件和所有 <code>.conf.d/*.conf</code> <b>合并后</b>打印。只 <code>cat</code> 主文件看不到 drop-in，会误判成「我没改过东西」。运行时状态再对一眼：<code>journalctl -u systemd-journald -b | grep "Journal ("</code> → <code>is 6.2M, max 20.0M, 13.7M free.</code></p>',
+        '<p><span class="ok">判据：<code>SystemMaxUse=</code> 管空间、<code>MaxRetentionSec=</code> 管时间，<code>--vacuum-*</code> 只是立刻执行一次 —— 写进配置才是长期生效。上限 ≠ 目标值，没到阈值 journald 不会主动清理，<code>--disk-usage</code> 停在 11.6M 是正常的。</span></p>'
       ]
     }
   ]
@@ -1674,6 +1717,22 @@ const MAP = [
         '<li><b>管道会换掉退出码</b>：<code>cmd | head</code> 之后 <code>$?</code> 是 <code>head</code> 的 0。<code>rpm -ivh --test /tmp/nonexist.rpm | head</code> 拿到 0，去掉管道才是 1。要判成败，重定向到文件再 <code>echo $?</code>。</li>',
         '</ul>',
         '<p>★ 和前面几条同源：<b>没报错不是证据，能区分两种可能才是证据。</b></p>'
+      ]
+    },
+    {
+      q: '敲了 rm 文件，它反问 remove regular file …?，我把下一条命令敲了进去 —— 文件删了吗？那条命令执行了吗？',
+      a: [
+        '<div class="lbl">两件事都没发生</div>',
+        '<p>root 的 <code>rm</code> 是 <code>alias rm=\'rm -i\'</code>（写在 <code>/root/.bashrc</code> 里）。它停下来等你回答 y/n，<b>你敲的任何一行都会被当成回答</b>：不是 <code>y</code> 就等于「不删」，而且那一行命令<b>本身不会被执行</b>。</p>',
+        '<div class="lbl">本机实测的症状</div>',
+        '<p>drop-in 文件还在、journald 的 <code>MainPID</code> 没变、<code>max</code> 一直显示 <code>20.0M</code> —— 看起来像「配置改不回去」，真实原因是<b>既没删也没重启</b>。人最容易在这里往「配置项写错了」的方向查，其实是命令压根没跑。</p>',
+        '<div class="lbl">三种绕法</div>',
+        '<ul>',
+        '<li><code>\\rm 文件</code> —— 反斜杠跳过别名，走真命令</li>',
+        '<li><code>rm -f 文件</code> —— <code>-f</code> 让 <code>-i</code> 不生效</li>',
+        '<li>先确认：<code>type rm</code> / <code>alias rm</code>，别假设自己用的是哪个 <code>rm</code></li>',
+        '</ul>',
+        '<p><span class="ok">判据：一条命令「没有任何输出」时，先确认它到底执行了没有 —— 看副作用（文件在不在、<code>MainPID</code> 变没变），不要假设它跑过了。这和「无输出既可能是成功、也可能是没执行」是同一族教训。</span></p>'
       ]
     }
   ]
