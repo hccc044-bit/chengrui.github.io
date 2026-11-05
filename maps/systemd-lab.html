@@ -344,7 +344,7 @@ systemctl show -p AllowIsolate multi-user.target rescue.target</pre>
 </section>
 
 <section>
-  <h2>3 · journald：日志在哪、怎么筛、怎么留 <span class="n">考纲：定位和解读系统日志</span></h2>
+  <h2>3 · journald：日志在哪、怎么筛、怎么留 <span class="n">考纲：定位并解读系统日志 / 保留系统日志</span></h2>
 
   <div class="stp" data-id="T15">
     <div class="sth"><label><input type="checkbox" class="ck" data-k="T15"><span class="sid">T15</span> 先把「日志到底落在哪」查清楚</label><span class="tag">journalctl --disk-usage</span></div>
@@ -413,18 +413,94 @@ ls -d /var/log/journal; echo "after_exit=$?"</pre>
   </div>
 
   <div class="stp" data-id="T20">
-    <div class="sth"><label><input type="checkbox" class="ck" data-k="T20"><span class="sid">T20</span> 打开持久化：建目录就行，不用改配置</label><span class="tag">尚未在本机验证</span></div>
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T20"><span class="sid">T20</span> 打开持久化：建目录 + 修权限 + 重启 journald</label><span class="tag">已在本机跑通</span></div>
     <div class="stb">
-      <pre>mkdir /var/log/journal
+      <pre>mkdir -p /var/log/journal
+ls -ld /var/log/journal
 systemd-tmpfiles --create --prefix /var/log/journal
 ls -ld /var/log/journal
 systemctl restart systemd-journald
-journalctl --flush; echo "flush_exit=$?"
-ls /var/log/journal/*/ | head
+journalctl -u systemd-journald -b --no-pager | grep "Journal ("
+ls -ld /var/log/journal/*/
+ls -l /var/log/journal/*/*.journal
 journalctl --disk-usage</pre>
-      <div class="ok"><b>成功长什么样</b>：<code>ls -ld</code> 显示 <code>drwxr-sr-x ... root systemd-journal</code>（<b>2755</b>，不是普通 mkdir 出来的 <code>755 root:root</code>）；重启 journald 后 <code>--flush</code> 让 <code>/var/log/journal/&lt;machine-id&gt;/</code> 里出现 <code>*.journal</code>；<code>--disk-usage</code> 的数字跟着涨。</div>
-      <div class="why"><b>为什么建目录就够</b>：<code>journald.conf</code> 里 <code>Storage=auto</code>（默认，常被注释掉）的语义就是「<b><code>/var/log/journal</code> 存在才持久化</b>」。改成 <code>persistent</code> 效果一样，但建目录更直接。<br>权限别自己 <code>chown</code>：<code>systemd-tmpfiles --create</code> 会按 <code>/usr/lib/tmpfiles.d/systemd.conf:28</code> 的规则把目录修成 <code>root:systemd-journal 2755</code>（本机已实测这一步的输出）。</div>
-      <div class="warn"><b>★ 尚未在本机验证</b>：今天只验到 <code>systemd-tmpfiles --create</code> 改权限那一步（实测 <code>mkdir</code> 后是 <code>root:root 755</code>，tmpfiles 之后变 <code>2755 root systemd-journal</code>）。<code>restart journald</code> + <code>--flush</code> 产生 <code>*.journal</code> 这一步<b>还没跑</b>，明天从这里开始。勾这个框之前先亲手验一遍。</div>
+      <div class="ok"><b>成功长什么样</b>（本机实测，逐条对）：
+      <br>① 第一次 <code>ls -ld</code>：<code>drwxr-xr-x. root root</code> —— 755，<b>没有 s 位、没有 <code>+</code></b>
+      <br>② tmpfiles 之后：<code>drwxr-sr-x+ root systemd-journal</code> —— <b>2755 + ACL</b>（<code>+</code> 就是 ACL 的标记）
+      <br>③ 重启后 <code>grep</code> 那行：从 <code>Runtime Journal (/run/log/journal/...)</code> 变成 <code>System Journal (/var/log/journal/&lt;machine-id&gt;) is 8.0M, max 1.0G</code>
+      <br>④ <code>ls</code> 出现 <code>&lt;machine-id&gt;/system.journal</code>，大小 <b>8388608</b>（8 MiB）
+      <br>⑤ <code>--disk-usage</code> 从 1.6M 变 <b>8.0M</b></div>
+      <div class="why"><b>为什么 mkdir 就够</b>：<code>Storage=</code> 默认是 <code>auto</code>（配置里通常是注释掉的），语义只有一句 —— <b><code>/var/log/journal</code> 存在才持久化</b>。所以要动手的是目录，不是配置项。</div>
+      <div class="warn"><b>★ 权限不是装饰</b>：<code>systemd-tmpfiles --create</code> 这一步不能省。本机实测：把 <code>natasha</code> 加进 <code>systemd-journal</code> 组后，<b>2755 + ACL</b> 的目录下她能读（<code>journalctl</code> 退出 0）；而 <code>Storage=persistent</code> 自动建出来的 <b>755 root:root</b> 目录下，她照样读不到（<code>No journal files were opened due to insufficient permissions</code>，退出 1）。</div>
+      <div class="note"><b>★ 修正旧说法</b>：本手册上一版写「restart 之后目录还是空的，要 <code>--flush</code> 才出现」——<b>不准确</b>。本机重测：<code>restart</code> 一返回，<code>&lt;machine-id&gt;/</code> 和 8MB 的 <code>system.journal</code> <b>当场就在</b>。<code>--flush</code> 干的是「把 <code>/run</code> 里已有记录搬过去」，而 restart 启动时自己已经刷过一遍了，所以再敲 <code>--flush</code> <b>一行输出都没有</b>。<br><b>判据用 <code>grep "Journal ("</code> 那行 Runtime→System 的切换，别用「目录里有没有文件」</b>。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="T21">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T21"><span class="sid">T21</span> 另一种解法：<code>Storage=persistent</code> 会自己建目录</label><span class="tag">但权限是 root:root</span></div>
+    <div class="stb">
+      <pre>cp /etc/systemd/journald.conf /tmp/jc.bak
+mv /var/log/journal /tmp/jw
+sed -i '/^Storage=/d' /etc/systemd/journald.conf
+sed -i 's/^\[Journal\]/[Journal]\nStorage=persistent/' /etc/systemd/journald.conf
+systemctl restart systemd-journald
+ls -ld /var/log/journal /var/log/journal/*/
+ls -l /var/log/journal/*/*.journal
+systemd-analyze cat-config systemd/journald.conf | tail -6
+# 还原
+mv /var/log/journal /tmp/jauto; mv /tmp/jw /var/log/journal
+cp /tmp/jc.bak /etc/systemd/journald.conf; systemctl restart systemd-journald
+rm -rf /tmp/jauto /tmp/jc.bak</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>/var/log/journal</code> 和 <code>&lt;machine-id&gt;/</code> <b>自动出现</b>（你根本没 mkdir），但权限是 <code>drwxr-xr-x. root root</code>、文件 <code>-rw-r-----. root root</code> —— <b>没有 s 位、没有 <code>+</code></b>。<code>cat-config</code> 尾部能看到 <code>Storage=persistent</code>。</div>
+      <div class="why"><b>两条路的区别只有权限</b>：<br>· <code>Storage=persistent</code>：journald 自己 mkdir，来不及跑 tmpfiles ⇒ <b>只有 root 能读</b><br>· <code>mkdir</code> + <code>systemd-tmpfiles --create</code>：目录是 <code>2755 root:systemd-journal</code> + ACL ⇒ <b>组员也能读</b><br>考试两种都算对；生产上建议后者（或补一次 <code>systemd-tmpfiles --create</code>）。</div>
+      <div class="note"><b><code>systemd-analyze cat-config</code> 才是「配置到底生效了没」的正确验收</b>：它把主文件 + 所有 <code>.conf.d/*.conf</code> 合并后打印出来。<code>cat /etc/systemd/journald.conf</code> 只能看到一份，看不到 drop-in。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="T22">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T22"><span class="sid">T22</span> 保留策略：rotate 之后才轮得到 vacuum</label><span class="tag">--vacuum-size / -time / -files</span></div>
+    <div class="stb">
+      <pre>journalctl --rotate
+ls -l /var/log/journal/*/*.journal
+du -h /var/log/journal/*/*.journal
+journalctl --disk-usage
+journalctl --vacuum-size=1M
+journalctl --disk-usage
+journalctl --vacuum-time=1s
+journalctl --vacuum-files=1</pre>
+      <div class="ok"><b>成功长什么样</b>（本机实测数字）：
+      <br>· <code>--rotate</code> 后多出一个 <code>system@&lt;machine-id&gt;-0000…-00065f81….journal</code>
+      <br>· <code>ls -l</code>：归档文件 <b>8388608</b>，活动文件也是 8388608 —— <b>两个都显示 8MB</b>
+      <br>· <code>du -h</code>：归档 <b>3.7M</b>，活动 <b>8.0M</b> —— 同一个文件，两个命令两个答案
+      <br>· <code>--disk-usage</code>：<b>11.6M</b>（8.0 + 3.6）
+      <br>· <code>--vacuum-size=1M</code>：<code>Deleted archived journal … (3.6M)</code> + <code>freed 3.6M</code>，之后 <code>--disk-usage</code> = <b>8.0M</b>
+      <br>· <code>--vacuum-time=1s</code>：<code>freed 0B</code>（没有归档文件可删了）</div>
+      <div class="why"><b>为什么 <code>ls</code> 和 <code>du</code> 不一样</b>：journal 文件是按固定大小<b>预分配</b>的（这里是 8 MiB 一个槽），文件名里的 <code>8388608</code> 是<b>表观大小</b>；归档时只保留实际写过的块，<code>du</code> 看到的是<b>实际占用</b>（3.7M）。<code>--disk-usage</code> 统计的是实际块。</div>
+      <div class="warn"><b>★ <code>--vacuum-*</code> 永远删不到 0</b>：它只删<b>归档</b>文件（<code>system@…</code>），<b>正在写的 <code>system.journal</code> 一个都不碰</b>。所以活动文件有多大，<code>--disk-usage</code> 的下限就是多大。<b>别拿「删完还是 8.0M」判断 vacuum 失败</b>。</div>
+      <div class="note"><b>三个 vacuum 的区别</b>：<code>--vacuum-size=</code> 按总量砍、<code>--vacuum-time=</code> 按时间砍、<code>--vacuum-files=</code> 按文件个数砍。都只作用于归档文件，都需要 <code>--rotate</code> 先把活动文件切出去。本机 <code>--vacuum-files=1</code> 时只剩一个活动文件，输出 <code>freed 0B</code>。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="T23">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T23"><span class="sid">T23</span> 持久限制：<code>SystemMaxUse</code> / <code>MaxRetentionSec</code></label><span class="tag">用 drop-in，不改进主配置</span></div>
+    <div class="stb">
+      <pre>mkdir -p /etc/systemd/journald.conf.d
+printf '[Journal]\nSystemMaxUse=20M\n' > /etc/systemd/journald.conf.d/99-lab.conf
+systemctl restart systemd-journald
+journalctl -u systemd-journald -b --no-pager | grep "Journal ("
+systemd-analyze cat-config systemd/journald.conf | tail -6
+journalctl --rotate; ls -l /var/log/journal/*/system.journal
+# 还原
+rm /etc/systemd/journald.conf.d/99-lab.conf
+systemctl restart systemd-journald</pre>
+      <div class="ok"><b>成功长什么样</b>（本机全文）：
+      <br>· 默认：<code>System Journal (…) is 6.2M, max 1.0G, 1.0G free.</code>
+      <br>· 加 drop-in 后：<b><code>is 6.2M, max 20.0M, 13.7M free.</code></b>
+      <br>· <code>cat-config</code> 尾部多出一段 <code># /etc/systemd/journald.conf.d/99-lab.conf</code> + <code>SystemMaxUse=20M</code>
+      <br>· rotate 后新的活动文件变成 <b>2621440</b>（2.5 MiB）</div>
+      <div class="why"><b>为什么新文件是 2.5M</b>：<code>SystemMaxFileSize</code> 没写时默认 = <b><code>SystemMaxUse</code> / 8</b>。20M ÷ 8 = 2.5M，实测 <code>2621440</code> 正好对上。<b>调小 <code>SystemMaxUse</code> 会连带把单个文件切小</b>。</div>
+      <div class="note"><b>两个维度别混</b>：<code>SystemMaxUse=</code> 限<b>总量</b>（按空间淘汰），<code>MaxRetentionSec=</code> 限<b>保留时长</b>（按时间淘汰，如 <code>1week</code>）。<code>--vacuum-*</code> 是<b>立即执行一次</b>，写进配置才是<b>以后一直执行</b>。</div>
+      <div class="warn"><b>★ 为什么用 drop-in 而不是改 <code>/etc/systemd/journald.conf</code></b>：drop-in 好还原、升级不冲突、一个文件一件事。<b>但验收必须用 <code>systemd-analyze cat-config</code></b> —— 只看主文件会以为「我没改过」，实际被 drop-in 改了。</div>
     </div>
   </div>
 </section>
@@ -450,6 +526,14 @@ journalctl --disk-usage</pre>
     <tr><td>改下次开机的目标</td><td><code>systemctl set-default X.target</code></td><td>只改链接，不影响当前</td></tr>
     <tr><td>立刻切到某个目标</td><td><code>systemctl isolate X.target</code></td><td>只改现在，不改默认；rescue 会断网</td></tr>
     <tr><td>看某个目标包含哪些东西</td><td><code>systemctl list-dependencies X.target</code></td><td>看的是依赖树，不是配置</td></tr>
+    <tr><td>查最近日志</td><td><code>journalctl -n 50 --no-pager</code></td><td>不加 <code>--no-pager</code> 会进 less</td></tr>
+    <tr><td>只看某个服务的</td><td><code>journalctl -u X</code></td><td>等价于按 <code>_SYSTEMD_UNIT</code> 过滤</td></tr>
+    <tr><td>只看错误及以上</td><td><code>journalctl -p err</code></td><td>是「≤ err」，含 crit/alert/emerg</td></tr>
+    <tr><td>只看本次开机</td><td><code>journalctl -b</code></td><td><code>-b -1</code> 是上一次</td></tr>
+    <tr><td>看日志占多大</td><td><code>journalctl --disk-usage</code></td><td>统计<b>实际块</b>，不是 <code>ls</code> 的表观大小</td></tr>
+    <tr><td>让日志重启后还在</td><td><code>mkdir /var/log/journal</code> + <code>systemd-tmpfiles --create --prefix /var/log/journal</code> + restart journald</td><td>tmpfiles 那步决定组员能不能读</td></tr>
+    <tr><td>立即清理日志</td><td><code>journalctl --rotate</code> 再 <code>--vacuum-size=100M</code></td><td>只删归档，活动文件不碰</td></tr>
+    <tr><td>永久限制日志体积</td><td><code>SystemMaxUse=</code> 写进 drop-in 再 restart</td><td>用 <code>systemd-analyze cat-config</code> 验收</td></tr>
   </table>
   </div>
 </section>
@@ -495,6 +579,18 @@ journalctl --disk-usage</pre>
 
   <details><summary>13. 什么时候该用 rescue / emergency？</summary>
     <p><code>rescue</code>：挂载本地文件系统、拉起 <code>sysinit.target</code> + <code>rescue.service</code>（单用户、要 root 密码），修 fstab、改服务配置。<code>emergency</code>：只起 <code>emergency.service</code>，连本地文件系统都只读挂 <code>/</code>，用于根分区都起不来的情况。<b>两者都没有网络和 sshd，只能走控制台。</b></p></details>
+
+  <details><summary>14. <code>restart systemd-journald</code> 之后 <code>/var/log/journal</code> 里就一定有 <code>*.journal</code> 吗？</summary>
+    <p>有。<code>&lt;machine-id&gt;/system.journal</code> 在 journald 启动时就建好并预分配（本机 8 MiB），不需要额外 <code>--flush</code>。判据看 <code>journalctl -u systemd-journald -b | grep "Journal ("</code> 那行是 Runtime 还是 System。</p></details>
+
+  <details><summary>15. <code>--disk-usage</code> 从 1.6M 变 8.0M，是日志条目变多了吗？</summary>
+    <p>不是。新建的 <code>system.journal</code> 预分配 8 MiB 固定槽位，而里面当时只有 <b>17 行</b>记录。变的是<b>预分配的空间</b>，不是内容。<code>ls -l</code> 看表观大小、<code>du</code> 看实际块，<code>--disk-usage</code> 跟的是实际块。</p></details>
+
+  <details><summary>16. <code>--vacuum-size=1M</code> 打印 <code>freed 3.6M</code>，但 <code>--disk-usage</code> 还有 8.0M，失败了吗？</summary>
+    <p>没失败。它删的是<b>归档文件</b>（<code>system@…</code>，实际占 3.6M），活动文件 <code>system.journal</code> 本身占 8.0M 且<b>永远不会被 vacuum 删掉</b>。总量从 11.6M 降到 8.0M，正好少 3.6M。</p></details>
+
+  <details><summary>17. <code>Storage=persistent</code> 和 <code>mkdir + systemd-tmpfiles</code> 差在哪？</summary>
+    <p>都能持久化，差在<b>权限</b>：前者 journald 自己建目录 ⇒ <code>755 root:root</code>，非 root 读不到；后者靠 tmpfiles 修成 <code>2755 root:systemd-journal</code> + ACL ⇒ <code>systemd-journal</code> 组成员能读（本机用 natasha 实测：前者 exit=1，后者 exit=0）。</p></details>
 </section>
 
 </main>
