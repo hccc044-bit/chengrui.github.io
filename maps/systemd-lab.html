@@ -501,6 +501,8 @@ systemctl restart systemd-journald</pre>
       <div class="why"><b>为什么新文件是 2.5M</b>：<code>SystemMaxFileSize</code> 没写时默认 = <b><code>SystemMaxUse</code> / 8</b>。20M ÷ 8 = 2.5M，实测 <code>2621440</code> 正好对上。<b>调小 <code>SystemMaxUse</code> 会连带把单个文件切小</b>。</div>
       <div class="note"><b>两个维度别混</b>：<code>SystemMaxUse=</code> 限<b>总量</b>（按空间淘汰），<code>MaxRetentionSec=</code> 限<b>保留时长</b>（按时间淘汰，如 <code>1week</code>）。<code>--vacuum-*</code> 是<b>立即执行一次</b>，写进配置才是<b>以后一直执行</b>。</div>
       <div class="warn"><b>★ 为什么用 drop-in 而不是改 <code>/etc/systemd/journald.conf</code></b>：drop-in 好还原、升级不冲突、一个文件一件事。<b>但验收必须用 <code>systemd-analyze cat-config</code></b> —— 只看主文件会以为「我没改过」，实际被 drop-in 改了。</div>
+      <div class="warn"><b>★ 撤销时踩的坑（本机实测）</b>：root 的 <code>rm</code> 是 <code>alias rm='rm -i'</code>（写在 <code>/root/.bashrc:20</code>）。敲 <code>rm /etc/systemd/journald.conf.d/99-lab.conf</code> 会停在 <code>rm: remove regular file …?</code>，<b>你紧接着敲的那条命令会被当成它的回答</b> —— 不是 <code>y</code> 就等于「不删」，而且那条命令<b>根本不会执行</b>。实测结果：drop-in 留了下来、journald 的 MainPID 还是上一次重启的，<code>max</code> 一直显示 <code>20.0M</code>，看起来像「配置改不回去」，其实是<b>既没删也没重启</b>。<br>绕法：<code>\rm 文件</code>（反斜杠跳过别名）或 <code>rm -f 文件</code>；删完 <code>ls</code> 确认空目录，再 restart。</div>
+      <div class="note"><b>写 drop-in 别用 <code>echo</code></b>：<code>echo '[Journal]\nSystemMaxUse=20M'</code> 会原样写进 <code>\n</code>（bash 的 <code>echo</code> 默认不解释转义），<code>cat</code> 出来是一行带反斜杠的乱内容。用 <code>printf</code>（本步给的写法）或 <code>echo -e</code>。</div>
     </div>
   </div>
 </section>
@@ -591,6 +593,12 @@ systemctl restart systemd-journald</pre>
 
   <details><summary>17. <code>Storage=persistent</code> 和 <code>mkdir + systemd-tmpfiles</code> 差在哪？</summary>
     <p>都能持久化，差在<b>权限</b>：前者 journald 自己建目录 ⇒ <code>755 root:root</code>，非 root 读不到；后者靠 tmpfiles 修成 <code>2755 root:systemd-journal</code> + ACL ⇒ <code>systemd-journal</code> 组成员能读（本机用 natasha 实测：前者 exit=1，后者 exit=0）。</p></details>
+
+  <details><summary>18. 日志状态里那个 <code>max 1.0G</code> 是谁定的？</summary>
+    <p>不是配置里写死的——<code>journald.conf</code> 里 <code>#SystemMaxUse=</code> 是<b>注释掉的</b>。它是默认算法：<b>取 <code>/var/log</code> 所在文件系统大小的 10%</b>。本机根分区 <code>10875830272</code> 字节 × 10% ≈ 1.01 GiB，所以显示 1.0G。<code>SystemMaxFileSize</code> 默认再取它的 1/8。<b>改 <code>SystemMaxUse</code> 会连带改单文件大小</b>（20M ⇒ 2.5M，实测 2621440）。</p></details>
+
+  <details><summary>19. 敲 <code>rm 文件</code> 时它问了一句 <code>remove regular file …?</code>，文件删了吗？</summary>
+    <p>看你回了什么。root 的 <code>rm</code> 是 <code>alias rm='rm -i'</code>（<code>/root/.bashrc</code>），回车不是 <code>y</code> 就<b>不删</b>；更坑的是<b>你下一条命令会被它当成回答</b>，于是那条命令也不会执行。绕法：<code>\rm 文件</code> 或 <code>rm -f 文件</code>。</p></details>
 </section>
 
 </main>
