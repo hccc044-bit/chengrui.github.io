@@ -1734,6 +1734,24 @@ const MAP = [
         '</ul>',
         '<p><span class="ok">判据：一条命令「没有任何输出」时，先确认它到底执行了没有 —— 看副作用（文件在不在、<code>MainPID</code> 变没变），不要假设它跑过了。这和「无输出既可能是成功、也可能是没执行」是同一族教训。</span></p>'
       ]
+    },
+    {
+      q: '一个第三方二进制报 version `GLIBCXX_3.4.30` not found。`objdump -T` 里看到它只要求 GLIBC_2.25，而系统 glibc 是 2.28 —— 能说明依赖没问题吗？',
+      a: [
+        '<div class="lbl">先分清是哪一套版本号</div>',
+        '<ul>',
+        '<li><code>GLIBC_2.28</code> 是 <b>glibc</b> 的符号版本，<code>ldd --version</code> 看系统到哪一版</li>',
+        '<li><code>GLIBCXX_3.4.30</code> 是 <b>libstdc++</b> 的符号版本，跟着 GCC 走：RHEL/Rocky 8 自带 GCC 8.5，只到 <code>GLIBCXX_3.4.25</code>；到 <code>3.4.30</code> 得是更新的 GCC</li>',
+        '</ul>',
+        '<p>libstdc++ 依赖 glibc，但它们是<b>两个包、两条独立的版本线</b>。<span class="no">glibc 够用推不出 libstdc++ 够用。</span></p>',
+        '<div class="lbl">系统那一侧怎么查</div>',
+        '<pre>ldd --version | head -1\nstrings /usr/lib64/libstdc++.so.6 | grep GLIBCXX | sort -V | tail -3</pre>',
+        '<div class="lbl">objdump -T 能说明什么、不能说明什么</div>',
+        '<p>它列的是这个二进制<b>自己引用的</b>符号及最低版本需求 —— 是「至少需要」，不是「系统已满足」。而且它只覆盖直接引用到的部分：被依赖库内部还要什么，这里看不到。<span class="no">拿它反过来推断「系统版本够」，就是把需求当成了现状。</span></p>',
+        '<div class="lbl">绕法只有一条正路</div>',
+        '<p>换<b>静态链接 / musl 静态版</b>，不依赖系统 glibc。<code>LD_LIBRARY_PATH</code> 能借用别人的 libstdc++，但顶不了 glibc —— glibc 和动态加载器（<code>ld-linux</code>）是绑在一起的；conda 同理，它带自己的 libstdc++，动不了系统 glibc。</p>',
+        '<p>★ 和实例 8 同族：<b>报错在说哪个对象，就去查哪个对象；两条独立的版本线不能互推。</b></p>'
+      ]
     }
   ]
 }

@@ -579,6 +579,30 @@ echo $?</pre>
     <p>不会，除非命令行临时 <code>--enablerepo=那个仓库</code>，或用 <code>dnf config-manager --set-enabled</code> 永久打开。</p></details>
 </section>
 
+<section>
+  <h2>10 · 附：第三方二进制的库版本依赖 <span class="n">不在考纲，排障常用：跑不起来是先分清楚缺哪个库</span></h2>
+
+  <div class="stp" data-id="P22">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="P22"><span class="sid">P22</span> 判断第三方二进制缺的是 glibc 还是 libstdc++</label><span class="tag">ldd / strings / objdump -T</span></div>
+    <div class="stb">
+      <pre>ldd --version | head -1
+strings /usr/lib64/libstdc++.so.6 | grep GLIBCXX | sort -V | tail -3
+rpm -q glibc libstdc++
+objdump -T /path/to/binary | grep -E 'GLIBCXX_|GLIBC_' | awk '{print $NF}' | sort -u | head</pre>
+      <div class="ok"><b>成功长什么样</b>（实测，RHEL/Rocky 8 一代）：<br>
+      · <code>ldd --version</code> → <code>ldd (GNU libc) 2.28</code><br>
+      · <code>strings</code> 那条 → 最高只到 <code>GLIBCXX_3.4.25</code>（GCC 8.5 的上限）<br>
+      · <code>rpm -q</code> → 两个包都在，说明<b>不是没装，是版本低</b><br>
+      · <code>objdump -T</code> → 列出二进制要的 <code>GLIBC_</code> 最高 2.25、<code>GLIBCXX_</code> 最高 3.4.25；和报错里的 <code>3.4.30</code> 一比，差的是 libstdc++，不是 glibc</div>
+      <div class="warn"><b>三个容易读错的地方</b>：<br>
+      ① <b><code>GLIBC_2.x</code> 和 <code>GLIBCXX_3.4.x</code> 是两条独立的线</b>（glibc / libstdc++），一条够不代表另一条够；<br>
+      ② <code>objdump -T</code> 列的是<b>最低需求</b>，不是系统现状 —— 拿它推断「系统版本够」是读错了层；它也只覆盖直接引用到的符号；<br>
+      ③ <b><code>LD_LIBRARY_PATH</code> 借用别人的 libstdc++ 可行，但顶不了 glibc</b>（glibc 和动态加载器 <code>ld-linux</code> 绑在一起）；conda 同理，它带自己的 libstdc++，动不了系统 glibc。</div>
+      <div class="note"><b>正路</b>：换静态链接版 / musl 静态版，绕开系统 glibc。另一条是装更新的工具链（<code>gcc-toolset</code>）再把它的 libstdc++ 路径挂上去 —— <b>尚未在本机验证</b>。</div>
+    </div>
+  </div>
+</section>
+
 </main>
 
 <footer>
