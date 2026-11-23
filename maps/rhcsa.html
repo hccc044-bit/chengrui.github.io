@@ -1556,6 +1556,30 @@ const MAP = [
         '<p><code>systemd-analyze cat-config systemd/journald.conf</code> 会把主文件和所有 <code>.conf.d/*.conf</code> <b>合并后</b>打印。只 <code>cat</code> 主文件看不到 drop-in，会误判成「我没改过东西」。运行时状态再对一眼：<code>journalctl -u systemd-journald -b | grep "Journal ("</code> → <code>is 6.2M, max 20.0M, 13.7M free.</code></p>',
         '<p><span class="ok">判据：<code>SystemMaxUse=</code> 管空间、<code>MaxRetentionSec=</code> 管时间，<code>--vacuum-*</code> 只是立刻执行一次 —— 写进配置才是长期生效。上限 ≠ 目标值，没到阈值 journald 不会主动清理，<code>--disk-usage</code> 停在 11.6M 是正常的。</span></p>'
       ]
+    },
+    {
+      q: 'at 和 cron 都是「到点干活」，什么时候用哪个？一条命令交给 at 之后，靠什么保证它真的会执行？',
+      a: [
+        '<div class="lbl">一次性 vs 周期性</div>',
+        '<p><code>at</code> 提交的是<b>只跑一次</b>的任务：进队列、到点执行、执行完自己从队列消失（<code>atq</code> 就查不到了）。<code>cron</code> 写的是<b>周期性</b>条目：一直留在表里，到点触发，下个周期照样触发。判据很直白 —— 这件事只做一次用 <code>at</code>，每天/每周都要做用 <code>cron</code>。</p>',
+        '<div class="lbl">真正执行的是 atd，不是 at 命令</div>',
+        '<p><code>at</code> 命令只干一件事：把脚本塞进 <code>/var/spool/at/</code>。到点执行是 <code>atd</code> 干的。所以「<code>atq</code> 里有条目」<b>不等于</b>「它会跑」—— <code>atd</code> 没起，任务就一直躺在队列里等到天荒地老。<code>at</code> 包没装时，连 <code>atd.service</code> 都不存在。</p>',
+        '<div class="lbl">查、撤、看内容各一个命令</div>',
+        '<p><code>atq</code> 列队列（编号 / 执行时刻 / 队列字母）、<code>atrm &lt;编号&gt;</code> 撤掉还没执行的任务、<code>at -c &lt;编号&gt;</code> 把它到点要执行的整份脚本打印出来。普通用户只看得到自己的任务，root 看全部。</p>',
+        '<p><span class="ok">判据：一次性用 <code>at</code>（依赖 <code>atd</code>），周期性用 <code>cron</code>（依赖 <code>crond</code>）。验「会不会执行」不看 <code>atq</code> 有没有条目，看 <code>is-active atd</code> + 到点后产物在不在。</span></p>'
+      ]
+    },
+    {
+      q: 'at 任务到点跑了，可脚本里写的相对路径文件没出现在预想的位置，打印的东西也一个字都没看到 —— 这两件事的同一个根因是什么？',
+      a: [
+        '<div class="lbl">它不在你的登录 shell 里跑</div>',
+        '<p>到点时 <code>atd</code> 直接用 <code>/bin/sh</code> 执行队列里那份脚本：<b>没有终端、没有交互、不读 <code>~/.bashrc</code></b>。所以你 <code>export</code> 的变量、设的 <code>alias</code>、此前 <code>cd</code> 过的目录，一样都带不过去。<code>at -c &lt;编号&gt;</code> 打印的那份脚本里，<code>PWD</code> / <code>HOME</code> / <code>PATH</code> 都是<b>提交那一刻的快照</b>（连当时的 SSH 连接信息都在），不是执行时的现状。</p>',
+        '<div class="lbl">没有终端，标准输出就没有去处</div>',
+        '<p>交互式敲命令，输出回到你的屏幕；at 任务没有屏幕，标准输出和标准错误会被 <code>atd</code> 收集成邮件发给提交者 —— 本机没配 MTA 就是石沉大海。想留证据只能自己重定向：<code>date &gt; /tmp/x.log 2&gt;&amp;1</code>。</p>',
+        '<div class="lbl">两条保险</div>',
+        '<p>① 命令和文件路径一律写<b>绝对路径</b>，别指望 <code>PWD</code>；② 需要的环境变量在任务里重新声明（或直接 <code>env VAR=... cmd</code>），不要依赖交互式 shell 里已经设好的那份。</p>',
+        '<p><span class="ok">判据：at 任务的可见性要自己造 —— 绝对路径 + 显式重定向 + 脚本里自带环境。<code>at -c &lt;编号&gt;</code> 是唯一能提前看到「它到底会执行什么」的地方，别等跑到点才猜。</span></p>'
+      ]
     }
   ]
 },

@@ -508,7 +508,55 @@ systemctl restart systemd-journald</pre>
 </section>
 
 <section>
-  <h2>4 · 附录：命令速查 <span class="n">按「我想干什么」查</span></h2>
+  <h2>4 · 计划任务：at 一次性任务 <span class="n">考纲：调度任务（at / cron / timer）</span></h2>
+  <p class="lead">「调度任务」在考纲里是三套东西：<code>at</code> 一次性、<code>cron</code> 周期性、<code>systemd timer</code> 靠 unit。先走 <code>at</code> —— 它最小，也最能暴露那个共同问题：<b>计划任务到底在什么环境里执行</b>。本组 3 步已在本机跑通。</p>
+
+  <div class="stp" data-id="T24">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T24"><span class="sid">T24</span> 补上 <code>at</code> 包，让 <code>atd</code> 真的在跑</label><span class="tag">rpm -q / enable --now / is-active</span></div>
+    <div class="stb">
+      <pre>rpm -q at || dnf install -y at
+systemctl enable --now atd
+systemctl is-enabled atd
+systemctl is-active atd
+systemctl list-unit-files 'atd*' --no-pager</pre>
+      <div class="ok"><b>成功长什么样</b>：<code>rpm -q at</code> 输出 <code>at-3.1.23-…</code>（先查再装，已装就不重复装）；<code>is-enabled</code> 一行 <code>enabled</code>，<code>is-active</code> 一行 <code>active</code>；<code>list-unit-files</code> 里能读到 <code>atd.service</code> 的 <code>enabled</code>。</div>
+      <div class="warn"><b>★ 装包 ≠ 能跑</b>：<code>at</code> 命令只是往队列里投递，真正到点执行的是 <code>atd</code>。<code>atd</code> 没起，任务投得进去、永远不执行，而且 <code>atq</code> 还照常显示 —— 这是最容易自我欺骗的一种「看着成功」。</div>
+      <div class="note"><b>别和 cron 混</b>：<code>at</code> 属于 <code>at</code> 包（服务 <code>atd</code>），<code>cron</code> 属于 <code>cronie</code> 包（服务 <code>crond</code>）。两套服务于两套命令，各装各的。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="T25">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T25"><span class="sid">T25</span> 投一个一次性任务，看它到点自己从队列消失</label><span class="tag">at now + 1 minute / atq</span></div>
+    <div class="stb">
+      <pre>date                                    <span class="c"># 先记下现在几点</span>
+echo 'date > /tmp/atdown.log' | at now + 1 minute
+atq                                     <span class="c"># 编号 / 执行时刻 / 队列 a</span>
+<span class="c"># 等过了那个时刻再查（本机实测等到 75 秒）</span>
+atq
+ls -l /tmp/atdown.log
+cat /tmp/atdown.log</pre>
+      <div class="ok"><b>成功长什么样</b>（本机实测）：投递时打印 <code>job 2 at Mon Nov 23 15:18:00 2026</code>（编号递增，不一定是 1）；<code>atq</code> 一行 <code>2&nbsp;&nbsp;Mon Nov 23 15:18:00 2026 a root</code>；到点后再 <code>atq</code> <b>没有任何输出</b>；<code>/tmp/atdown.log</code> 出现，<code>-rw-r--r--. 1 root root 32</code>、时间戳正是任务时刻，<code>cat</code> 出来是那一刻的 <code>date</code>。</div>
+      <div class="why"><b><code>atq</code> 变空是成功，不是任务丢了</b>：任务执行完就被从队列里取走，一次性任务本来就不留条目。判断「真跑了」只能看<b>产物</b>（文件、日志），不能看队列。</div>
+      <div class="note"><b><code>now + 1 minute</code> 会取整</b>：at 的时间粒度是分钟，15:17:30 提交 → 执行时刻是 <b>15:18:00</b>，不是 15:18:30。所以「等了 60 秒文件还没出现」很正常，多等半分钟再判。</div>
+    </div>
+  </div>
+
+  <div class="stp" data-id="T26">
+    <div class="sth"><label><input type="checkbox" class="ck" data-k="T26"><span class="sid">T26</span> 用 <code>at -c</code> 看它到点到底执行什么</label><span class="tag">环境快照 + here-doc 包命令</span></div>
+    <div class="stb">
+      <pre>atq                       <span class="c"># 先拿到编号</span>
+at -c 3 | head -30         <span class="c"># 前半段：环境变量</span>
+at -c 3 | tail -8          <span class="c"># 末尾：真正执行的命令</span></pre>
+      <div class="ok"><b>成功长什么样</b>（本机实测）：开头是 <code>#!/bin/sh</code> + <code># atrun uid=0 gid=0</code> + <code># mail root 0</code>；中间一大段 <code>VAR=…; export VAR</code>，能读到 <code>PWD</code> / <code>HOME</code> / <code>SHELL</code> / <code>LOGNAME</code> / <code>PATH</code>（连提交时的 <code>SSH_CONNECTION</code> 都在）；结尾是 <code>cd /root || { … }</code> 加一段 <code>&lt;&lt; 'marcinDELIMITER…'</code> 包裹的<b>你写的命令原文</b>。</div>
+      <div class="why"><b>at 存的是「一份脚本」，不是「一条命令」</b>：它把你的命令套进一个自带环境的脚本里，环境是<b>提交那一刻的快照</b>。任务执行时不读 <code>~/.bashrc</code>、不继承你后来 <code>export</code> 的东西 —— 所以相对路径的落点是快照里的 <code>PWD</code>，你后来 cd 到哪儿都没用。</div>
+      <div class="warn"><b>★ 没有终端，输出就没人看</b>：at 任务的标准输出会被 <code>atd</code> 收集成邮件发给提交者，本机没配 MTA 就等于丢了。要证据必须自己重定向：<code>cmd &gt; /tmp/x.log 2&gt;&amp;1</code>。</div>
+      <div class="note"><b><code>marcinDELIMITER…</code> 不是乱码</b>：那是 at 用 here-doc 包你命令的分隔符，固定前缀 + 随机串，防止你的命令里出现同样的字符串提前截断。</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>5 · 附录：命令速查 <span class="n">按「我想干什么」查</span></h2>
   <div class="tblwrap">
   <table>
     <tr><th>我想…</th><th>命令</th><th>注意</th></tr>
@@ -536,12 +584,16 @@ systemctl restart systemd-journald</pre>
     <tr><td>让日志重启后还在</td><td><code>mkdir /var/log/journal</code> + <code>systemd-tmpfiles --create --prefix /var/log/journal</code> + restart journald</td><td>tmpfiles 那步决定组员能不能读</td></tr>
     <tr><td>立即清理日志</td><td><code>journalctl --rotate</code> 再 <code>--vacuum-size=100M</code></td><td>只删归档，活动文件不碰</td></tr>
     <tr><td>永久限制日志体积</td><td><code>SystemMaxUse=</code> 写进 drop-in 再 restart</td><td>用 <code>systemd-analyze cat-config</code> 验收</td></tr>
+    <tr><td>投一条只跑一次的任务</td><td><code>echo 'cmd' | at now + 1 minute</code></td><td>依赖 <code>atd</code> 在跑；时间取整到分钟</td></tr>
+    <tr><td>看队列里还有什么没跑</td><td><code>atq</code></td><td>普通用户只看到自己的，root 看全部</td></tr>
+    <tr><td>撤掉还没到点的任务</td><td><code>atrm &lt;编号&gt;</code></td><td>已执行完的撤不掉，也不在队列里</td></tr>
+    <tr><td>看它到点会执行什么</td><td><code>at -c &lt;编号&gt;</code></td><td>含提交时刻的环境快照，相对路径按它算</td></tr>
   </table>
   </div>
 </section>
 
 <section>
-  <h2>5 · 自测 <span class="n">先自己答，再展开</span></h2>
+  <h2>6 · 自测 <span class="n">先自己答，再展开</span></h2>
 
   <details><summary>1. <code>disable</code> 之后服务还在跑，正常吗？</summary>
     <p>正常。<code>disable</code> 只删 <code>wants/</code> 里的软链接，影响的是「下次开机」，不影响当前进程。要停得另外 <code>stop</code>。</p></details>
